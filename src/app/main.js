@@ -28,6 +28,7 @@ import { createI18n } from "./i18n.js";
 import { createProjectRepository } from "./persistence.js";
 import { createResearchController } from "./research/controller.js";
 import { routeFromHashValue } from "./research/state.js";
+import { captureScrollPositions, restoreScrollPositions } from "./ui-state.js";
 import { APPLICATION_VERSION } from "./version.js";
 
 const app = document.querySelector("#app");
@@ -170,15 +171,23 @@ function assignStableFocusKeys(root) {
 
 function replaceAppHtml(markup) {
   const previousFocusKey = app.contains(document.activeElement) ? document.activeElement?.dataset?.focusKey : null;
+  const focusKey = pendingFocusKey ?? previousFocusKey;
+  const scrollPositions = captureScrollPositions(app);
+  pendingFocusKey = null;
   app.innerHTML = markup;
   assignStableFocusKeys(app);
-  const focusKey = pendingFocusKey ?? previousFocusKey;
-  pendingFocusKey = null;
-  if (!focusKey) return;
-  const target = [...app.querySelectorAll("[data-focus-key]")].find((element) => element.dataset.focusKey === focusKey);
-  const fallback = [...app.querySelectorAll("[data-focus-key]")].find((element) => element.dataset.focusKey === routeHeadingFocusKey(state.route));
-  const focusTarget = target && !target.disabled ? target : fallback;
-  focusTarget?.focus({ preventScroll: true });
+
+  let restored = false;
+  return function restoreViewState() {
+    if (restored) return;
+    restored = true;
+    restoreScrollPositions(app, scrollPositions);
+    if (!focusKey) return;
+    const target = [...app.querySelectorAll("[data-focus-key]")].find((element) => element.dataset.focusKey === focusKey);
+    const fallback = [...app.querySelectorAll("[data-focus-key]")].find((element) => element.dataset.focusKey === routeHeadingFocusKey(state.route));
+    const focusTarget = target && !target.disabled ? target : fallback;
+    focusTarget?.focus({ preventScroll: true });
+  };
 }
 
 function setExplainTab(tab, { focusTab = false } = {}) {
@@ -303,7 +312,7 @@ function render() {
   const currentCourseStep = courseStep(state.courseIndex);
 
   syncDocumentMetadata();
-  replaceAppHtml(`
+  const restoreViewState = replaceAppHtml(`
     <div class="app-shell">
       ${renderHeader()}
       <div class="evidence-banner" role="note">
@@ -314,13 +323,13 @@ function render() {
       ${routeIsLearn ? renderCourse(currentCourseStep) : ""}
       <main class="workspace" id="main-content" role="tabpanel" aria-labelledby="${routeIsLearn ? "learn-route-tab" : "sandbox-route-tab"}" tabindex="0">
         ${routeIsLearn ? "" : `<h1 class="visually-hidden" id="sandbox-page-heading" tabindex="-1" data-focus-key="page-heading-sandbox">${escapeHtml(i18n.t("nav.sandbox"))}</h1>`}
-        <section class="workspace-panel experiment-panel ${mobileClass("experiment")}" aria-labelledby="experiment-heading">
+        <section class="workspace-panel experiment-panel ${mobileClass("experiment")}" aria-labelledby="experiment-heading" data-scroll-key="experiment-panel">
           ${renderExperimentPanel(currentDrug, zMic, concentration, concentrationRatio)}
         </section>
         <section class="workspace-panel charts-panel ${mobileClass("charts")}" aria-labelledby="charts-heading">
           ${renderChartsPanel(science, currentDrug, zMic)}
         </section>
-        <aside class="workspace-panel explain-panel ${mobileClass("explain")}" aria-labelledby="explain-heading">
+        <aside class="workspace-panel explain-panel ${mobileClass("explain")}" aria-labelledby="explain-heading" data-scroll-key="explain-panel">
           ${renderExplainPanel(science, currentDrug, zMic)}
         </aside>
       </main>
@@ -337,25 +346,29 @@ function render() {
   `);
 
   const chartContainer = app.querySelector("#linked-chart-container");
-  renderLinkedCharts(chartContainer, {
-    trajectory: science.chartTrajectory,
-    selectedIndex: science.selectedIndex,
-    populationScale: state.populationScale,
-    concentrationScale: state.concentrationScale,
-    zMic,
-    drugColor: currentDrug?.color,
-    locale: i18n.locale,
-    onSelect(index) {
-      state.selectedIndex = index;
-      state.tablePage = Math.floor(index / TABLE_PAGE_SIZE);
-      render();
-    },
-  });
+  try {
+    renderLinkedCharts(chartContainer, {
+      trajectory: science.chartTrajectory,
+      selectedIndex: science.selectedIndex,
+      populationScale: state.populationScale,
+      concentrationScale: state.concentrationScale,
+      zMic,
+      drugColor: currentDrug?.color,
+      locale: i18n.locale,
+      onSelect(index) {
+        state.selectedIndex = index;
+        state.tablePage = Math.floor(index / TABLE_PAGE_SIZE);
+        render();
+      },
+    });
+  } finally {
+    restoreViewState();
+  }
 }
 
 function renderResearchShell() {
   syncDocumentMetadata();
-  replaceAppHtml(`
+  const restoreViewState = replaceAppHtml(`
     <div class="app-shell">
       ${renderHeader()}
       <div class="evidence-banner" role="note">
@@ -374,7 +387,11 @@ function renderResearchShell() {
       </footer>
     </div>
   `);
-  state.research.afterRender();
+  try {
+    state.research.afterRender();
+  } finally {
+    restoreViewState();
+  }
 }
 
 function renderHeader() {
@@ -416,7 +433,7 @@ function renderCourse(step) {
   const compare = state.compareRows ? renderComparison() : "";
   return `
     <section class="course-strip" aria-labelledby="course-title">
-      <div class="course-progress" aria-hidden="true">
+      <div class="course-progress" aria-hidden="true" data-scroll-key="course-progress">
         ${COURSE_STEPS.map((item, index) => `<span class="${index === state.courseIndex ? "active" : index < state.courseIndex ? "complete" : ""}">${index + 1}</span>`).join("")}
       </div>
       <div class="course-copy">
@@ -626,7 +643,7 @@ function renderDataTable(trajectory) {
         <h3 id="table-title">${escapeHtml(i18n.t("table.title"))}</h3>
         <span>${escapeHtml(i18n.t("table.page", { current: state.tablePage + 1, total: pageCount }))}</span>
       </div>
-      <div class="table-scroll">
+      <div class="table-scroll" data-scroll-key="trajectory-table">
         <table>
           <thead><tr><th scope="col">${escapeHtml(i18n.t("table.time"))}</th><th scope="col">${escapeHtml(i18n.t("table.concentration"))}</th><th scope="col">${escapeHtml(i18n.t("table.growth"))}</th><th scope="col">${escapeHtml(i18n.t("table.population"))}</th><th scope="col">${escapeHtml(i18n.t("table.detected"))}</th></tr></thead>
           <tbody>
@@ -795,7 +812,7 @@ function renderMobileNavigation() {
 
 function renderFatal() {
   syncDocumentMetadata("fatal");
-  replaceAppHtml(`
+  const restoreViewState = replaceAppHtml(`
     <main class="fatal-screen" id="main-content">
       <div class="brand-mark" aria-hidden="true">E</div>
       <p class="eyebrow">Ecolab</p>
@@ -804,6 +821,7 @@ function renderFatal() {
       <button class="primary-button" type="button" data-action="reload" data-focus-key="fatal-reload">${escapeHtml(i18n.t("fatal.reload"))}</button>
     </main>
   `);
+  restoreViewState();
 }
 
 async function handleClick(event) {

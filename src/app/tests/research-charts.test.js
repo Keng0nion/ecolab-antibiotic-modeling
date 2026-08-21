@@ -30,6 +30,8 @@ test("dedicated Research chart renderer emits five accessible figures with stabl
   assert.equal((container.innerHTML.match(/<figure/g) ?? []).length, 5);
   assert.equal((container.innerHTML.match(/<title id=/g) ?? []).length, 5);
   assert.equal((container.innerHTML.match(/<desc id=/g) ?? []).length, 5);
+  assert.equal((container.innerHTML.match(/data-scroll-key="research-chart-/g) ?? []).length, 5);
+  assert.match(container.innerHTML, /data-scroll-key="research-scan-table"/);
   assert.match(container.innerHTML, /overlay-validation-unit-title/);
   assert.match(container.innerHTML, /Two-dimensional parameter scan/);
   assert.match(container.innerHTML, /Predicted OD600 at 10 h value legend/);
@@ -39,6 +41,38 @@ test("dedicated Research chart renderer emits five accessible figures with stabl
   assert.match(container.innerHTML, /class="research-heat-value"[^>]*>0\.2<\/text>/);
   assert.match(container.innerHTML, /Uncertainty interval at 10 h/);
   assert.match(container.innerHTML, /Sensitivity at 10 h/);
+});
+
+test("Research chart rerenders preserve nested vertical and horizontal scroll positions", () => {
+  const oldElements = [
+    { dataset: { scrollKey: "research-chart-research-overlay" }, scrollTop: 4, scrollLeft: 125 },
+    { dataset: { scrollKey: "research-scan-table" }, scrollTop: 9, scrollLeft: 210 },
+  ];
+  const newElements = oldElements.map(({ dataset }) => ({ dataset: { ...dataset }, scrollTop: 0, scrollLeft: 0 }));
+  let markup = "";
+  const container = {
+    get innerHTML() {
+      return markup;
+    },
+    set innerHTML(value) {
+      markup = value;
+    },
+    querySelectorAll() {
+      return markup ? newElements : oldElements;
+    },
+  };
+
+  renderResearchCharts(container, {
+    dataset: createNormalizedDataset(),
+    result: createResearchResult(),
+    selectedValidationUnit: "validation-unit",
+    locale: "en",
+  });
+
+  assert.deepEqual(newElements.map(({ scrollTop, scrollLeft }) => [scrollTop, scrollLeft]), [
+    [4, 125],
+    [9, 210],
+  ]);
 });
 
 test("missing uncertainty and sensitivity values render no-data text rather than NaN coordinates", () => {

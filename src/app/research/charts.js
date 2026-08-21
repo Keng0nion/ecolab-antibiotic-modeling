@@ -1,3 +1,4 @@
+import { captureScrollPositions, restoreScrollPositions } from "../ui-state.js";
 import { RESEARCH_EXPORT_DISCLOSURES } from "./export.js";
 
 function escapeXml(value) {
@@ -104,7 +105,7 @@ function svg(id, title, description, body, width = 680, height = 340) {
 }
 
 function figure(id, heading, description, svgMarkup, caption, supplement = "") {
-  return `<figure class="research-chart-card" aria-labelledby="${id}-heading"><h3 id="${id}-heading">${escapeXml(heading)}</h3>${svgMarkup}<figcaption>${escapeXml(caption)}</figcaption>${supplement}</figure>`;
+  return `<figure class="research-chart-card" aria-labelledby="${id}-heading" data-scroll-key="research-chart-${escapeXml(id)}"><h3 id="${id}-heading">${escapeXml(heading)}</h3>${svgMarkup}<figcaption>${escapeXml(caption)}</figcaption>${supplement}</figure>`;
 }
 
 export function alignedValidationRows(dataset, result) {
@@ -200,7 +201,7 @@ function scanFigure(result, locale) {
     <text x="${left + plotWidth / 2}" y="${top + plotHeight + 40}" text-anchor="middle">${escapeXml(text.scanPsi)}</text>
     <text transform="translate(16 ${top + plotHeight / 2}) rotate(-90)" text-anchor="middle">${escapeXml(text.scanInitial)}</text></g>
     <g class="research-heat-legend" role="group" aria-label="${escapeXml(text.scanLegend)}"><text x="${legendX - 12}" y="${legendY - 8}">${escapeXml(text.scanLegend)}</text>${legendValues.map((value, index) => `<rect x="${legendX + index * legendWidth}" y="${legendY}" width="${legendWidth}" height="14" fill="${heatColor(value, valueDomain)}"/><text x="${legendX + index * legendWidth + legendWidth / 2}" y="${legendY + 29}" text-anchor="middle">${escapeXml(number(value))}</text>`).join("")}</g>`;
-  const table = `<div class="research-chart-data-table research-table-scroll"><table class="research-table"><caption>${escapeXml(text.scanTable)}</caption><thead><tr><th scope="col">${escapeXml(text.scanPsi)}</th><th scope="col">${escapeXml(text.scanInitial)}</th><th scope="col">${escapeXml(text.scanValue)}</th></tr></thead><tbody>${successful.map((entry) => `<tr><th scope="row">${escapeXml(number(entry.parameters[xName], 3))}</th><td>${escapeXml(number(entry.parameters[yName], 3))}</td><td>${escapeXml(number(entry.value))}</td></tr>`).join("")}</tbody></table></div>`;
+  const table = `<div class="research-chart-data-table research-table-scroll" data-scroll-key="research-scan-table"><table class="research-table"><caption>${escapeXml(text.scanTable)}</caption><thead><tr><th scope="col">${escapeXml(text.scanPsi)}</th><th scope="col">${escapeXml(text.scanInitial)}</th><th scope="col">${escapeXml(text.scanValue)}</th></tr></thead><tbody>${successful.map((entry) => `<tr><th scope="row">${escapeXml(number(entry.parameters[xName], 3))}</th><td>${escapeXml(number(entry.parameters[yName], 3))}</td><td>${escapeXml(number(entry.value))}</td></tr>`).join("")}</tbody></table></div>`;
   return figure("research-scan", text.scan, text.scanDesc, svg("parameter-scan", text.scan, text.scanDesc, body, width, height), text.scanDesc, table);
 }
 
@@ -268,6 +269,7 @@ function sensitivityFigure(result, locale) {
 
 export function renderResearchCharts(container, { dataset, result, selectedValidationUnit, locale = "en" }) {
   if (!container) return;
+  const scrollPositions = captureScrollPositions(container);
   container.innerHTML = [
     overlayFigure(dataset, result, selectedValidationUnit, locale),
     residualFigure(dataset, result, selectedValidationUnit, locale),
@@ -275,6 +277,7 @@ export function renderResearchCharts(container, { dataset, result, selectedValid
     uncertaintyFigure(result, locale),
     sensitivityFigure(result, locale),
   ].join("");
+  restoreScrollPositions(container, scrollPositions);
 }
 
 function stripFigure(markup) {

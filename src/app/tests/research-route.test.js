@@ -34,14 +34,22 @@ test("Learn and Sandbox use APG tabs with roving keyboard behavior and one tabpa
   assert.match(mainSource, /tabs\[nextIndex\]\.click\(\)/);
 });
 
-test("full rerenders preserve stable focus and intentional route/section changes target headings", () => {
+test("full rerenders preserve stable focus and scroll while intentional route changes target headings", () => {
   assert.match(mainSource, /document\.activeElement\?\.dataset\?\.focusKey/);
+  assert.match(mainSource, /const scrollPositions = captureScrollPositions\(app\);[\s\S]*app\.innerHTML = markup/);
+  assert.match(mainSource, /restoreScrollPositions\(app, scrollPositions\)/);
   assert.match(mainSource, /assignStableFocusKeys\(app\)/);
   assert.match(mainSource, /pendingFocusKey = routeHeadingFocusKey\(nextRoute\)/);
   assert.match(mainSource, /focusTarget\?\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(mainSource, /renderLinkedCharts\(chartContainer,[\s\S]*finally \{\s*restoreViewState\(\)/);
+  assert.match(mainSource, /state\.research\.afterRender\(\);\s*\} finally \{\s*restoreViewState\(\)/);
   assert.match(mainSource, /requestFocus\(key\) \{\s*pendingFocusKey = key/);
   assert.match(mainSource, /data-focus-key="action-language"/);
   assert.match(mainSource, /data-focus-key="mobile-\$\{panel\}"/);
+  assert.match(mainSource, /data-scroll-key="experiment-panel"/);
+  assert.match(mainSource, /data-scroll-key="explain-panel"/);
+  assert.match(mainSource, /data-scroll-key="trajectory-table"/);
+  assert.match(mainSource, /data-scroll-key="course-progress"/);
 });
 
 test("document metadata, fatal reload, and reduced-motion playback are accessible", () => {
