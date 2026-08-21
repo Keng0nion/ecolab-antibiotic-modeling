@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/dataset-import-result.schema.json",
+  "title": "Ecolab observation dataset import result",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "format", "dataset", "warnings", "stats"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "observation-dataset-import-result" },
+    "format": { "enum": ["json", "csv", "object"] },
+    "dataset": { "$ref": "observation-dataset.schema.json" },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "severity": { "const": "warning" },
+          "message": { "type": "string", "minLength": 1 },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["bytes", "rowCount", "columnCount"],
+      "additionalProperties": false,
+      "properties": {
+        "bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "rowCount": { "type": "integer", "minimum": 0 },
+        "columnCount": { "type": ["integer", "null"], "minimum": 0 },
+        "bomRemoved": { "type": "boolean" }
+      }
+    }
+  }
+}

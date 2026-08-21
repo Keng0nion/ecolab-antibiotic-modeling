@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/dataset-split.schema.json",
+  "title": "Ecolab observation dataset split",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "sourceDatasetId",
+    "sourceDatasetFingerprint",
+    "strategy",
+    "lockedValidation",
+    "roles",
+    "splitFingerprint"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "observation-dataset-split" },
+    "sourceDatasetId": { "type": "string", "minLength": 1 },
+    "sourceDatasetFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "strategy": { "type": "string", "minLength": 1 },
+    "lockedValidation": { "type": "boolean" },
+    "roles": {
+      "type": "object",
+      "required": ["training", "development", "validation"],
+      "additionalProperties": false,
+      "properties": {
+        "training": { "$ref": "#/$defs/role" },
+        "development": { "$ref": "#/$defs/role" },
+        "validation": { "$ref": "#/$defs/role" }
+      }
+    },
+    "splitFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "$defs": {
+    "role": {
+      "type": "object",
+      "required": ["independentUnitIds", "observationIds", "independentUnitCount", "observationCount"],
+      "additionalProperties": false,
+      "properties": {
+        "independentUnitIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "observationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "independentUnitCount": { "type": "integer", "minimum": 0 },
+        "observationCount": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

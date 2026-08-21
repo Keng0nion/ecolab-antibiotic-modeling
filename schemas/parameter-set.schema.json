@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/parameter-set.schema.json",
+  "title": "Ecolab parameter-set registry",
+  "type": "object",
+  "required": ["schemaVersion", "records"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "modelRef", "capabilityLevel", "evidenceLevel", "conditionMatch", "parameters", "warnings"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "modelRef": {
+            "type": "object",
+            "required": ["id", "version"],
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          },
+          "capabilityLevel": { "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+          "evidenceLevel": { "enum": ["E0", "E1", "E2", "E3", "E4", "E5"] },
+          "conditionMatch": { "enum": ["matched", "partially_matched", "transferred_calibration", "unknown", "incompatible"] },
+          "parameters": { "type": "object" },
+          "warnings": { "type": "array", "minItems": 1 }
+        }
+      }
+    }
+  }
+}

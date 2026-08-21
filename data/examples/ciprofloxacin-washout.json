@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "modelRef": {
+    "id": "ecolab.single-population.regoes-logistic",
+    "version": "1.0.0"
+  },
+  "parameterSetRef": {
+    "id": "ecolab.bw25113-m9-regoes-transferred",
+    "version": "1.0.0"
+  },
+  "initialState": {
+    "populationDensity": {
+      "value": 1000000,
+      "unit": "CFU/mL"
+    }
+  },
+  "protocol": {
+    "kind": "piecewise_constant",
+    "drugId": "ciprofloxacin",
+    "segments": [
+      {
+        "start": { "value": 0, "unit": "min" },
+        "end": { "value": 60, "unit": "min" },
+        "concentration": { "value": 0, "unit": "mg/L" }
+      },
+      {
+        "start": { "value": 60, "unit": "min" },
+        "end": { "value": 120, "unit": "min" },
+        "concentration": { "value": 0.068, "unit": "mg/L" }
+      },
+      {
+        "start": { "value": 120, "unit": "min" },
+        "end": { "value": 180, "unit": "min" },
+        "concentration": { "value": 0, "unit": "mg/L" }
+      }
+    ]
+  },
+  "sampleTimes": [
+    { "value": 0, "unit": "min" },
+    { "value": 30, "unit": "min" },
+    { "value": 60, "unit": "min" },
+    { "value": 90, "unit": "min" },
+    { "value": 120, "unit": "min" },
+    { "value": 150, "unit": "min" },
+    { "value": 180, "unit": "min" }
+  ],
+  "observation": {
+    "detectionLimit": {
+      "value": 10,
+      "unit": "CFU/mL"
+    }
+  }
+}

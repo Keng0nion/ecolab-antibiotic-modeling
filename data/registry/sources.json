@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0.0",
+  "records": [
+    {
+      "id": "bionumbers-111767",
+      "version": "1.0.0",
+      "sourceType": "authoritative_database_record",
+      "organization": "BioNumbers, Harvard Medical School",
+      "title": "Doubling time in M9-supplemented medium",
+      "url": "https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767",
+      "primaryReference": "Campos M et al. A constant size extension drives bacterial cell size homeostasis. Cell. 2014;159:1433-1446.",
+      "doi": "10.1016/j.cell.2014.11.022",
+      "pmid": "25480302",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_redistribution",
+        "note": "The record is cited and linked; no BioNumbers or primary-data payload is redistributed by Ecolab."
+      }
+    },
+    {
+      "id": "regoes-2004",
+      "version": "1.0.0",
+      "sourceType": "peer_reviewed_primary_research",
+      "organization": "American Society for Microbiology / PubMed Central",
+      "title": "Pharmacodynamic Functions: a Multiparameter Approach to the Design of Antibiotic Treatment Regimens",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/",
+      "doi": "10.1128/AAC.48.10.3670-3676.2004",
+      "pmid": "15388418",
+      "pmcid": "PMC521919",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_data_redistribution",
+        "note": "Article access through PMC does not by itself establish permission to repackage underlying or digitized data. Only manually transcribed published parameter values with precise citation are stored."
+      }
+    },
+    {
+      "id": "dailymed-ampicillin",
+      "version": "1.0.0",
+      "sourceType": "government_drug_label",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Ampicillin drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=3b683547-48ac-48ca-8fd4-6866fd17be34",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Used as an external mechanism reference, not as a kinetic dataset."
+      }
+    },
+    {
+      "id": "dailymed-tetracycline",
+      "version": "1.0.0",
+      "sourceType": "government_drug_label",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Tetracycline hydrochloride drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=02e88b4a-57ae-4ef6-ba48-97c657202b94",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Used as an external mechanism reference, not as a kinetic dataset."
+      }
+    },
+    {
+      "id": "dailymed-ciprofloxacin",
+      "version": "1.0.0",
+      "sourceType": "government_drug_label",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Ciprofloxacin drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=f406e796-17d9-4465-b8a7-00d966a4ba74",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Used as an external mechanism reference, not as a kinetic dataset."
+      }
+    },
+    {
+      "id": "eucast-mic-distributions",
+      "version": "1.0.0",
+      "sourceType": "authoritative_surveillance_reference",
+      "organization": "EUCAST",
+      "title": "MIC and zone diameter distributions",
+      "url": "https://mic.eucast.org/",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Background reference only; no EUCAST export is bundled or used for kinetic calibration."
+      }
+    },
+    {
+      "id": "li-2021-bw25113-growth",
+      "version": "0.1.0",
+      "sourceType": "peer_reviewed_candidate_source",
+      "organization": "Frontiers in Microbiology / PubMed Central",
+      "title": "Effects of NaCl Concentrations on Growth Patterns, Phenotypes Associated With Virulence, and Energy Metabolism in Escherichia coli BW25113",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8415458/",
+      "doi": "10.3389/fmicb.2021.705326",
+      "pmid": "34484145",
+      "pmcid": "PMC8415458",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_data_redistribution",
+        "note": "Article access was confirmed, but supplemental-file contents and permission to redistribute machine-readable data have not been verified."
+      }
+    },
+    {
+      "id": "otoupal-2021-bw25113-antibiotic",
+      "version": "0.1.0",
+      "sourceType": "peer_reviewed_candidate_source",
+      "organization": "Communications Biology / PubMed Central",
+      "title": "Potentiating antibiotic efficacy via perturbation of non-essential gene expression",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8571399/",
+      "doi": "10.1038/s42003-021-02783-x",
+      "pmid": "34741116",
+      "pmcid": "PMC8571399",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_data_redistribution",
+        "note": "Article access was confirmed, but reusable unperturbed single-drug data and their redistribution terms have not been verified."
+      }
+    },
+    {
+      "id": "vaisbourd-2025-subinhibitory",
+      "version": "0.1.0",
+      "sourceType": "peer_reviewed_candidate_source",
+      "organization": "mBio / PubMed Central",
+      "title": "Principles of bacteriostatic and bactericidal antibiotics at subinhibitory concentrations",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12607625/",
+      "doi": "10.1128/mbio.02066-25",
+      "pmid": "41104949",
+      "pmcid": "PMC12607625",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_data_redistribution",
+        "note": "The candidate requires verification of organism conditions, supplemental data files, and data redistribution rights."
+      }
+    },
+    {
+      "id": "broughton-2025-cip-tet",
+      "version": "0.1.0",
+      "sourceType": "peer_reviewed_candidate_source",
+      "organization": "Nature portfolio / PubMed Central",
+      "title": "Suppression of bacterial cell death underlies the antagonistic interaction between ciprofloxacin and tetracycline",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12759072/",
+      "doi": "10.1038/s44320-025-00162-w",
+      "pmid": "41145705",
+      "pmcid": "PMC12759072",
+      "accessed": "2026-08-20",
+      "license": {
+        "status": "unknown_for_data_redistribution",
+        "note": "The candidate requires verification that independent single-drug controls are reusable and legally redistributable."
+      }
+    },
+    {
+      "id": "figshare-bw25113-growth-v1",
+      "version": "1.0.0",
+      "sourceType": "published_research_dataset",
+      "organization": "figshare",
+      "title": "Bacterial growth profiles across one-thousand chemical-defined media",
+      "authors": [
+        "Honoka Aida",
+        "Bei-Wen Ying"
+      ],
+      "url": "https://figshare.com/articles/dataset/Bacterial_growth_profiles_across_one-thousand_chemical-defined_media/28342064",
+      "doi": "10.6084/m9.figshare.28342064.v1",
+      "articleDoi": "10.1038/s41597-025-05356-3",
+      "published": "2025-05-23",
+      "accessed": "2026-08-21",
+      "attribution": "Aida, Honoka; Ying, Bei-Wen (2025). Bacterial growth profiles across one-thousand chemical-defined media. figshare. Dataset. https://doi.org/10.6084/m9.figshare.28342064.v1",
+      "license": {
+        "status": "redistributable_with_attribution",
+        "spdx": "CC-BY-4.0",
+        "name": "Creative Commons Attribution 4.0 International",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "attributionRequired": true,
+        "note": "The Figshare data files are published under CC BY 4.0 and may be redistributed and adapted with attribution."
+      }
+    }
+  ]
+}

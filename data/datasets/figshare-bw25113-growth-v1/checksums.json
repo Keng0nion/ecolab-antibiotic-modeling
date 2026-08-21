@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetId": "figshare-bw25113-growth-v1",
+  "datasetVersion": "1.0.0",
+  "generatedDeterministically": true,
+  "source": {
+    "title": "Bacterial growth profiles across one-thousand chemical-defined media",
+    "authors": [
+      "Honoka Aida",
+      "Bei-Wen Ying"
+    ],
+    "url": "https://figshare.com/articles/dataset/Bacterial_growth_profiles_across_one-thousand_chemical-defined_media/28342064",
+    "datasetDoi": "10.6084/m9.figshare.28342064.v1",
+    "articleDoi": "10.1038/s41597-025-05356-3",
+    "license": {
+      "id": "CC-BY-4.0",
+      "name": "Creative Commons Attribution 4.0 International",
+      "url": "https://creativecommons.org/licenses/by/4.0/",
+      "redistributionStatus": "redistributable_with_attribution"
+    },
+    "attribution": "Aida, Honoka; Ying, Bei-Wen (2025). Bacterial growth profiles across one-thousand chemical-defined media. figshare. Dataset. https://doi.org/10.6084/m9.figshare.28342064.v1",
+    "files": [
+      {
+        "path": "data/raw/figshare-bw25113-growth-v1/BW25113_Growth_Round01.xlsx",
+        "sourceUrl": "https://ndownloader.figshare.com/files/53453711",
+        "bytes": 1004441,
+        "md5": "c24e2d5b0b54c79a55b11d8868e73ad8",
+        "sha256": "d81c738fdf7885195203de9b8b28bc221cf81992dffe1288c42b81aa6876d921"
+      },
+      {
+        "path": "data/raw/figshare-bw25113-growth-v1/BW25113_Medium composition.xlsx",
+        "sourceUrl": "https://ndownloader.figshare.com/files/53453759",
+        "bytes": 2693064,
+        "md5": "eab20d0936d82546e073e41005f313a9",
+        "sha256": "e3d82236c0f9a65cff55bebf1d5478b15a0972111422c32a3395deb5c5509cdd"
+      },
+      {
+        "path": "data/raw/figshare-bw25113-growth-v1/BW25113_GrowthDataEvaluation.xlsx",
+        "sourceUrl": "https://ndownloader.figshare.com/files/53453777",
+        "bytes": 769714,
+        "md5": "6df4248797486cb5ecbafd598fb7d28e",
+        "sha256": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1"
+      }
+    ]
+  },
+  "normalizedDataSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+  "artifacts": [
+    {
+      "path": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json",
+      "mediaType": "application/json",
+      "bytes": 4295960,
+      "sha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+      "observationCount": 528,
+      "trainingObservationCount": 352,
+      "validationObservationCount": 176,
+      "independentUnitCount": 12
+    },
+    {
+      "path": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.csv",
+      "mediaType": "text/csv",
+      "bytes": 2559206,
+      "sha256": "03e137484b717970cd4cc47be88c52224e08cbb0713b7d6b4456b91c63985188",
+      "headerRowCount": 1,
+      "dataRowCount": 528
+    },
+    {
+      "path": "data/datasets/figshare-bw25113-growth-v1/README.md",
+      "mediaType": "text/markdown",
+      "bytes": 8788,
+      "sha256": "c41687e75b224d2d9f889762a04a8806d466cf015daf07e37a871bdf67794a09"
+    }
+  ],
+  "selection": {
+    "workbook": "BW25113_Growth_Round01.xlsx",
+    "sheet": "Sheet1",
+    "timeHours": {
+      "first": 0.5,
+      "last": 22,
+      "interval": 0.5,
+      "count": 44
+    },
+    "labels": [
+      "Curve00025",
+      "Curve00026",
+      "Curve00027",
+      "Curve00028",
+      "Curve00029",
+      "Curve00030",
+      "Curve00031",
+      "Curve00032",
+      "Curve00033",
+      "Curve00034",
+      "Curve00035",
+      "Curve00036"
+    ],
+    "trainingLabels": [
+      "Curve00025",
+      "Curve00026",
+      "Curve00027",
+      "Curve00028",
+      "Curve00029",
+      "Curve00030",
+      "Curve00031",
+      "Curve00032"
+    ],
+    "validationLabels": [
+      "Curve00033",
+      "Curve00034",
+      "Curve00035",
+      "Curve00036"
+    ],
+    "conditionId": "Cond00003",
+    "k2hpo4Mm": 61.5,
+    "evaluation": [
+      {
+        "label": "Curve00025",
+        "assayId": "Round01_0025",
+        "conditionId": "Cond00003",
+        "K": 0.2557666666666666,
+        "r": 1.097515482498505,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00026",
+        "assayId": "Round01_0026",
+        "conditionId": "Cond00003",
+        "K": 0.2537666666666666,
+        "r": 1.402218163377593,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00027",
+        "assayId": "Round01_0027",
+        "conditionId": "Cond00003",
+        "K": 0.2464333333333333,
+        "r": 1.344012987455387,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00028",
+        "assayId": "Round01_0028",
+        "conditionId": "Cond00003",
+        "K": 0.2564333333333333,
+        "r": 1.332730973023436,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00029",
+        "assayId": "Round01_0029",
+        "conditionId": "Cond00003",
+        "K": 0.2491,
+        "r": 1.156703413499944,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00030",
+        "assayId": "Round01_0030",
+        "conditionId": "Cond00003",
+        "K": 0.2521,
+        "r": 1.070700287348322,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00031",
+        "assayId": "Round01_0031",
+        "conditionId": "Cond00003",
+        "K": 0.2521,
+        "r": 1.226665515246117,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00032",
+        "assayId": "Round01_0032",
+        "conditionId": "Cond00003",
+        "K": 0.2567666666666666,
+        "r": 1.168670237583626,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00033",
+        "assayId": "Round01_0033",
+        "conditionId": "Cond00003",
+        "K": 0.2541,
+        "r": 1.183952835681689,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00034",
+        "assayId": "Round01_0034",
+        "conditionId": "Cond00003",
+        "K": 0.2564333333333333,
+        "r": 1.316630583387685,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00035",
+        "assayId": "Round01_0035",
+        "conditionId": "Cond00003",
+        "K": 0.2514333333333333,
+        "r": 1.316630583387681,
+        "K_info": 0,
+        "r_info": 0
+      },
+      {
+        "label": "Curve00036",
+        "assayId": "Round01_0036",
+        "conditionId": "Cond00003",
+        "K": 0.2587666666666666,
+        "r": 1.316630583387681,
+        "K_info": 0,
+        "r_info": 0
+      }
+    ]
+  },
+  "transformationHistory": [
+    "Verified exact source byte count, MD5, and SHA-256 before parsing.",
+    "Parsed XLSX ZIP central directory, deflated XML, workbook relationships, shared strings, and worksheet cached values using Node built-ins only.",
+    "Selected exact Sheet1 cells for 0.5 through 22.0 hours and Curve00025 through Curve00036.",
+    "Joined composition and evaluation by exact Label; verified Assay ID and Condition ID agreement, Cond00003, K2HPO4=61.5 mM, K_info=0, and r_info=0.",
+    "Parsed source numeric tokens as finite JavaScript numbers without arithmetic, rounding, blank correction, smoothing, interpolation, or OD-to-CFU conversion.",
+    "Assigned complete independent units Curve00025..Curve00032 to training and Curve00033..Curve00036 to validation."
+  ],
+  "allowedUses": [
+    "OD600 ingestion and data-admission testing with attribution.",
+    "Untreated BW25113 growth analysis under the documented Cond00003 medium.",
+    "Development or evaluation of an explicit OD600 observation model."
+  ],
+  "prohibitedUses": [
+    "Treating OD600 values as CFU/mL or log10 CFU/mL without an explicit validated conversion model.",
+    "Claiming direct independent validation of the current CFU-based model.",
+    "Claiming matched M9-medium validation or any antibiotic effect.",
+    "Inferring or applying blank correction not present in the source."
+  ],
+  "knownLimitations": [
+    "OD600 is not CFU/mL.",
+    "Raw OD600 values are unblanked.",
+    "The t=0 observation is absent; data begin at 0.5 h.",
+    "Well independence and plate identity are not fully documented in the admitted source tables.",
+    "K2HPO4 changes may affect buffering, pH, and osmolality.",
+    "The admitted trajectories are untreated and contain no antibiotic-effect evidence.",
+    "The source spelling ZuSO4 is preserved and may be a typo."
+  ],
+  "conditionMatch": {
+    "strain": "match_to_current_BW25113_growth_baseline",
+    "medium": "mismatch_to_current_M9_target",
+    "measurement": "OD600_incompatible_with_direct_CFU_observation_without_explicit_model",
+    "validationClaim": "not_direct_independent_validation_of_current_CFU_model"
+  }
+}

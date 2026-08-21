@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/dataset.schema.json",
+  "title": "Ecolab dataset and candidate registry",
+  "type": "object",
+  "required": ["schemaVersion", "records"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "status", "licenseStatus", "bundled"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "status": { "type": "string", "minLength": 1 },
+          "licenseStatus": { "type": "string", "minLength": 1 },
+          "bundled": { "type": "boolean" },
+          "sourceIds": { "type": "array", "items": { "type": "string" } },
+          "citation": { "type": "object" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/analysis-plan.schema.json",
+  "title": "Ecolab Stage 4 analysis plan",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "id",
+    "analysisKind",
+    "datasetFingerprint",
+    "splitFingerprint",
+    "modelRef",
+    "baseParameterSetRef",
+    "parameterSpace",
+    "randomAlgorithm",
+    "seeds",
+    "lockedValidation",
+    "parameters",
+    "errorModel",
+    "exclusions",
+    "metrics",
+    "validationIndependentUnitIds"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "analysis-plan" },
+    "id": { "$ref": "#/$defs/nonEmptyString" },
+    "analysisKind": { "$ref": "#/$defs/nonEmptyString" },
+    "datasetFingerprint": { "$ref": "#/$defs/sha256" },
+    "splitFingerprint": { "$ref": "#/$defs/sha256" },
+    "modelRef": { "$ref": "#/$defs/versionedRef" },
+    "baseParameterSetRef": { "$ref": "#/$defs/versionedRef" },
+    "parameterSpace": { "$ref": "#/$defs/parameterSpace" },
+    "randomAlgorithm": { "$ref": "#/$defs/nonEmptyString" },
+    "seeds": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      }
+    },
+    "lockedValidation": { "type": "boolean" },
+    "parameters": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": { "$ref": "#/$defs/finiteNumber" }
+    },
+    "errorModel": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "required": ["kind"],
+      "properties": { "kind": { "$ref": "#/$defs/nonEmptyString" } },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/nonEmptyString" },
+          {
+            "type": "object",
+            "required": ["observationId"],
+            "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+            "properties": {
+              "observationId": { "$ref": "#/$defs/nonEmptyString" },
+              "rationale": { "$ref": "#/$defs/nonEmptyString" }
+            },
+            "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+          }
+        ]
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "validationIndependentUnitIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "baseline": { "$ref": "#/$defs/jsonValue" },
+    "notes": { "$ref": "#/$defs/jsonValue" },
+    "planFingerprint": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\s)(?:.|\\n)*[^\\s]$|^[^\\s]$"
+    },
+    "safePropertyName": {
+      "not": { "enum": ["__proto__", "prototype", "constructor"] }
+    },
+    "finiteNumber": { "type": "number" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "versionedRef": {
+      "type": "object",
+      "required": ["id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+        }
+      }
+    },
+    "parameterSpace": {
+      "type": "object",
+      "required": ["parameters", "initialStateSeriesIds"],
+      "additionalProperties": false,
+      "properties": {
+        "parameters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/parameterDefinition" }
+        },
+        "initialStateSeriesIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "drugIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        }
+      }
+    },
+    "parameterDefinition": {
+      "type": "object",
+      "required": ["name", "lower", "upper", "rationale", "transform"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(?:psiMaxLog10PerHour|carryingCapacityLog10CfuPerMl|drugs\\.[^.]+\\.(?:zMicMgPerL|hillKappa|psiMinLog10PerHour)|initialStates\\.[^.]+\\.log10PopulationDensity)$"
+        },
+        "lower": { "$ref": "#/$defs/finiteNumber" },
+        "upper": { "$ref": "#/$defs/finiteNumber" },
+        "rationale": { "$ref": "#/$defs/nonEmptyString" },
+        "transform": { "enum": ["identity", "log", "log10"] }
+      }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "$ref": "#/$defs/finiteNumber" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jsonValue" }
+        },
+        {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    }
+  }
+}

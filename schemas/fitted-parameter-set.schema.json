@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/fitted-parameter-set.schema.json",
+  "title": "Ecolab fitted parameter-set artifact",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "id",
+    "version",
+    "modelRef",
+    "baseParameterSetRef",
+    "datasetFingerprint",
+    "splitFingerprint",
+    "planFingerprint",
+    "parameterValues",
+    "parameterOrigins",
+    "bounds",
+    "objective",
+    "convergence",
+    "warnings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "fitted-parameter-set" },
+    "id": { "$ref": "#/$defs/nonEmptyString" },
+    "version": { "$ref": "#/$defs/semver" },
+    "modelRef": { "$ref": "#/$defs/versionedRef" },
+    "baseParameterSetRef": { "$ref": "#/$defs/versionedRef" },
+    "datasetFingerprint": { "$ref": "#/$defs/sha256" },
+    "splitFingerprint": { "$ref": "#/$defs/sha256" },
+    "planFingerprint": { "$ref": "#/$defs/sha256" },
+    "parameterValues": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": { "$ref": "#/$defs/finiteNumber" }
+    },
+    "parameterOrigins": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": {
+        "oneOf": [
+          { "$ref": "#/$defs/nonEmptyString" },
+          { "$ref": "#/$defs/jsonObject" }
+        ]
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": {
+        "type": "array",
+        "prefixItems": [
+          { "$ref": "#/$defs/finiteNumber" },
+          { "$ref": "#/$defs/finiteNumber" }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "objective": {
+      "type": "object",
+      "required": ["kind", "value", "errorModel"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/$defs/nonEmptyString" },
+        "value": { "$ref": "#/$defs/finiteNumber" },
+        "errorModel": { "$ref": "#/$defs/jsonObject" }
+      }
+    },
+    "convergence": {
+      "type": "object",
+      "required": ["converged"],
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "properties": { "converged": { "type": "boolean" } },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "residuals": { "$ref": "#/$defs/jsonValue" },
+    "identifiability": { "$ref": "#/$defs/jsonValue" },
+    "metrics": { "$ref": "#/$defs/jsonValue" },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/jsonValue" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "finiteNumber": { "type": "number" },
+    "safePropertyName": { "not": { "enum": ["__proto__", "prototype", "constructor"] } },
+    "versionedRef": {
+      "type": "object",
+      "required": ["id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "jsonObject": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "$ref": "#/$defs/finiteNumber" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        { "$ref": "#/$defs/jsonObject" }
+      ]
+    }
+  }
+}

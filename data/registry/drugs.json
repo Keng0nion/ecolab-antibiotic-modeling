@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "records": [
+    {
+      "id": "none",
+      "name": {
+        "zh-CN": "无药对照",
+        "en": "No-antibiotic control"
+      },
+      "short": "CTRL",
+      "kind": "control",
+      "color": "#93a4b8",
+      "mechanism": {
+        "zh-CN": "不施加抗生素，仅观察营养限制下的种群增长。",
+        "en": "No antibiotic is applied; only population growth under nutrient limitation is observed."
+      },
+      "mechanismSourceIds": []
+    },
+    {
+      "id": "ampicillin",
+      "name": {
+        "zh-CN": "氨苄西林",
+        "en": "Ampicillin"
+      },
+      "short": "AMP",
+      "kind": "bactericidal",
+      "color": "#f59e0b",
+      "mechanism": {
+        "zh-CN": "β-内酰胺类药物；干扰细胞壁合成。",
+        "en": "A beta-lactam antibiotic that interferes with cell-wall synthesis."
+      },
+      "mechanismSourceIds": [
+        "dailymed-ampicillin"
+      ]
+    },
+    {
+      "id": "tetracycline",
+      "name": {
+        "zh-CN": "四环素",
+        "en": "Tetracycline"
+      },
+      "short": "TET",
+      "kind": "bacteriostatic",
+      "color": "#eab308",
+      "mechanism": {
+        "zh-CN": "结合 30S 核糖体亚基并抑制蛋白质合成；通常被描述为抑菌性。",
+        "en": "Binds the 30S ribosomal subunit and inhibits protein synthesis; commonly described as bacteriostatic."
+      },
+      "mechanismSourceIds": [
+        "dailymed-tetracycline"
+      ]
+    },
+    {
+      "id": "ciprofloxacin",
+      "name": {
+        "zh-CN": "环丙沙星",
+        "en": "Ciprofloxacin"
+      },
+      "short": "CIP",
+      "kind": "bactericidal",
+      "color": "#06b6d4",
+      "mechanism": {
+        "zh-CN": "抑制 DNA gyrase（拓扑异构酶 II）和拓扑异构酶 IV。",
+        "en": "Inhibits DNA gyrase (topoisomerase II) and topoisomerase IV."
+      },
+      "mechanismSourceIds": [
+        "dailymed-ciprofloxacin"
+      ]
+    }
+  ]
+}

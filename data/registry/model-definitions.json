@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "records": [
+    {
+      "id": "ecolab.single-population.regoes-logistic",
+      "version": "1.0.0",
+      "implementationId": "regoes-logistic-piecewise-analytic-v1",
+      "title": {
+        "en": "Single-population Regoes pharmacodynamics with logistic growth",
+        "zh-CN": "单种群 Regoes 药效动力学与逻辑斯蒂增长模型"
+      },
+      "capabilityLevel": "L1",
+      "stateVariable": {
+        "id": "populationDensity",
+        "internalRepresentation": "log10(CFU/mL)"
+      },
+      "rateConvention": "log10-fold/h",
+      "scheduleKind": "piecewise_constant_single_drug",
+      "boundaryConvention": "Segments are [start,end); the final endpoint is included. Concentration is right-continuous and population is continuous.",
+      "dynamics": {
+        "positiveNetGrowth": "dN/dt = ln(10) * psi(a) * N * (1 - N/K)",
+        "nonPositiveNetGrowth": "d log10(N)/dt = psi(a)",
+        "integration": "Exact analytic update within each constant-concentration segment"
+      },
+      "observationBoundary": "Detection limits censor reported observations and never truncate the latent population state.",
+      "requiredParameterPaths": [
+        "growth.doublingTime",
+        "population.carryingCapacity",
+        "drugs.*.zMic",
+        "drugs.*.hillKappa",
+        "drugs.*.psiMin"
+      ],
+      "notModeled": [
+        "patient_pharmacokinetics",
+        "clinical_susceptibility_categories",
+        "resistance_evolution",
+        "persisters_or_adaptive_tolerance",
+        "combination_therapy",
+        "spatial_gradients",
+        "host_immunity",
+        "strain_specific_validation_under_antibiotic_exposure"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self'; style-src 'self'; style-src-attr 'unsafe-hashes' 'sha256-IA0ljd9zplxIR7R+Uc5B9Jugq3KBbr8jWEinUfY76Cs=' 'sha256-T07ZSko6jARErzISjTdDWkYIIismMhLluVqWt9nviUc=' 'sha256-STFxWEJV1X9LpQgWMMHUjSSeFQm2WJuKWgddbv/fahQ=' 'sha256-+vIN8B827n8s9WExbJGmICnV2wMJUJ1VCDyVhhxLHx8='; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; navigate-to 'self' https: blob:
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: camera=(), geolocation=(), microphone=()
+
+/data/datasets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/src/*
+  Cache-Control: public, max-age=3600, must-revalidate

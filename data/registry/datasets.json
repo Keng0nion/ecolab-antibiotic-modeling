@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "1.0.0",
+  "records": [
+    {
+      "id": "candidate-campos-2014-bw25113-single-cell",
+      "version": "0.1.0",
+      "status": "source_only_not_bundled",
+      "sourceIds": [
+        "bionumbers-111767"
+      ],
+      "acquisitionLevel": "background_database",
+      "organism": "Escherichia coli BW25113",
+      "conditions": "Supplemented M9; steady-growth microfluidic single-cell microscopy",
+      "measurement": "42 ± 12 min cell-cycle time scalar; no population time series confirmed",
+      "licenseStatus": "unknown_for_redistribution",
+      "bundled": false,
+      "allowedUse": "No-drug growth-rate anchor with explicit single-cell/batch mismatch",
+      "prohibitedUse": "Carrying-capacity, lag-phase, batch trajectory, or independent validation claims"
+    },
+    {
+      "id": "candidate-regoes-2004-cab1-time-kill",
+      "version": "0.1.0",
+      "status": "published_parameters_only_not_bundled",
+      "sourceIds": [
+        "regoes-2004"
+      ],
+      "acquisitionLevel": "author_processed_parameters",
+      "organism": "Escherichia coli O18:K1:H7 CAB1",
+      "conditions": "LB broth; 37°C; 200 rpm; first 60 min; two independent experiments",
+      "measurement": "CFU/mL every 10 min; published pharmacodynamic parameters transcribed from Table 1",
+      "licenseStatus": "unknown_for_underlying_data_redistribution",
+      "bundled": false,
+      "allowedUse": "Transferred educational calibration of zMIC, kappa and psiMin",
+      "prohibitedUse": "Matched BW25113/M9 validation or long-time kill prediction"
+    },
+    {
+      "id": "candidate-li-2021-bw25113-growth",
+      "version": "0.1.0",
+      "status": "candidate_requires_method_and_license_review",
+      "sourceIds": [
+        "li-2021-bw25113-growth"
+      ],
+      "organism": "Escherichia coli BW25113",
+      "measurement": "Growth patterns under NaCl concentrations; exact machine-readable control data not yet verified",
+      "licenseStatus": "unknown_for_data_redistribution",
+      "bundled": false,
+      "candidateUse": "Possible batch no-drug growth comparison after condition and license review"
+    },
+    {
+      "id": "candidate-otoupal-2021-bw25113-antibiotic",
+      "version": "0.1.0",
+      "status": "candidate_requires_method_and_license_review",
+      "sourceIds": [
+        "otoupal-2021-bw25113-antibiotic"
+      ],
+      "organism": "Escherichia coli BW25113",
+      "measurement": "Antibiotic efficacy under non-essential gene-expression perturbation; extractable wild-type controls not yet verified",
+      "licenseStatus": "unknown_for_data_redistribution",
+      "bundled": false,
+      "candidateUse": "Possible condition-specific validation if unperturbed single-drug controls are available"
+    },
+    {
+      "id": "candidate-vaisbourd-2025-subinhibitory",
+      "version": "0.1.0",
+      "status": "candidate_requires_method_and_license_review",
+      "sourceIds": [
+        "vaisbourd-2025-subinhibitory"
+      ],
+      "measurement": "Bacteriostatic and bactericidal antibiotic behavior at subinhibitory concentrations; exact E. coli strain and reusable data files not yet verified",
+      "licenseStatus": "unknown_for_data_redistribution",
+      "bundled": false,
+      "candidateUse": "Priority modern concentration-effect validation candidate"
+    },
+    {
+      "id": "candidate-broughton-2025-cip-tet",
+      "version": "0.1.0",
+      "status": "candidate_requires_method_and_license_review",
+      "sourceIds": [
+        "broughton-2025-cip-tet"
+      ],
+      "measurement": "Ciprofloxacin/tetracycline interaction; independently extractable single-drug controls not yet verified",
+      "licenseStatus": "unknown_for_data_redistribution",
+      "bundled": false,
+      "candidateUse": "Potential single-drug external validation only if controls and license permit"
+    },
+    {
+      "id": "figshare-bw25113-growth-v1",
+      "version": "1.0.0",
+      "status": "bundled_real_data_condition_mismatch",
+      "sourceIds": [
+        "figshare-bw25113-growth-v1"
+      ],
+      "acquisitionLevel": "verified_original_files_and_deterministic_extraction",
+      "organism": "Escherichia coli",
+      "strain": "BW25113",
+      "conditions": "Untreated chemically defined Cond00003 medium; 37°C; 96-well plate; 200 µL; 567 rpm; 1:1000 inoculation; Epoch2; 30-minute sampling",
+      "measurement": "Raw unblanked OD600, 44 time points from 0.5 to 22.0 h across 12 complete well trajectories",
+      "licenseStatus": "redistributable_with_attribution_CC-BY-4.0",
+      "redistributionLicense": {
+        "spdx": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "attributionRequired": true,
+        "sourceLicenseVerified": true
+      },
+      "bundled": true,
+      "paths": {
+        "normalizedJson": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json",
+        "normalizedCsv": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.csv",
+        "dataCard": "data/datasets/figshare-bw25113-growth-v1/README.md",
+        "checksums": "data/datasets/figshare-bw25113-growth-v1/checksums.json",
+        "acquisitionMetadata": "data/raw/figshare-bw25113-growth-v1/acquisition.json"
+      },
+      "artifactIntegrity": {
+        "normalizedDataSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+        "normalizedCsvSha256": "03e137484b717970cd4cc47be88c52224e08cbb0713b7d6b4456b91c63985188",
+        "dataCardSha256": "c41687e75b224d2d9f889762a04a8806d466cf015daf07e37a871bdf67794a09",
+        "checksumsSha256": "cc9f1e54fb90805dcf36718d7cd9aef207ad2fd26008d44614b9da9747aacbae",
+        "acquisitionMetadataSha256": "8a2aa270dd4fd30e982d7b02dcd9f41ba5360f865b417ab32acf13070f46f29b",
+        "observationCount": 528,
+        "trainingObservationCount": 352,
+        "validationObservationCount": 176,
+        "independentUnitCount": 12
+      },
+      "split": {
+        "unit": "complete Curve label / Assay ID trajectory",
+        "trainingLabels": [
+          "Curve00025",
+          "Curve00026",
+          "Curve00027",
+          "Curve00028",
+          "Curve00029",
+          "Curve00030",
+          "Curve00031",
+          "Curve00032"
+        ],
+        "validationLabels": [
+          "Curve00033",
+          "Curve00034",
+          "Curve00035",
+          "Curve00036"
+        ],
+        "rowSplittingProhibited": true
+      },
+      "conditionMatch": {
+        "strain": "match_to_current_BW25113_growth_baseline",
+        "medium": "mismatch_to_current_M9_target",
+        "measurement": "OD600_incompatible_with_direct_CFU_observation_without_explicit_model",
+        "overall": "not_direct_independent_validation_of_current_CFU_model"
+      },
+      "allowedUse": [
+        "OD600 data-admission and importer testing with CC BY 4.0 attribution",
+        "Untreated BW25113 growth analysis under the exact Cond00003 medium",
+        "Development or evaluation of an explicit OD600 observation model"
+      ],
+      "prohibitedUse": [
+        "Treating OD600 as CFU/mL or log10 CFU/mL without an explicit validated conversion model",
+        "Claiming matched M9-medium or direct independent validation of the current CFU model",
+        "Claiming antibiotic effects from untreated trajectories",
+        "Inferring or applying blank correction absent from the source"
+      ],
+      "knownLimitations": [
+        "OD600 is not CFU/mL",
+        "Raw OD600 is unblanked",
+        "t0 is absent; observations begin at 0.5 h",
+        "Well independence and plate identity are not fully documented",
+        "K2HPO4 changes may affect buffering, pH, and osmolality",
+        "No antibiotic effects are represented",
+        "The source spelling ZuSO4 is preserved and may be a typo"
+      ]
+    }
+  ]
+}

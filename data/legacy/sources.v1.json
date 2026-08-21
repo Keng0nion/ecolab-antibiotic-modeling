@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "accessed": "2026-08-20",
+  "sources": [
+    {
+      "id": "bionumbers-111767",
+      "organization": "BioNumbers, Harvard Medical School",
+      "title": "Doubling time in M9-supplemented medium",
+      "url": "https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767",
+      "primaryReference": "Campos M et al. A constant size extension drives bacterial cell size homeostasis. Cell. 2014;159:1433-1446.",
+      "doi": "10.1016/j.cell.2014.11.022",
+      "pmid": "25480302",
+      "organism": "E. coli BW25113",
+      "conditions": "M9 salts + 0.1% casamino acids + 0.2% glucose; steady growth in microfluidic chambers",
+      "valueUsed": "42 ± 12 min doubling/cell-cycle time",
+      "evidenceClass": "authoritative_database_measurement"
+    },
+    {
+      "id": "regoes-2004",
+      "organization": "NCBI PubMed Central / American Society for Microbiology",
+      "title": "Pharmacodynamic Functions: a Multiparameter Approach to the Design of Antibiotic Treatment Regimens",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/",
+      "doi": "10.1128/AAC.48.10.3670-3676.2004",
+      "pmid": "15388418",
+      "organism": "E. coli O18:K1:H7 CAB1",
+      "conditions": "LB broth, 37 C, aeration; growth/death fitted over the first 60 min of exposure",
+      "valueUsed": "Hill pharmacodynamic equation and drug-specific zMIC, kappa and psiMin values",
+      "warning": "The article explicitly says its strain and medium differ from standard susceptibility testing. Values are not universal and are used here only as an educational calibration.",
+      "evidenceClass": "peer_reviewed_primary_research"
+    },
+    {
+      "id": "dailymed-ampicillin",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Ampicillin drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=3b683547-48ac-48ca-8fd4-6866fd17be34",
+      "valueUsed": "Broad-spectrum bactericidal penicillin; in-vitro activity includes many E. coli strains; penicillinase-labile",
+      "evidenceClass": "government_label"
+    },
+    {
+      "id": "dailymed-tetracycline",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Tetracycline hydrochloride drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=02e88b4a-57ae-4ef6-ba48-97c657202b94",
+      "valueUsed": "Primarily bacteriostatic; binds the 30S ribosomal subunit and inhibits protein synthesis; E. coli listed",
+      "evidenceClass": "government_label"
+    },
+    {
+      "id": "dailymed-ciprofloxacin",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Ciprofloxacin drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=f406e796-17d9-4465-b8a7-00d966a4ba74",
+      "valueUsed": "Bactericidal inhibition of topoisomerase II/DNA gyrase and topoisomerase IV; interferes with DNA replication, transcription, repair and recombination; E. coli listed",
+      "evidenceClass": "government_label"
+    },
+    {
+      "id": "eucast-mic-distributions",
+      "organization": "European Committee on Antimicrobial Susceptibility Testing (EUCAST)",
+      "title": "MIC and zone diameter distributions",
+      "url": "https://mic.eucast.org/",
+      "queries": {
+        "ampicillinId": 6,
+        "ciprofloxacinId": 60,
+        "tetracyclineId": 183,
+        "escherichiaColiId": 261,
+        "atcc25922Id": 262
+      },
+      "contextValuesNotUsedByModel": {
+        "ampicillin_E_coli": "ECOFF 8 mg/L; displayed confidence interval 4-16; 53 distributions; 105483 observations",
+        "ciprofloxacin_E_coli": "ECOFF 0.06 mg/L; displayed confidence interval 0.03-0.06; 53 distributions; 15667 observations",
+        "tetracycline_E_coli": "ECOFF 8 mg/L; page displayed confidence field 2-4; 64 distributions; 18917 observations",
+        "ampicillin_ATCC_25922": "100 observations in 2 distributions; forced value ((8)), which EUCAST denotes as fewer than 3 distributions",
+        "tetracycline_ATCC_25922": "24 observations in 1 distribution; ECOFF field ID (insufficient data)",
+        "ciprofloxacin_ATCC_25922": "No public result row was returned in the queried antimicrobial table"
+      },
+      "warning": "EUCAST states that aggregated distributions combine multiple sources, regions and time periods and can never be used to infer resistance rates. ECOFF separates wild type from phenotypically detectable acquired resistance and is not a clinical S/I/R breakpoint or a strain-specific kill parameter.",
+      "evidenceClass": "authoritative_surveillance_reference_not_used_in_calculation"
+    },
+    {
+      "id": "eucast-methodology",
+      "organization": "EUCAST",
+      "title": "MIC determination of non-fastidious and fastidious organisms",
+      "url": "https://www.eucast.org/bacteria/methodology-and-instructions/mic-determination/",
+      "valueUsed": "Context for broth microdilution reference methodology and ISO 20776-1/2",
+      "evidenceClass": "authoritative_methodology"
+    },
+    {
+      "id": "eucast-clinical-breakpoints",
+      "organization": "EUCAST",
+      "title": "Clinical breakpoint tables",
+      "url": "https://www.eucast.org/clinical_breakpoints",
+      "valueUsed": "Definition boundary: clinical breakpoints categorize organisms as S, I or R and are separate from the MIC distribution site",
+      "evidenceClass": "authoritative_clinical_standard_not_used_in_calculation"
+    }
+  ]
+}

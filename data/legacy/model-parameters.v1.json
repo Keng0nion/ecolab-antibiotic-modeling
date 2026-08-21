@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "lastReviewed": "2026-08-20",
+  "scope": "Educational browser simulation; not a clinical or laboratory prediction tool.",
+  "baseline": {
+    "organism": "Escherichia coli BW25113",
+    "medium": "M9 salts supplemented with 0.1% casamino acids and 0.2% glucose",
+    "doublingTimeMinutes": 42,
+    "uncertaintyMinutes": 12,
+    "derivedPsiMaxLog10PerHour": 0.43004,
+    "evidenceClass": "authoritative_database_measurement_plus_mathematical_conversion",
+    "sourceId": "bionumbers-111767"
+  },
+  "populationModel": {
+    "initialCfuPerMl": 1000000,
+    "carryingCapacityCfuPerMl": 1000000000,
+    "detectionFloorCfuPerMl": 10,
+    "timeStepMinutes": 1,
+    "growthLaw": "Positive pharmacodynamic net growth is multiplied by (1 - N/K); negative growth is not crowding-limited.",
+    "evidenceClass": "educational_model_assumption"
+  },
+  "pharmacodynamicModel": {
+    "formula": "psi(a) = psiMax - ((psiMax - psiMin) * (a/zMIC)^kappa) / ((a/zMIC)^kappa - psiMin/psiMax)",
+    "rateUnit": "log10 CFU per mL per hour",
+    "concentrationUnit": "mg/L; numerically equal to microgram/mL",
+    "sourceId": "regoes-2004",
+    "importantConditionMismatch": "Drug parameters were fitted for E. coli O18:K1:H7 CAB1 in LB at 37 C during the first 60 min. The game combines their shape parameters with a BW25113/M9 no-drug growth baseline. Therefore all resulting trajectories are educational calibrations, not measurements for one strain-condition system."
+  },
+  "drugs": {
+    "ampicillin": {
+      "zMicMgPerL": 3.4,
+      "zMicStandardError": 1.1,
+      "paperBrothDilutionMicMgPerL": 8,
+      "hillKappa": 0.75,
+      "hillStandardError": 0.19,
+      "psiMinLog10PerHour": -4,
+      "psiMinStandardError": 0.8,
+      "mechanismSourceId": "dailymed-ampicillin",
+      "parameterSourceId": "regoes-2004",
+      "evidenceClass": "peer_reviewed_measurement_transferred_as_educational_calibration"
+    },
+    "tetracycline": {
+      "zMicMgPerL": 0.67,
+      "zMicStandardError": 0.68,
+      "paperBrothDilutionMicMgPerL": 1,
+      "hillKappa": 0.61,
+      "hillStandardError": 0.27,
+      "psiMinLog10PerHour": -8.1,
+      "psiMinStandardError": 3.6,
+      "mechanismSourceId": "dailymed-tetracycline",
+      "parameterSourceId": "regoes-2004",
+      "evidenceClass": "peer_reviewed_measurement_transferred_as_educational_calibration"
+    },
+    "ciprofloxacin": {
+      "zMicMgPerL": 0.017,
+      "zMicStandardError": 0.005,
+      "paperBrothDilutionMicMgPerL": 0.03,
+      "hillKappa": 1.1,
+      "hillStandardError": 0.1,
+      "psiMinLog10PerHour": -6.5,
+      "psiMinStandardError": 0.3,
+      "mechanismSourceId": "dailymed-ciprofloxacin",
+      "parameterSourceId": "regoes-2004",
+      "evidenceClass": "peer_reviewed_measurement_transferred_as_educational_calibration"
+    }
+  },
+  "notModeled": [
+    "Patient dosing or pharmacokinetics",
+    "Clinical susceptibility categories S, I and R",
+    "Resistance mutation or evolution",
+    "Persisters and adaptive tolerance",
+    "Combination therapy",
+    "Spatial diffusion gradients",
+    "Strain-specific validation for BW25113 under antibiotic exposure"
+  ]
+}

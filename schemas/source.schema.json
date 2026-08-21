@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/source.schema.json",
+  "title": "Ecolab source registry",
+  "type": "object",
+  "required": ["schemaVersion", "records"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "sourceType", "title", "url", "license"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+          "sourceType": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" },
+          "doi": { "type": "string" },
+          "pmid": { "type": "string" },
+          "pmcid": { "type": "string" },
+          "license": {
+            "type": "object",
+            "required": ["status", "note"],
+            "properties": {
+              "status": { "type": "string", "minLength": 1 },
+              "note": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

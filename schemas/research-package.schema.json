@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/research-package.schema.json",
+  "title": "Ecolab research package",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "packageId",
+    "createdAt",
+    "analysisRunId",
+    "replay",
+    "artifactInventory",
+    "contents"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ecolab.research-package" },
+    "packageId": { "$ref": "#/$defs/nonEmptyString" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "analysisRunId": { "$ref": "#/$defs/nonEmptyString" },
+    "replay": {
+      "type": "object",
+      "required": ["status", "selfContained", "statement", "artifactIds", "dependencies"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "self_contained",
+            "requires_declared_dependencies",
+            "replay_requirements_incomplete"
+          ]
+        },
+        "selfContained": { "type": "boolean" },
+        "statement": { "$ref": "#/$defs/nonEmptyString" },
+        "artifactIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/replayDependency" }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "const": "self_contained" },
+            "selfContained": { "const": true },
+            "dependencies": { "maxItems": 0 }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "requires_declared_dependencies" },
+            "selfContained": { "const": false },
+            "dependencies": { "minItems": 1 }
+          }
+        },
+        {
+          "properties": {
+            "status": { "const": "replay_requirements_incomplete" },
+            "selfContained": { "const": false },
+            "dependencies": { "maxItems": 0 }
+          }
+        }
+      ]
+    },
+    "artifactInventory": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "contents": {
+      "type": "object",
+      "required": ["analysisManifest", "methodsSummaryMarkdown", "artifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "analysisManifest": { "$ref": "analysis-run.schema.json" },
+        "methodsSummaryMarkdown": { "type": "string", "minLength": 1 },
+        "artifacts": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "safePropertyName": { "not": { "enum": ["__proto__", "prototype", "constructor"] } },
+    "replayDependency": {
+      "type": "object",
+      "required": ["id", "kind", "requirement"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "kind": { "$ref": "#/$defs/nonEmptyString" },
+        "requirement": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "description": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifactId", "role", "path", "mediaType", "sha256", "byteLength"],
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/nonEmptyString" },
+        "role": { "$ref": "#/$defs/nonEmptyString" },
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "mediaType": { "$ref": "#/$defs/nonEmptyString" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "description": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "jsonObject": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        { "$ref": "#/$defs/jsonObject" }
+      ]
+    }
+  }
+}

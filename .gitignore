@@ -1,0 +1,28 @@
+# macOS and editor-local state
+.DS_Store
+.zed/
+
+# Dependencies and generated products
+node_modules/
+dist/
+coverage/
+.tmp/
+tmp/
+
+# Local raw source artifacts are provenance inputs, not release files
+data/raw/
+*.xlsx
+*.xls
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+npm-debug.log*

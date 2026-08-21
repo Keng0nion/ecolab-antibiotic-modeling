@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/observation-dataset.schema.json",
+  "title": "Ecolab observation dataset",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "metadata", "observations"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "observation-dataset" },
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "observations": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": { "$ref": "#/$defs/observation" }
+    }
+  },
+  "$defs": {
+    "safeObject": {
+      "type": "object",
+      "propertyNames": {
+        "not": { "enum": ["__proto__", "prototype", "constructor"] }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["datasetId", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "datasetId": { "type": "string", "minLength": 1, "pattern": "^(?!\\s)(?:.|\\n)*[^\\s]$|^[^\\s]$" },
+        "title": { "type": "string", "minLength": 1, "pattern": "^(?!\\s)(?:.|\\n)*[^\\s]$|^[^\\s]$" },
+        "description": { "type": "string", "minLength": 1 },
+        "createdAt": { "type": "string", "minLength": 1 },
+        "license": { "type": "string", "minLength": 1 },
+        "sourceIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "conditions": { "$ref": "#/$defs/safeObject" }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "observationId",
+        "seriesId",
+        "independentUnitId",
+        "role",
+        "timeHours",
+        "drugId",
+        "concentrationMgPerL",
+        "measurementType",
+        "value",
+        "censoring",
+        "censoringBounds",
+        "replicate",
+        "conditions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "observationId": { "type": "string", "minLength": 1 },
+        "seriesId": { "type": "string", "minLength": 1 },
+        "independentUnitId": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["training", "validation", "development"] },
+        "timeHours": { "type": "number", "minimum": 0 },
+        "drugId": { "type": "string", "minLength": 1 },
+        "concentrationMgPerL": { "type": "number", "minimum": 0 },
+        "measurementType": {
+          "enum": ["log10_cfu_per_ml", "cfu_per_ml", "od600", "od595"]
+        },
+        "value": { "type": "number" },
+        "censoring": { "enum": ["none", "left", "right", "interval"] },
+        "censoringBounds": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["upper"],
+              "additionalProperties": false,
+              "properties": { "upper": { "type": "number" } }
+            },
+            {
+              "type": "object",
+              "required": ["lower"],
+              "additionalProperties": false,
+              "properties": { "lower": { "type": "number" } }
+            },
+            {
+              "type": "object",
+              "required": ["lower", "upper"],
+              "additionalProperties": false,
+              "properties": {
+                "lower": { "type": "number" },
+                "upper": { "type": "number" }
+              }
+            }
+          ]
+        },
+        "replicate": { "type": "string", "minLength": 1 },
+        "conditions": { "$ref": "#/$defs/safeObject" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "measurementType": { "enum": ["cfu_per_ml", "od600", "od595"] } },
+            "required": ["measurementType"]
+          },
+          "then": { "properties": { "value": { "minimum": 0 } } }
+        },
+        {
+          "if": { "properties": { "censoring": { "const": "none" } }, "required": ["censoring"] },
+          "then": { "properties": { "censoringBounds": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "censoring": { "const": "left" } }, "required": ["censoring"] },
+          "then": {
+            "properties": {
+              "censoringBounds": {
+                "type": "object",
+                "required": ["upper"],
+                "additionalProperties": false,
+                "properties": { "upper": { "type": "number" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "censoring": { "const": "right" } }, "required": ["censoring"] },
+          "then": {
+            "properties": {
+              "censoringBounds": {
+                "type": "object",
+                "required": ["lower"],
+                "additionalProperties": false,
+                "properties": { "lower": { "type": "number" } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "censoring": { "const": "interval" } }, "required": ["censoring"] },
+          "then": {
+            "properties": {
+              "censoringBounds": {
+                "type": "object",
+                "required": ["lower", "upper"],
+                "additionalProperties": false,
+                "properties": {
+                  "lower": { "type": "number" },
+                  "upper": { "type": "number" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

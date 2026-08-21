@@ -1,0 +1,356 @@
+{
+  "schemaVersion": "1.0.0",
+  "records": [
+    {
+      "id": "ecolab.bw25113-m9-regoes-transferred",
+      "version": "1.0.0",
+      "modelRef": {
+        "id": "ecolab.single-population.regoes-logistic",
+        "version": "1.0.0"
+      },
+      "title": {
+        "en": "BW25113/M9 growth baseline with transferred CAB1/LB drug calibration",
+        "zh-CN": "BW25113/M9 生长基线与 CAB1/LB 跨条件药效校准"
+      },
+      "capabilityLevel": "L1",
+      "evidenceLevel": "E2",
+      "conditionMatch": "transferred_calibration",
+      "conditions": {
+        "target": {
+          "organism": "Escherichia coli",
+          "strain": "BW25113",
+          "medium": "M9 salts + 0.1% casamino acids + 0.2% glucose",
+          "cultureMode": "educational homogeneous population"
+        },
+        "drugParameterSource": {
+          "organism": "Escherichia coli",
+          "strain": "O18:K1:H7 CAB1",
+          "medium": "LB broth",
+          "temperature": {
+            "value": 37,
+            "unit": "degC"
+          },
+          "aeration": "200 rpm",
+          "exposureWindow": {
+            "value": 60,
+            "unit": "min"
+          }
+        }
+      },
+      "parameters": {
+        "growth": {
+          "doublingTime": {
+            "value": 42,
+            "unit": "min",
+            "origin": "literature",
+            "uncertainty": {
+              "kind": "reported_plus_minus_statistic_not_verified",
+              "value": 12,
+              "unit": "min"
+            },
+            "evidenceLevel": "E2",
+            "conditionMatch": "partially_matched",
+            "provenance": [
+              {
+                "sourceId": "bionumbers-111767",
+                "locator": {
+                  "kind": "database_record_and_primary_text",
+                  "value": "BioNumbers 111767; Campos et al. 2014 p.1439, M9-supplemented steady-growth paragraph; Figure S4"
+                }
+              }
+            ]
+          },
+          "psiMax": {
+            "unit": "log10-fold/h",
+            "origin": "derived",
+            "derivation": {
+              "expressionId": "doubling-time-to-log10-rate-v1",
+              "expression": "log10(2) / doublingTimeHours",
+              "inputParameterPaths": [
+                "growth.doublingTime"
+              ]
+            },
+            "evidenceLevel": "E2",
+            "conditionMatch": "partially_matched"
+          }
+        },
+        "population": {
+          "carryingCapacity": {
+            "value": 1000000000,
+            "unit": "CFU/mL",
+            "origin": "educational_assumption",
+            "evidenceLevel": "E0",
+            "conditionMatch": "not_applicable",
+            "rationale": "A round educational ceiling retained from the prototype; it is not a measured BW25113/M9 carrying capacity."
+          }
+        },
+        "drugs": {
+          "ampicillin": {
+            "zMic": {
+              "value": 3.4,
+              "unit": "mg/L",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 1.1,
+                "unit": "mg/L"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ampicillin row, zMIC column"
+                  }
+                }
+              ]
+            },
+            "hillKappa": {
+              "value": 0.75,
+              "unit": "dimensionless",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.19,
+                "unit": "dimensionless"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ampicillin row, kappa column"
+                  }
+                }
+              ]
+            },
+            "psiMin": {
+              "value": -4,
+              "unit": "log10-fold/h",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.8,
+                "unit": "log10-fold/h"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ampicillin row, psiMin column"
+                  }
+                }
+              ]
+            },
+            "paperBrothDilutionMic": {
+              "value": 8,
+              "unit": "mg/L",
+              "origin": "literature",
+              "usedByModel": false,
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_context_only",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ampicillin row, MIC column; twofold dilution protocol"
+                  }
+                }
+              ]
+            }
+          },
+          "tetracycline": {
+            "zMic": {
+              "value": 0.67,
+              "unit": "mg/L",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.68,
+                "unit": "mg/L"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Tetracycline row, zMIC column"
+                  }
+                }
+              ]
+            },
+            "hillKappa": {
+              "value": 0.61,
+              "unit": "dimensionless",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.27,
+                "unit": "dimensionless"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Tetracycline row, kappa column"
+                  }
+                }
+              ]
+            },
+            "psiMin": {
+              "value": -8.1,
+              "unit": "log10-fold/h",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 3.6,
+                "unit": "log10-fold/h"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Tetracycline row, psiMin column"
+                  }
+                }
+              ]
+            },
+            "paperBrothDilutionMic": {
+              "value": 1,
+              "unit": "mg/L",
+              "origin": "literature",
+              "usedByModel": false,
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_context_only",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Tetracycline row, MIC column; twofold dilution protocol"
+                  }
+                }
+              ]
+            }
+          },
+          "ciprofloxacin": {
+            "zMic": {
+              "value": 0.017,
+              "unit": "mg/L",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.005,
+                "unit": "mg/L"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ciprofloxacin row, zMIC column"
+                  }
+                }
+              ]
+            },
+            "hillKappa": {
+              "value": 1.1,
+              "unit": "dimensionless",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.1,
+                "unit": "dimensionless"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ciprofloxacin row, kappa column"
+                  }
+                }
+              ]
+            },
+            "psiMin": {
+              "value": -6.5,
+              "unit": "log10-fold/h",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.3,
+                "unit": "log10-fold/h"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ciprofloxacin row, psiMin column"
+                  }
+                }
+              ]
+            },
+            "paperBrothDilutionMic": {
+              "value": 0.03,
+              "unit": "mg/L",
+              "origin": "literature",
+              "usedByModel": false,
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_context_only",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ciprofloxacin row, MIC column; twofold dilution protocol"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "warnings": [
+        {
+          "code": "TRANSFERRED_CALIBRATION",
+          "severity": "critical",
+          "message": {
+            "en": "Drug parameters were fitted for E. coli CAB1 in LB at 37°C, while the no-drug growth baseline comes from BW25113 in supplemented M9. Results are educational and exploratory, not validated BW25113/M9 predictions.",
+            "zh-CN": "药效参数来自 37°C、LB 培养基中的 E. coli CAB1，而无药增长基线来自补充 M9 中的 BW25113。结果仅用于教学和探索，不是经过验证的 BW25113/M9 预测。"
+          }
+        },
+        {
+          "code": "CARRYING_CAPACITY_ASSUMPTION",
+          "severity": "warning",
+          "message": {
+            "en": "The carrying capacity is an educational assumption rather than a matched measurement.",
+            "zh-CN": "承载量是教学假设，不是条件匹配的测量值。"
+          }
+        }
+      ]
+    }
+  ]
+}

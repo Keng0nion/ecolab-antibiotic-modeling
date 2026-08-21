@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/analysis-run.schema.json",
+  "title": "Ecolab Stage 4 analysis-run manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "runId",
+    "createdAt",
+    "versions",
+    "model",
+    "baseParameterSet",
+    "parameterOverrides",
+    "dataset",
+    "splitFingerprint",
+    "plan",
+    "random",
+    "algorithm",
+    "failures",
+    "convergence",
+    "diagnostics",
+    "capabilityAssessment",
+    "warnings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ecolab.analysis-run" },
+    "runId": { "$ref": "#/$defs/nonEmptyString" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "versions": {
+      "type": "object",
+      "required": ["application", "core", "analysis", "analysisEngineId", "analysisImplementationId"],
+      "additionalProperties": false,
+      "properties": {
+        "application": { "$ref": "#/$defs/nonEmptyString" },
+        "core": { "$ref": "#/$defs/nonEmptyString" },
+        "analysis": { "const": "1.0.0" },
+        "analysisEngineId": { "const": "ecolab.stage4.analysis" },
+        "analysisImplementationId": { "const": "ecolab-stage4-analysis-v1" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["id", "version", "implementationId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "implementationId": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "baseParameterSet": {
+      "type": "object",
+      "required": ["id", "version", "resolvedParameters"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "resolvedParameters": { "$ref": "#/$defs/jsonObject" }
+      }
+    },
+    "parameterOverrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value", "origin"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "#/$defs/nonEmptyString" },
+          "value": { "$ref": "#/$defs/finiteNumber" },
+          "origin": {
+            "oneOf": [
+              { "$ref": "#/$defs/nonEmptyString" },
+              { "$ref": "#/$defs/jsonObject" }
+            ]
+          }
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["id", "version", "normalizedDatasetFingerprint", "fingerprint", "hash", "license"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "normalizedDatasetFingerprint": {
+          "$ref": "#/$defs/sha256",
+          "description": "SHA-256 of the canonical normalized dataset JSON; not a source-artifact byte hash."
+        },
+        "sourceArtifactSha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Optional SHA-256 of the original source artifact bytes."
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/sha256",
+          "deprecated": true,
+          "description": "Stage 4 compatibility alias of normalizedDatasetFingerprint."
+        },
+        "hash": {
+          "$ref": "#/$defs/sha256",
+          "deprecated": true,
+          "description": "Stage 4 compatibility alias of normalizedDatasetFingerprint; not a source-artifact SHA-256."
+        },
+        "license": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "splitFingerprint": { "$ref": "#/$defs/sha256" },
+    "plan": {
+      "type": "object",
+      "required": ["id", "analysisKind", "fingerprint"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "analysisKind": { "$ref": "#/$defs/nonEmptyString" },
+        "fingerprint": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "random": {
+      "type": "object",
+      "required": ["algorithm", "seed"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": { "$ref": "#/$defs/nonEmptyString" },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      }
+    },
+    "algorithm": {
+      "type": "object",
+      "required": ["name", "bounds", "stopping"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "bounds": { "$ref": "#/$defs/jsonObject" },
+        "stopping": { "$ref": "#/$defs/jsonObject" },
+        "settings": { "$ref": "#/$defs/jsonObject" }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/jsonValue" }
+    },
+    "convergence": {
+      "type": "object",
+      "required": ["converged"],
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "properties": { "converged": { "type": "boolean" } },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "diagnostics": {
+      "type": "object",
+      "required": ["residuals", "identifiability", "metrics"],
+      "additionalProperties": false,
+      "properties": {
+        "residuals": { "$ref": "#/$defs/jsonValue" },
+        "identifiability": { "$ref": "#/$defs/jsonValue" },
+        "metrics": { "$ref": "#/$defs/jsonValue" }
+      }
+    },
+    "capabilityAssessment": { "$ref": "#/$defs/jsonValue" },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+        "properties": {
+          "code": { "$ref": "#/$defs/nonEmptyString" },
+          "severity": { "$ref": "#/$defs/nonEmptyString" },
+          "message": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "finiteNumber": { "type": "number" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "safePropertyName": { "not": { "enum": ["__proto__", "prototype", "constructor"] } },
+    "jsonObject": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/safePropertyName" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "jsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "string" },
+        { "$ref": "#/$defs/finiteNumber" },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        { "$ref": "#/$defs/jsonObject" }
+      ]
+    }
+  }
+}

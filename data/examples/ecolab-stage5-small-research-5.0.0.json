@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ecolab-stage5-portfolio-research-example",
+  "artifactVersion": "5.0.0",
+  "generatedFrom": {
+    "applicationVersion": "5.0.0",
+    "scientificCoreVersion": "2.0.0",
+    "analysisEngineVersion": "1.0.0",
+    "model": {
+      "id": "ecolab.single-population.regoes-logistic",
+      "version": "1.0.0",
+      "implementationId": "regoes-logistic-piecewise-analytic-v1"
+    },
+    "dataset": {
+      "id": "figshare-bw25113-growth-v1",
+      "version": "1.0.0",
+      "normalizedJsonArtifactSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+      "normalizedCanonicalFingerprint": "2c30ce8d5dcf43c35aeafff0b495da0e012aef6d6ed3c021acab69eaf2dfbbcc",
+      "observationCount": 528,
+      "trainingObservationCount": 352,
+      "validationObservationCount": 176
+    },
+    "preset": "small",
+    "seed": 123456789,
+    "runId": "ecolab-stage5-small-research-5.0.0",
+    "createdAt": "2026-08-21T12:00:00.000Z"
+  },
+  "scientificScope": {
+    "measurement": "raw OD600 source values retained without modification",
+    "latentModel": "no-drug piecewise-analytic logistic growth",
+    "observationLayer": "OD600 = baselineOd + scaleOd * (N/K)",
+    "treatmentOrAntibioticInference": false
+  },
+  "fittedParameters": {
+    "biological": {
+      "psiMaxLog10PerHour": 0.42304736869534154,
+      "initialStates.pooled.log10PopulationDensity": 4.619773667214655
+    },
+    "observationLayer": {
+      "baselineOd": 0.08273059044421754,
+      "scaleOd": 0.24634216504605064
+    }
+  },
+  "validation": {
+    "locked": true,
+    "untouched": true,
+    "leakageFree": true,
+    "optimizerUsed": false,
+    "nuisanceParametersReprofiled": false,
+    "validationEvaluatorCalls": 1,
+    "metrics": {
+      "macroRmse": 0.008333855238427267,
+      "pooledRmse": 0.008344901370085705,
+      "mae": 0.006275964812029507,
+      "meanResidual": -0.00011647727272726226,
+      "medianAbsoluteError": 0.003758894612024506
+    },
+    "predeclaredBaseline": {
+      "id": "training-unit-mean-od-by-exact-source-time",
+      "predeclared": true,
+      "metrics": {
+        "macroRmse": 0.003047562725247655,
+        "pooledRmse": 0.0031805851912959228,
+        "mae": 0.002392045454545456,
+        "medianAbsoluteError": 0.0016249999999999876
+      }
+    },
+    "modelWorseThanBaseline": true,
+    "deltaModelMinusBaseline": {
+      "macroRmse": 0.005286292513179611,
+      "pooledRmse": 0.005164316178789782,
+      "mae": 0.003883919357484051,
+      "meanResidual": 5.285485590866834e-18,
+      "medianAbsoluteError": 0.0021338946120245186
+    }
+  },
+  "capability": {
+    "level": "L3",
+    "independentUnitsDocumented": false,
+    "heldOutValidationPerformed": true,
+    "heldOutValidationEligibleForL4": false,
+    "l4GatePassed": false
+  },
+  "compute": {
+    "preset": "small",
+    "optimizer": {
+      "restarts": 1,
+      "populationSize": 8,
+      "differentialEvolutionMaxEvaluations": 80,
+      "nelderMeadMaxEvaluations": 80
+    },
+    "parameterScanCandidateCount": 9,
+    "monteCarloSampleCount": 8,
+    "morrisTrajectoryCount": 2,
+    "sobolSampleCount": 8,
+    "identifiabilityProfilePoints": 3
+  },
+  "warnings": [
+    {
+      "code": "OD600_NOT_CFU",
+      "severity": "warning",
+      "message": "OD600 is an optical-density measurement and is not CFU/mL; no numeric equivalence with CFU/mL is claimed."
+    },
+    {
+      "code": "RAW_OD_ABSOLUTE_SCALE_NOT_IDENTIFIED",
+      "severity": "warning",
+      "message": "Raw OD600 does not identify an absolute CFU scale or the carrying capacity."
+    },
+    {
+      "code": "CARRYING_CAPACITY_FIXED",
+      "severity": "warning",
+      "message": "Carrying capacity is fixed from the resolved model and is not estimated from raw OD600.",
+      "carryingCapacityLog10CfuPerMl": 9
+    },
+    {
+      "code": "OD_OBSERVATION_NUISANCE_PARAMETERS",
+      "severity": "info",
+      "message": "baselineOd and scaleOd are observation-layer nuisance parameters; they map latent N/K to OD600 and do not alter source measurements."
+    },
+    {
+      "code": "NO_TREATMENT_INFERENCE",
+      "severity": "info",
+      "message": "The protocol is constant no-drug exposure and no treatment or antibiotic parameter is inferred."
+    },
+    {
+      "code": "EXPLORATORY_PARAMETER_INTERVALS",
+      "severity": "warning",
+      "message": "Monte Carlo triangular ranges are exploratory parameter-uncertainty simulation inputs, not confidence intervals."
+    },
+    {
+      "code": "INDEPENDENT_UNIT_DOCUMENTATION_INCOMPLETE",
+      "severity": "warning",
+      "message": "Held-out validation was locked and leakage-free, but source plate/well independence is incompletely documented; this evidence is not eligible for L4.",
+      "independentUnitsDocumented": false
+    },
+    {
+      "code": "SOURCE_AND_NORMALIZED_HASHES_DISTINCT",
+      "severity": "info",
+      "message": "The normalized JSON artifact byte hash and normalized canonical dataset fingerprint are recorded separately; original workbook hashes are separate provenance records.",
+      "sourceArtifactSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+      "normalizedDatasetFingerprint": "2c30ce8d5dcf43c35aeafff0b495da0e012aef6d6ed3c021acab69eaf2dfbbcc"
+    }
+  ],
+  "reproduction": {
+    "command": "npm run example:research",
+    "directCommand": "node scripts/generate-example-research.js"
+  }
+}
