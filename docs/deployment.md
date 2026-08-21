@@ -14,6 +14,14 @@ npm run preview
 
 `npm run build` 会先运行语法、版本、数据和全套自动化测试，再清理并生成两个正式产物。分步命令适合部署排查，但正式发布记录应优先包含完整构建结果。
 
+### GitHub Pages
+
+当前公开网站：<https://keng0nion.github.io/ecolab-antibiotic-modeling/>
+
+`.github/workflows/deploy-pages.yml` 在每次推送到 `main` 时运行完整 `npm run build`，然后通过 GitHub 官方 Pages Actions 发布 `dist/web/`。也可以在 GitHub Actions 页面使用 `workflow_dispatch` 手动重新部署。该方案不需要服务器、数据库或运行时密钥。
+
+GitHub Pages 不处理仓库中的 `_headers` 文件，因此 Pages 部署本身不会应用其中声明的 CSP、Referrer Policy、Permissions Policy 或缓存响应头。应用仍然可以运行，但不能将当前 Pages 地址表述为“已部署 `_headers` 安全策略”。若需要这些响应头，应使用 Cloudflare Pages、Netlify 或其他支持自定义响应头的静态托管平台。
+
 ### 托管要求
 
 - 按文件原样发布 `dist/web/`，保留相对目录结构。
@@ -46,6 +54,12 @@ npm run smoke:safari
 `audit:release` 检查部署配置、版本、文件内容、大小预算、禁止路径、Markdown 链接和 SHA-256 manifest。`check:reproducible` 在两个临时目录完成干净构建并比较每个文件的内容哈希。Safari 冒烟测试需要手动启用远程自动化。
 
 ## English
+
+Live site: <https://keng0nion.github.io/ecolab-antibiotic-modeling/>
+
+`.github/workflows/deploy-pages.yml` runs the complete `npm run build` pipeline on every push to `main` and publishes `dist/web/` with the official GitHub Pages Actions. It can also be run manually through `workflow_dispatch`. No server, database, or runtime secret is required.
+
+GitHub Pages does not interpret the repository's `_headers` file, so the Pages deployment does not apply its CSP, referrer, permissions, or caching response headers. The application remains functional, but the Pages URL must not be described as having those headers deployed. Use Cloudflare Pages, Netlify, or another host with custom-response-header support when those controls are required.
 
 `dist/web/` is a static site with no application server, database, or runtime secret. Publish the directory unchanged, preserve `_headers` or configure equivalent response headers, and do not add `data/raw/` or XLSX workbooks. Hash routing requires no SPA fallback, and relative asset URLs support root or subdirectory deployment.
 

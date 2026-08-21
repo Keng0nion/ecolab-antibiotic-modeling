@@ -8,6 +8,12 @@ Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic populati
 >
 > For teaching, model exploration, and research-oriented analysis; not for clinical decisions or as a condition-matched general experimental predictor.
 
+## Live site / 在线网站
+
+- GitHub Pages: https://keng0nion.github.io/ecolab-antibiotic-modeling/
+- 每次推送到 `main` 后，`.github/workflows/deploy-pages.yml` 会完成验证、构建并自动发布 `dist/web/`。
+- Every push to `main` validates, builds, and deploys `dist/web/` through `.github/workflows/deploy-pages.yml`.
+
 ## Version contract / 版本契约
 
 - Application / 应用：`5.0.0`
