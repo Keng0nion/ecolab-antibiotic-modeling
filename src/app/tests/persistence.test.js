@@ -327,3 +327,37 @@ test("repository falls back to memory when the IndexedDB probe cannot open", asy
   assert.equal(typeof repository.saveDataset, "function");
   assert.equal(typeof repository.saveAnalysis, "function");
 });
+
+test("repository falls back to memory when an IndexedDB upgrade is blocked", async () => {
+  const repository = await createProjectRepository({
+    open() {
+      const request = new EventTarget();
+      request.error = null;
+      queueMicrotask(() => request.dispatchEvent(new Event("blocked")));
+      return request;
+    },
+  }, { probeTimeoutMs: 50 });
+
+  assert.equal(repository.persistent, false);
+});
+
+test("repository probe timeout prevents a suspended IndexedDB request from blocking startup", async () => {
+  const startedAt = Date.now();
+  const repository = await createProjectRepository({
+    open() {
+      const request = new EventTarget();
+      request.error = null;
+      return request;
+    },
+  }, { probeTimeoutMs: 20 });
+
+  assert.equal(repository.persistent, false);
+  assert.ok(Date.now() - startedAt < 500);
+});
+
+test("repository rejects invalid persistence probe timeouts", async () => {
+  await assert.rejects(
+    createProjectRepository({}, { probeTimeoutMs: 0 }),
+    /positive integer/,
+  );
+});

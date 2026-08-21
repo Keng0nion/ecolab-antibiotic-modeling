@@ -33,3 +33,22 @@ test("browser catalog loader rejects an invalid registry envelope", async () => 
     /CATALOG_INVALID_ENVELOPE/,
   );
 });
+
+test("browser catalog loader times out suspended requests instead of leaving startup pending", async () => {
+  await assert.rejects(
+    loadScientificCatalog(() => new Promise(() => {}), { timeoutMs: 20 }),
+    /CATALOG_TIMEOUT/,
+  );
+});
+
+test("browser catalog loader passes one abort signal to every registry request", async () => {
+  const signals = [];
+  await loadScientificCatalog(async (url, options) => {
+    signals.push(options.signal);
+    return responseFor(await readFile(url, "utf8"));
+  }, { timeoutMs: 1_000 });
+
+  assert.equal(signals.length, 5);
+  assert.equal(new Set(signals).size, 1);
+  assert.equal(signals[0].aborted, false);
+});

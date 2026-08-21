@@ -76,6 +76,7 @@ if (!index.includes('./src/app/main.js') || !index.includes('./src/app/styles/ap
 
 await Promise.all([
   access(new URL("_headers", web)),
+  access(new URL("src/app/boot-watchdog.js", web)),
   access(new URL("src/app/main.js", web)),
   access(new URL("src/app/charts.js", web)),
   access(new URL("src/app/workers/analysis-worker.js", web)),

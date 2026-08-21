@@ -5,6 +5,7 @@ const DATASET_STORE = "datasets";
 const ANALYSIS_STORE = "analyses";
 const STORE_NAMES = [PROJECT_STORE, DATASET_STORE, ANALYSIS_STORE];
 const ANALYSIS_INTERRUPTION_REASON = "Interrupted after application reload.";
+export const DEFAULT_PERSISTENCE_PROBE_TIMEOUT_MS = 3_000;
 
 let probeFallbackSequence = 0;
 
@@ -177,8 +178,14 @@ export class IndexedDbProjectRepository {
 
   async database() {
     if (!this.databasePromise) {
+      let settled = false;
       const opening = new Promise((resolve, reject) => {
         const request = this.indexedDb.open(DATABASE_NAME, DATABASE_VERSION);
+        const rejectOpening = (error) => {
+          if (settled) return;
+          settled = true;
+          reject(error);
+        };
         request.addEventListener("upgradeneeded", (event) => {
           const oldVersion = Number.isInteger(event.oldVersion) ? event.oldVersion : 0;
           migrateDatabase(request.result, oldVersion);
@@ -187,6 +194,11 @@ export class IndexedDbProjectRepository {
           "success",
           () => {
             const database = request.result;
+            if (settled) {
+              database.close();
+              return;
+            }
+            settled = true;
             database.addEventListener(
               "versionchange",
               () => {
@@ -201,14 +213,22 @@ export class IndexedDbProjectRepository {
         );
         request.addEventListener(
           "error",
-          () => {
-            if (this.databasePromise === opening) this.databasePromise = null;
-            reject(request.error);
-          },
+          () => rejectOpening(request.error),
+          { once: true },
+        );
+        request.addEventListener(
+          "blocked",
+          () => rejectOpening(new ProjectRepositoryError(
+            "PERSISTENCE_BLOCKED",
+            "Browser storage is blocked by another open Ecolab tab.",
+          )),
           { once: true },
         );
       });
       this.databasePromise = opening;
+      void opening.catch(() => {
+        if (this.databasePromise === opening) this.databasePromise = null;
+      });
     }
     return this.databasePromise;
   }
@@ -317,11 +337,33 @@ export class IndexedDbProjectRepository {
   }
 }
 
-export async function createProjectRepository(indexedDb = globalThis.indexedDB) {
+function withTimeout(promise, timeoutMs, onTimeout = () => {}) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      onTimeout();
+      reject(new ProjectRepositoryError(
+        "PERSISTENCE_TIMEOUT",
+        `Browser storage did not respond within ${timeoutMs} ms.`,
+      ));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+export async function createProjectRepository(
+  indexedDb = globalThis.indexedDB,
+  { probeTimeoutMs = DEFAULT_PERSISTENCE_PROBE_TIMEOUT_MS } = {},
+) {
   if (!indexedDb) return new MemoryProjectRepository();
+  if (!Number.isInteger(probeTimeoutMs) || probeTimeoutMs <= 0) {
+    throw new TypeError("Persistence probe timeout must be a positive integer.");
+  }
   try {
     const repository = new IndexedDbProjectRepository(indexedDb);
-    await repository.probe();
+    await withTimeout(repository.probe(), probeTimeoutMs, () => {
+      void repository.database().then((database) => database.close(), () => {});
+    });
     return repository;
   } catch {
     return new MemoryProjectRepository();

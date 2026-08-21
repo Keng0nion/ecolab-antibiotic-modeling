@@ -2,7 +2,7 @@ import {
   evaluateRegoesNetGrowth,
   simulatePiecewise,
 } from "../model.js";
-import { loadScientificCatalog } from "./catalog-loader.browser.js";
+import { loadScientificCatalog } from "./catalog-loader.browser.js?v=startup-fix-1";
 import { renderLinkedCharts, serializeChartDashboard } from "./charts.js";
 import { COURSE_STEPS, coursePreset, courseStep } from "./course.js";
 import {
@@ -25,7 +25,7 @@ import {
   trajectoryToCsv,
 } from "./export.js";
 import { createI18n } from "./i18n.js";
-import { createProjectRepository } from "./persistence.js";
+import { createProjectRepository } from "./persistence.js?v=startup-fix-1";
 import { createResearchController } from "./research/controller.js";
 import { routeFromHashValue } from "./research/state.js";
 import { captureScrollPositions, restoreScrollPositions } from "./ui-state.js";

@@ -28,11 +28,13 @@ test("web build emits importable Stage 5 assets in a temporary directory with de
 
   const index = await readFile(new URL("index.html", web), "utf8");
   assert.match(index, /href="\.\/src\/app\/styles\/app\.css"/);
-  assert.match(index, /src="\.\/src\/app\/main\.js"/);
+  assert.match(index, /src="\.\/src\/app\/boot-watchdog\.js\?v=startup-fix-1"/);
+  assert.match(index, /src="\.\/src\/app\/main\.js\?v=startup-fix-1"/);
   assert.doesNotMatch(index, /\b(?:src|href)="\//);
 
   await Promise.all([
     access(new URL("_headers", web)),
+    access(new URL("src/app/boot-watchdog.js", web)),
     access(new URL("src/app/charts.js", web)),
     access(new URL("src/app/version.js", web)),
     access(new URL("src/app/workers/analysis-worker.js", web)),
