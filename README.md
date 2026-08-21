@@ -11,8 +11,8 @@ Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic populati
 ## Live site / 在线网站
 
 - GitHub Pages: https://keng0nion.github.io/ecolab-antibiotic-modeling/
-- 每次推送到 `main` 后，`.github/workflows/deploy-pages.yml` 会完成验证、构建并自动发布 `dist/web/`。
-- Every push to `main` validates, builds, and deploys `dist/web/` through `.github/workflows/deploy-pages.yml`.
+- 每次推送到 `main` 后，`.github/workflows/deploy-pages.yml` 会运行 `npm run build:public`，验证公开仓库材料并自动发布 `dist/web/`。
+- Every push to `main` runs `npm run build:public` to validate the public repository materials and deploy `dist/web/`.
 
 ## Version contract / 版本契约
 
@@ -34,6 +34,7 @@ npm start
 npm run dev
 npm run test:release
 npm run build
+npm run build:public
 npm run audit:release
 npm run check:reproducible
 npm run example:research

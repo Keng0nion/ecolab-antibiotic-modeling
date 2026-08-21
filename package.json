@@ -8,6 +8,7 @@
     "audit:data": "node scripts/audit-data.js",
     "audit:release": "npm run check:version && node scripts/audit-release.js",
     "build": "npm run check && npm run build:clean && npm run build:core && npm run build:web",
+    "build:public": "npm run check:public && npm run build:clean && npm run build:core && npm run build:web && npm run audit:release",
     "build:clean": "node scripts/clean-dist.js",
     "build:core": "node scripts/build-core.js",
     "build:web": "node scripts/build-web.js",
@@ -23,7 +24,8 @@
     "smoke:safari": "node scripts/smoke-safari.js",
     "test": "node --test",
     "test:release": "node --test scripts/tests/release.test.js src/app/tests/web-build.test.js",
-    "check": "npm run check:syntax && npm run check:version && npm run audit:data && npm test"
+    "check": "npm run check:syntax && npm run check:version && npm run audit:data && npm test",
+    "check:public": "npm run check:syntax && npm run check:version && npm run test:release"
   },
   "engines": {
     "node": ">=20.19.0"

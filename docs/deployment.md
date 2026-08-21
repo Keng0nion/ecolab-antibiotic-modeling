@@ -18,7 +18,7 @@ npm run preview
 
 当前公开网站：<https://keng0nion.github.io/ecolab-antibiotic-modeling/>
 
-`.github/workflows/deploy-pages.yml` 在每次推送到 `main` 时运行完整 `npm run build`，然后通过 GitHub 官方 Pages Actions 发布 `dist/web/`。也可以在 GitHub Actions 页面使用 `workflow_dispatch` 手动重新部署。该方案不需要服务器、数据库或运行时密钥。
+`.github/workflows/deploy-pages.yml` 在每次推送到 `main` 时运行 `npm run build:public`，然后通过 GitHub 官方 Pages Actions 发布 `dist/web/`。公开构建会执行语法与版本检查、发布测试、可复现性检查、正式 Core/Web 构建和发布审计；它不会假装读取被 `.gitignore` 排除的 `data/raw/` 来源文件。本地完整 `npm run build` 仍会额外运行原始数据审计和全量测试。也可以在 GitHub Actions 页面使用 `workflow_dispatch` 手动重新部署。该方案不需要服务器、数据库或运行时密钥。
 
 GitHub Pages 不处理仓库中的 `_headers` 文件，因此 Pages 部署本身不会应用其中声明的 CSP、Referrer Policy、Permissions Policy 或缓存响应头。应用仍然可以运行，但不能将当前 Pages 地址表述为“已部署 `_headers` 安全策略”。若需要这些响应头，应使用 Cloudflare Pages、Netlify 或其他支持自定义响应头的静态托管平台。
 
@@ -57,7 +57,7 @@ npm run smoke:safari
 
 Live site: <https://keng0nion.github.io/ecolab-antibiotic-modeling/>
 
-`.github/workflows/deploy-pages.yml` runs the complete `npm run build` pipeline on every push to `main` and publishes `dist/web/` with the official GitHub Pages Actions. It can also be run manually through `workflow_dispatch`. No server, database, or runtime secret is required.
+`.github/workflows/deploy-pages.yml` runs `npm run build:public` on every push to `main` and publishes `dist/web/` with the official GitHub Pages Actions. The public build performs syntax and version checks, release tests, reproducibility checks, formal Core/Web builds, and the release audit; it does not pretend to read `data/raw/` provenance inputs excluded by `.gitignore`. The local full `npm run build` additionally performs the raw-data audit and complete test suite. The workflow can also be run manually through `workflow_dispatch`. No server, database, or runtime secret is required.
 
 GitHub Pages does not interpret the repository's `_headers` file, so the Pages deployment does not apply its CSP, referrer, permissions, or caching response headers. The application remains functional, but the Pages URL must not be described as having those headers deployed. Use Cloudflare Pages, Netlify, or another host with custom-response-header support when those controls are required.
 
