@@ -131,18 +131,26 @@ Nelder–Mead 在评价预算耗尽前若已找到更优点，仍保留该点。
 
 ## 9. 验证与发布范围
 
-本地最终验证（完整命令及阶段记录见 [发布检查表](./release-checklist.md)）：
+本地验证及发布后兼容修复复验（完整命令及阶段记录见 [发布检查表](./release-checklist.md)）：
 
-- `npm test`：**500/500** 通过。
-- `npm run build` 和 `npm run build:public`：通过；发布测试 **59/59**。
-- 两次干净构建：**157 个文件逐字节一致**。
-- 新产物真实 Chromium 工作流：**24/24** 检查通过，包括正常复算、仅重哈希清单的负向包、独立 CSV 披露、刷新恢复、取消和存储降级。
+- 跨运行时修复后的 `npm test`：**522/522** 通过，0 失败 / 取消 / 跳过；此前主升级为 500/500。
+- 主升级 `npm run build` 和 `npm run build:public` 通过；兼容修复后又在 Node **20.19.0** 单独执行 `npm run build:public`，发布测试 **59/59**、构建及发布审计均通过。
+- 兼容修复后两次干净构建：**159 个文件逐字节一致**；新增内部模板模块分别进入 Core / Web，因此比此前的 157 多两个文件。
+- 主升级产物真实 Chromium 工作流：**24/24** 检查通过，包括正常复算、仅重哈希清单的负向包、独立 CSV 披露、刷新恢复、取消和存储降级。这一轮发生在随后的跨运行时兼容修复之前，不冒充修复后线上浏览器检查。
 - 发布审计：示例严格检查和复算匹配；Core **7.14 MiB**、Web **7.55 MiB**，最大静态文件 **4.10 MiB**，未提高大小预算。
 - 历史两个示例 SHA-256 与升级前相同。
 
 2026-09-07，用户在本地升级验证完成后明确授权提交并上传已有 GitHub 仓库。发布目标是现有 `main`，不强制推送或重写历史；现有 [Pages workflow](../.github/workflows/deploy-pages.yml) 会在推送后运行公开构建并部署。具体提交及部署结论以 [GitHub 提交记录](https://github.com/Keng0nion/ecolab-antibiotic-modeling/commits/main/) 和 [Actions 记录](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/workflows/deploy-pages.yml) 为准；本地测试记录不替代远端成功状态。
 
 源码、测试、文档与带许可的规范数据/示例进入仓库；`data/raw/`、XLSX、`tmp/` 浏览器证据、编辑器状态、凭据和生成的 `dist/` 不进入 Git 提交。Pages 由 workflow 单独构建发布静态产物。
+
+### 上传时发现并修复的跨运行时问题
+
+主更新提交 [`a9f34ef`](https://github.com/Keng0nion/ecolab-antibiotic-modeling/commit/a9f34ef9f51c0452bcad59f079dded5054d9226b) 已成功上传，但 [首次 Actions](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/34132393765) 在 Ubuntu / Node 20.19.0 报告 58/59 发布测试通过，部署被跳过。根因不是模型输出超出容差，而是相关系数直接拼入警告字符串：记录值 `-0.9936582411628538` 与 Node 20 复算值 `-0.9936582411628594` 数值等价，文本却不同。主机 Node 20.19.0 复现了相同的四处差异路径。
+
+兼容修复仅对双方都严格对应各自结构化字段的封闭相关性 / 有限高条件数警告模板豁免重复数值文本。结构化数值仍用原容差核对，警告措辞、来源、参数、其余字段和完整 manifest 仍被检查；任意文本修改、超容差数值、自洽重哈希造假均有负向测试。没有重生成示例、修改科学输出、增大容差、跳过测试或提高测试时限。
+
+Node 20 对原样保留的示例复算现为 `matched=true`、0 差异；定向回归 32/32、全量 522/522 通过。与全量测试同时运行的一次公开构建触发 120 秒测试内部时限，不计通过；停止并行负载后按同一时限单独重跑，59/59 通过。后续远端部署状态仍以 Actions 对应提交为准。
 
 ## 10. 仍未完成的验证与明确不支持的结论
 

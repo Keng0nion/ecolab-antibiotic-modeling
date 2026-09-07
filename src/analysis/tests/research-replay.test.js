@@ -412,6 +412,98 @@ test("comparison applies abs plus relative tolerances to numeric leaves, with no
   assert.equal((await replay(pkg, { runtime: fastRuntime })).matched, false);
 });
 
+test("canonical numeric warning text tolerates runtime roundoff in science and complete manifests only", async () => {
+  const pkg = clone((await currentFixture()).researchPackage);
+  const science = pkg.contents.artifacts["scientific-result"];
+  const manifest = pkg.contents.analysisManifest;
+  const locations = [
+    [science.identifiability.warnings, "$.identifiability.warnings"],
+    [science.warnings, "$.warnings"],
+    [manifest.diagnostics.identifiability.warnings, "$.analysisManifest.diagnostics.identifiability.warnings"],
+    [manifest.warnings, "$.analysisManifest.warnings"],
+  ];
+  const numericPaths = [];
+  for (const [warnings, path] of locations) {
+    const index = warnings.findIndex(({ code }) => code === "STRONG_PARAMETER_CORRELATION");
+    assert.ok(index >= 0, `Expected a correlation warning at ${path}.`);
+    const warning = warnings[index];
+    const previous = warning.correlation;
+    warning.correlation += 1e-12;
+    assert.notEqual(warning.correlation, previous);
+    const previousMessage = warning.message;
+    warning.message = warning.message.replace(String(previous), String(warning.correlation));
+    assert.notEqual(warning.message, previousMessage);
+    numericPaths.push(`${path}[${index}].correlation`);
+  }
+  rehash(pkg, "scientific-result"); rehash(pkg, "analysis-manifest");
+  assert.equal(inspect(pkg).replayable, true);
+  const equivalent = await replay(pkg, { runtime: fastRuntime });
+  assert.equal(equivalent.matched, true);
+  assert.equal(equivalent.comparison.mismatchCount, 0);
+  const strict = await replay(pkg, { runtime: fastRuntime, absoluteTolerance: 0, relativeTolerance: 0 });
+  assert.equal(strict.matched, false);
+  assert.deepEqual([...strict.comparison.mismatchPaths].sort(), numericPaths.sort());
+});
+
+test("numeric warning exemptions cannot hide rehashed message, field or structural tampering", async (t) => {
+  const original = (await currentFixture()).researchPackage;
+  const index = original.contents.analysisManifest.diagnostics.identifiability.warnings.findIndex(({ code }) => code === "STRONG_PARAMETER_CORRELATION");
+  assert.ok(index >= 0);
+  const base = `$.analysisManifest.diagnostics.identifiability.warnings[${index}]`;
+  const cases = [
+    ["only message number", (w) => { w.message = w.message.replace(String(w.correlation), String(w.correlation + 1e-12)); }, "message"],
+    ["missing qualifier", (w) => { w.message = w.message.replace("; this is not calibrated parameter uncertainty.", "."); }, "message"],
+    ["extra text", (w) => { w.message += " Proven stable."; }, "message"],
+    ["self-consistent false correlation", (w) => {
+      const previous = w.correlation; w.correlation += 0.1;
+      w.message = w.message.replace(String(previous), String(w.correlation));
+    }, "correlation"],
+    ["numeric string", (w) => { w.correlation = String(w.correlation); }, "correlation"],
+    ["different known source", (w) => {
+      w.source = "normalized_jacobian_columns";
+      w.message = `${w.parameters.join(" and ")} have collinear normalized sensitivity columns (cosine ${w.correlation}), not an estimable parameter correlation.`;
+    }, "source"],
+    ["unknown source", (w) => { w.source = "unknown"; }, "source"],
+    ["parameters", (w) => {
+      const previous = w.parameters.join(" and "); w.parameters.reverse();
+      w.message = w.message.replace(previous, w.parameters.join(" and "));
+    }, "parameters[0]"],
+    ["malformed parameters", (w) => { w.parameters = null; }, "parameters"],
+    ["threshold", (w) => { w.threshold += 0.1; }, "threshold"],
+    ["extra field", (w) => { w.unsupportedClaim = true; }, "unsupportedClaim"],
+    ["missing field", (w) => { delete w.threshold; }, "threshold"],
+    ["warning code", (w) => { w.code = "OTHER"; }, "code"],
+    ["severity", (w) => { w.severity = "info"; }, "severity"],
+    ["stage", (w) => { w.stage = "invented"; }, "stage"],
+  ];
+  for (const [name, mutate, suffix] of cases) await t.test(name, async () => {
+    const pkg = clone(original);
+    mutate(pkg.contents.analysisManifest.diagnostics.identifiability.warnings[index]);
+    rehash(pkg, "analysis-manifest");
+    assert.equal(inspect(pkg).replayable, true);
+    const result = await replay(pkg, { runtime: fastRuntime });
+    assert.equal(result.matched, false);
+    assert.ok(result.comparison.mismatchPaths.includes(`${base}.${suffix}`));
+  });
+  await t.test("matching false science and manifest", async () => {
+    const pkg = clone(original);
+    const science = pkg.contents.artifacts["scientific-result"];
+    const manifest = pkg.contents.analysisManifest;
+    for (const warnings of [science.identifiability.warnings, science.warnings, manifest.diagnostics.identifiability.warnings, manifest.warnings]) {
+      const warning = warnings.find(({ code }) => code === "STRONG_PARAMETER_CORRELATION");
+      assert.ok(warning);
+      const previous = warning.correlation; warning.correlation += 0.1;
+      warning.message = warning.message.replace(String(previous), String(warning.correlation));
+    }
+    rehash(pkg, "scientific-result"); rehash(pkg, "analysis-manifest");
+    assert.equal(inspect(pkg).replayable, true);
+    const result = await replay(pkg, { runtime: fastRuntime });
+    assert.equal(result.matched, false);
+    assert.equal(result.comparison.mismatchCount, 4);
+    assert.ok(result.comparison.mismatchPaths.every((path) => path.endsWith(".correlation")));
+  });
+});
+
 test("comparison reports exact structural, array-order, type and missing/extra-key differences with bounded paths", async () => {
   const pkg = clone((await currentFixture()).researchPackage);
   const reference = pkg.contents.artifacts["scientific-result"];

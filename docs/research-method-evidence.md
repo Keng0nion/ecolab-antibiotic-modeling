@@ -164,6 +164,8 @@ Raue et al. (2009)，[DOI](https://doi.org/10.1093/bioinformatics/btp358)，用�
 
 研究包嵌入精确源文本、拆分、解析模型、完整设置、版本、随机种子和科学输出；导入不执行代码、不联网获取依赖。哈希验证字节完整性，输入关联检查也**不证明数据真实、来源身份或科学结论一致**。精确兼容的内置软件可显式复算，同时比较科学投影与完整分析 manifest，防止单独重哈希一个矛盾清单后误报匹配；旧版缺输入的包只查看。数据自包含不等于可独立执行，也不保证无限跨版本复现。
 
+跨运行时数值比较使用绝对 `1e-10`、相对 `1e-8` 的默认容差。若相关性 / 有限高条件数警告在两侧均逐字符合各自字段对应的封闭内置模板，其重复数值文本不另作字符串相等要求；结构化数值、code、source、parameters、所有其他字段及整个 manifest 仍参与比较。未知模板、文本与自身数值不符或被添加结论时继续严格拒绝。该兼容修复不改科学输出、哈希工件或容差；`matched` 表示所声明规则下等价，不表示字节相同或来源真实。
+
 ## English summary
 
 The teaching layer combines the Regoes concentration–net-growth function with piecewise analytic density-limited growth/decline. Drug parameters are transferred from CAB1/LB, not validated for BW25113/M9. The admitted data contain untreated raw OD600 only. Research v2 adds empirical direct-OD Logistic/Gompertz curves, whole-training-trajectory CV and joint curve bootstrap; these are not the original paper's log-population physiological parameterization. Previously viewed holdout curves are development comparisons, not untouched evidence. Optimizer convergence, identification, sampling precision and task completion are distinct. Method adoption and software conformance do not establish antibiotic-effect or experimental validation.

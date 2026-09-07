@@ -4,6 +4,7 @@ import { importObservationDataset, normalizeObservationDataset, parseJsonStrict 
 import { canonicalJson, sha256HexFallback } from "./fingerprint.js";
 import { GROWTH_COMPARISON_LIMITS } from "./growth-comparison.js";
 import { deriveSeed, RNG_ALGORITHM } from "./random.js";
+import { hasCanonicalNumericWarningMessage } from "./replay-warning-equivalence.js";
 import { researchWorkflowComputationSettings, researchWorkflowConfiguration, researchWorkflowRuntime } from "./research-workflow.js";
 import { RESEARCH_WORKFLOW_IMPLEMENTATION_ID, runEcolabResearchWorkflow, scientificResearchProjection } from "./research-upgrade.js";
 import { ANALYSIS_ENGINE_ID, ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "./version.js";
@@ -526,10 +527,14 @@ async function compareScientific(expected, actual, tolerances, runtime, manifest
         else await visit(left[i], right[i], `${path}[${i}]`);
       }
     } else {
+      // Floating-point tail differences must not become exact-string failures.
+      // Exempt only closed templates verified against each side's own fields;
+      // the values and every other field still pass through the full comparator.
+      const numericWarningText = hasCanonicalNumericWarningMessage(left) && hasCanonicalNumericWarningMessage(right);
       for (const key of [...new Set([...Object.keys(left), ...Object.keys(right)])].sort()) {
         const childPath = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? `${path}.${key}` : `${path}[${JSON.stringify(key)}]`;
         if (!Object.hasOwn(left, key) || !Object.hasOwn(right, key)) mismatch(childPath);
-        else await visit(left[key], right[key], childPath);
+        else if (key !== "message" || !numericWarningText) await visit(left[key], right[key], childPath);
       }
     }
   }
@@ -542,7 +547,9 @@ async function compareScientific(expected, actual, tolerances, runtime, manifest
 
 /** Replay only the static, exact-version built-in workflow; never imports code or
  * fetches dependencies. Numeric leaves use |a-b| <= abs + rel*max(|a|,|b|);
- * all object keys, array order/length, types and nonnumeric leaves are exact.
+ * all object keys, array order/length, types and nonnumeric leaves are exact,
+ * except closed numeric warning templates verified against each side's own
+ * structured fields; those fields still use the same full comparison.
  * The complete imported analysis manifest is also compared with the recomputed
  * manifest; integrity inspection alone does not establish scientific agreement.
  * mismatchCount is total; mismatchPaths retains at most 100 paths of 512 chars.

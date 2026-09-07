@@ -42,6 +42,22 @@
 
 以上均为本地验证，不单独证明远端推送、部署或科学独立验证成功；GitHub 上传是随后获用户授权的发布步骤。
 
+## GitHub 上传后的跨运行时复验
+
+主升级提交 [`a9f34ef`](https://github.com/Keng0nion/ecolab-antibiotic-modeling/commit/a9f34ef9f51c0452bcad59f079dded5054d9226b) 已推送到现有 `main`。[首次 Actions 34132393765](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/34132393765) 的 Ubuntu / Node 20.19.0 发布测试为 58 通过 / 1 失败，deploy 跳过。仅四处相关性警告的 message 不同，结构化数值没有超出复算容差；本地 Node 20.19.0 可复现。
+
+兼容补丁只识别与各自数值字段逐字一致的封闭警告模板，仍核对所有结构化字段和完整 manifest。未更改科学结果、版本、示例、哈希或默认容差；模板之外的警告继续严格比较。
+
+- [x] 原例子 Node 20.19.0：修复前四处 message 差异，修复后 `matched=true` / 0 差异。相关系数 `-0.9936582411628538` 与 `-0.9936582411628594` 的尾差未通过改写工件掩盖。
+- [x] 新回归先失败后通过；连同原回放/manifest/容差/结构定向检查 **32/32** 通过，包含 16 个新负向子项和零容差反证。
+- [x] 最终 `npm test`：**522/522** 通过，0 失败 / 取消 / 跳过，约 280.84 秒。
+- [x] `npm exec --yes --package=node@20.19.0 -- npm run build:public` 单独执行：**59/59** 发布测试、Core/Web 构建、发布审计通过，发布测试约 60.23 秒。
+- [x] `npm run check:reproducible`：**159 个文件逐字节一致**；新增模板模块分别进入 Core / Web，使文件数从 157 增至 159。
+- [x] 全部 `data/examples` 相对主更新提交无变化；历史两哈希不变，`git diff --check` 及编辑器 diagnostics 通过。
+- [x] 独立只读补丁审查未发现阻断项，确认双侧模板校验不短路数值/结构/manifest 比较。
+
+一度将 Node 20 公开构建与全量测试并行执行，发布测试内部 120 秒超时，57 通过 / 2 取消，不计通过。随后在无并行重负载时使用相同上限重跑通过；未增加时限或跳过测试。下方 24 项 Chromium 记录属于主升级修复前产物，不冒充该兼容补丁的线上浏览器验证。最新部署结果以 Actions 对应提交为准。
+
 ## 浏览器记录
 
 2026-09-07 初轮隔离 Chromium 自动化 **16 项通过、0 项失败**：Learn/Sandbox 启动、bundled 528 点导入/QC、small 实际 Worker 分析、开发与状态标签、UI 研究包下载、导入不自动运行、显式 Worker 回放 `matched=true` / 0 mismatches、IndexedDB 刷新恢复、分析/回放取消及初始化内存降级。
