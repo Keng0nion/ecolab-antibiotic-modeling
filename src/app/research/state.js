@@ -1,6 +1,14 @@
 export const RESEARCH_SECTIONS = Object.freeze(["data", "design", "analysis", "results"]);
 
-export const RESEARCH_PRESETS = Object.freeze({
+function deepFreeze(value) {
+  if (value && typeof value === "object") {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export const RESEARCH_PRESETS = deepFreeze({
   small: Object.freeze({
     optimizer: Object.freeze({
       restarts: 1,
@@ -13,6 +21,18 @@ export const RESEARCH_PRESETS = Object.freeze({
     morrisTrajectories: 2,
     morrisLevels: 4,
     sobolSamples: 8,
+    sobolBootstrapReplicates: 40,
+    sobolConfidenceLevel: 0.95,
+    sobolPrecisionTolerance: 0.2,
+    growthComparison: {
+      bounds: { baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30] },
+      optimizer: {
+        restarts: 1, populationSize: 8, differentialEvolutionMaxEvaluations: 120,
+        nelderMeadMaxEvaluations: 80, tolerance: 1e-7, objectiveTolerance: 1e-12,
+      },
+      crossValidation: { tieTolerance: 1e-10 },
+      bootstrap: { samples: 20, intervalLevel: 0.95 },
+    },
     identifiabilityProfilePoints: 3,
     returnedMonteCarloSamples: 8,
   }),
@@ -28,6 +48,18 @@ export const RESEARCH_PRESETS = Object.freeze({
     morrisTrajectories: 8,
     morrisLevels: 4,
     sobolSamples: 64,
+    sobolBootstrapReplicates: 200,
+    sobolConfidenceLevel: 0.95,
+    sobolPrecisionTolerance: 0.2,
+    growthComparison: {
+      bounds: { baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30] },
+      optimizer: {
+        restarts: 1, populationSize: 12, differentialEvolutionMaxEvaluations: 1200,
+        nelderMeadMaxEvaluations: 800, tolerance: 1e-7, objectiveTolerance: 1e-12,
+      },
+      crossValidation: { tieTolerance: 1e-10 },
+      bootstrap: { samples: 100, intervalLevel: 0.95 },
+    },
     identifiabilityProfilePoints: 5,
     returnedMonteCarloSamples: 32,
   }),
@@ -54,6 +86,11 @@ export function createResearchState() {
     selectedDataset: null,
     selectedAnalysis: null,
     result: null,
+    replayPreview: null,
+    packageOperation: null,
+    packageCancelling: false,
+    packageError: null,
+    packageProgress: { phase: "idle", fraction: 0 },
     selectedValidationUnit: null,
     busy: false,
     running: false,
@@ -89,10 +126,25 @@ export function normalizeResearchSeed(value) {
 export function researchPreset(name) {
   const preset = RESEARCH_PRESETS[name];
   if (!preset) throw new RangeError(`Unknown Research compute preset: ${String(name)}.`);
-  return {
-    ...preset,
-    optimizer: { ...preset.optimizer },
-  };
+  return structuredClone(preset);
+}
+
+export function researchEvaluationRole(result) {
+  return result?.kind === "ecolab-development-research-workflow" || result?.validation?.role === "development_comparison"
+    ? "development" : "validation";
+}
+
+export function researchSensitivityRows(result) {
+  const sensitivity = result?.analyses?.sensitivity ?? {};
+  const output = result?.analyses?.scalarOutput?.name;
+  const local = sensitivity.local?.byParameter ?? {};
+  const morris = sensitivity.morris?.byParameter ?? {};
+  const sobol = sensitivity.sobolJansen?.byParameter ?? {};
+  const scalar = (entry) => entry?.outputs?.[output] ?? entry ?? {};
+  return [...new Set([...Object.keys(local), ...Object.keys(morris), ...Object.keys(sobol)])].map((name) => ({
+    name, local: scalar(local[name]).derivative,
+    morris: scalar(morris[name]), sobol: scalar(sobol[name]),
+  }));
 }
 
 export function isCompletedAnalysis(record) {
@@ -117,7 +169,7 @@ export function captureResearchRun({ dataset, seed, preset, applicationVersion, 
   const normalizedSeed = normalizeResearchSeed(seed);
   const safeDatasetId = String(dataset.normalizedDataset?.metadata?.datasetId ?? dataset.id)
     .replace(/[^a-zA-Z0-9._-]+/g, "-");
-  const runId = `stage4-${safeDatasetId}-${dataset.contentHash.slice(0, 12)}-${normalizedSeed}-${date.getTime()}`;
+  const runId = `research-v2-${safeDatasetId}-${dataset.contentHash.slice(0, 12)}-${normalizedSeed}-${date.getTime()}`;
   return Object.freeze({
     runId,
     createdAt,

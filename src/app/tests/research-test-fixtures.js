@@ -259,6 +259,52 @@ export function createResearchResult(overrides = {}) {
   return { ...result, ...overrides };
 }
 
+export function createResearchV2Result() {
+  const result = createResearchResult({ kind: "ecolab-development-research-workflow" });
+  result.reproducibility.applicationVersion = "6.0.0";
+  result.validation.role = "development_comparison";
+  result.validation.observationRoleUsed = "validation";
+  result.researchAssessment = { completed: true, converged: false, identified: false, precisionAssessed: false,
+    precision: { sobolAssessed: true, sobolImprecise: true, growthBootstrapAssessed: false } };
+  result.growthComparison = {
+    crossValidation: { sourceRole: "training", unit: "whole_trajectory", metric: "macroRmse", candidates: {
+      training_mean: { eligible: true, score: 0.012, folds: [{ fit: { finite: true, converged: true } }] },
+      logistic: { eligible: true, score: 0.019, folds: [{ fit: { finite: true, converged: false } }] },
+      gompertz: { eligible: false, score: null, folds: [{ fit: { finite: false, converged: false } }] },
+    } },
+    trainingFits: {
+      training_mean: { finite: true, converged: true, metrics: metrics({ macroRmse: 0.01 }) },
+      logistic: { finite: true, converged: false, metrics: metrics({ macroRmse: 0.017 }) },
+      gompertz: { finite: false, converged: false, metrics: null },
+    },
+    selection: { selectedModel: "training_mean", sourceRole: "training", metric: "macroRmse", selectedScore: 0.012,
+      frozenBeforeDevelopment: true, tieOrder: ["training_mean", "logistic", "gompertz"], tieTolerance: 1e-10 },
+    development: { observationRoleUsed: "validation", selectedModel: "training_mean", fittedOnThisData: false,
+      selected: { status: "available", metrics: metrics({ macroRmse: 0.023 }), predictions: [
+        { observationId: "validation-1", independentUnitId: "validation-unit", timeHours: 0.5, observed: 0.09, predicted: 0.08, residual: 0.01 },
+      ] }, baseline: { status: "available", metrics: metrics({ macroRmse: 0.023 }), predictions: [] }, deltaMacroRmseVsBaseline: 0 },
+    bootstrap: { requestedSamples: 20, successfulSamples: 17, jointSamplesRetained: true,
+      resamplingUnit: "whole_training_trajectory", independenceAssumption: "unverified", failures: [{ index: 3, reason: "optimizer_not_converged" }, { index: 5 }, { index: 8 }],
+      intervals: { status: "available", precisionAssessed: false, tailResolutionAdequate: false, parameters: { baselineOd: { lower: -0.002, median: 0.01, upper: 0.03 } } },
+      warnings: [{ code: "BOOTSTRAP_REFIT_FAILURES", message: "Failed joint refits retained." }] },
+    warnings: [{ code: "TRAJECTORY_INDEPENDENCE_UNVERIFIED", message: "Between-trajectory independence remains unverified." }],
+  };
+  result.identifiability.objectiveSlices = [{ kind: "objective_slice", parameter: "psiMaxLog10PerHour", nuisanceParametersOptimized: true,
+    otherBiologicalParametersOptimized: false, profileLikelihood: false,
+    interpretation: "Other biological parameters fixed; OD nuisance parameters reoptimized on training data. Not a profile likelihood or confidence interval.",
+    values: [{ parameterValue: 0.2, objectiveValue: 0.001, status: "completed" }, { parameterValue: 0.3, objectiveValue: null, status: "failed" }] }];
+  result.analyses.sensitivity.morris.effectScale = "output_per_unit_normalized_coordinate";
+  result.analyses.sensitivity.morris.normalization = "Each parameter bound span maps to [0, 1]; outputs are not standardized.";
+  result.analyses.sensitivity.sobolJansen.bootstrap = { confidenceLevel: 0.95, replicates: 40 };
+  result.analyses.sensitivity.sobolJansen.byParameter.psiMaxLog10PerHour = {
+    outputs: { predictedOdAt10Hours: { firstOrder: -0.24, totalOrder: 1.18,
+      firstOrderInterval: [-0.48, 0.13], totalOrderInterval: [0.81, 1.46],
+      precision: { assessed: true, imprecise: true, validReplicates: 40, invalidReplicates: 0, issues: ["FIRST_ORDER_OUT_OF_RANGE", "WIDE_BOOTSTRAP_INTERVAL"] } } },
+  };
+  result.analyses.sensitivity.sobolJansen.byParameter["initialStates.pooled.log10PopulationDensity"] = { firstOrder: null, totalOrder: null };
+  return result;
+}
+
 export function createCatalogFixture() {
   return {
     datasetRegistry: {

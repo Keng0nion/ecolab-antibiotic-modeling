@@ -21,6 +21,7 @@ import { morrisSensitivity } from "./sensitivity-morris.js";
 import { sobolJansenSensitivity } from "./sensitivity-sobol.js";
 import { createDatasetSplit } from "./split.js";
 import { validateLockedPlan } from "./validation.js";
+import { ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "./version.js";
 import {
   applyOdObservationLayer,
   OD_OBSERVATION_MODEL_EQUATION,
@@ -131,6 +132,29 @@ function progressCallback(value) {
 
 function emit(progress, phase, completed, total) {
   progress?.({ phase, completed, total });
+}
+
+// Synchronous numerical engines catch evaluator exceptions. Cancellation stays
+// outside those engines and yields between complete, explicitly bounded phases.
+export function researchWorkflowRuntime(options = {}) {
+  const runtime = record(options.runtime ?? {}, "runtime");
+  for (const key of ["checkCancelled", "yieldControl"]) {
+    if (runtime[key] !== undefined && typeof runtime[key] !== "function") fail("INVALID_RUNTIME_CALLBACK", `runtime.${key} must be a function.`);
+  }
+  if (runtime.signal !== undefined && typeof runtime.signal?.aborted !== "boolean") fail("INVALID_RUNTIME_SIGNAL", "runtime.signal must expose boolean aborted.");
+  const callback = progressCallback(options.onProgress);
+  const check = () => {
+    if (runtime.signal?.aborted || runtime.checkCancelled?.() === true) fail("ANALYSIS_CANCELLED", "Research workflow cancelled.");
+  };
+  return {
+    check,
+    progress(event) { check(); callback?.(event); check(); },
+    async checkpoint() {
+      check();
+      if (options.runtime) await (runtime.yieldControl ? runtime.yieldControl() : new Promise((resolve) => setTimeout(resolve, 0)));
+      check();
+    },
+  };
 }
 
 function conditionValue(observation, metadataConditions, key) {
@@ -447,6 +471,7 @@ function profiledTrainingEvaluation(resolvedModel, biologicalParameters, observa
   return profileOdObservationLayer({
     latentFractions: alignedFractions,
     observedOd: observations.map(({ value }) => value),
+    minimumScaleOd: 1e-12,
   });
 }
 
@@ -557,7 +582,7 @@ function residualSummary(residuals) {
   };
 }
 
-function workflowConfiguration(options) {
+export function researchWorkflowConfiguration(options) {
   const optimizer = options.optimizer ?? {};
   record(optimizer, "optimizer");
   const populationSize = integerOption(
@@ -627,6 +652,9 @@ function workflowConfiguration(options) {
       3,
       11,
     ),
+    sobolBootstrapReplicates: integerOption(options.sobolBootstrapReplicates, 200, "sobolBootstrapReplicates", 0, 2000),
+    sobolConfidenceLevel: finite(options.sobolConfidenceLevel ?? 0.95, "sobolConfidenceLevel"),
+    sobolPrecisionTolerance: finite(options.sobolPrecisionTolerance ?? 0.2, "sobolPrecisionTolerance"),
     returnedMonteCarloSamples: integerOption(
       options.returnedMonteCarloSamples,
       32,
@@ -634,6 +662,38 @@ function workflowConfiguration(options) {
       1,
       ECOLAB_STAGE4_WORKFLOW_LIMITS.maximumReturnedMonteCarloSamples,
     ),
+  };
+}
+
+/** Fixed numerical rules for this implementation, recorded verbatim for replay. */
+export function researchWorkflowComputationSettings(options) {
+  const config = researchWorkflowConfiguration(options);
+  const space = parameterSpaceFor(assertSupportedResolvedModel(options.resolvedModel));
+  return {
+    scalarOutputTimeHours: SCALAR_OUTPUT_TIME_HOURS,
+    training: {
+      method: "least_squares", parameterPolicy: "scientific",
+      parameterWhitelist: [...PARAMETER_NAMES], bounds: boundsFromSpace(space),
+      initialParameters: initialParameters(options.resolvedModel, space),
+      initialStateSeriesIds: ["pooled"], drugIds: [],
+    },
+    observationLayer: { minimumScaleOd: 1e-12, profilingRole: "training" },
+    differentialEvolution: { mutationFactor: 0.8, crossoverRate: 0.9, tolerance: 1e-7, objectiveTolerance: 1e-10 },
+    nelderMead: { initialStep: 0.05, tolerance: 1e-8, objectiveTolerance: 1e-12 },
+    identifiability: {
+      relativeStep: 1e-4, rankTolerance: 1e-8, boundaryTolerance: 0.01,
+      conditionWarning: 1e6, correlationWarning: 0.95,
+      nearOptimumRelativeTolerance: 1e-4, nearOptimumAbsoluteTolerance: 1e-8,
+      nearOptimumParameterSeparation: 1e-3,
+      objectiveSlices: { points: config.identifiabilityProfilePoints, maxParameters: 2, flatRelativeTolerance: 1e-4 },
+    },
+    localSensitivity: {
+      scheme: "auto", spanRelativeStep: 1e-5, roundoffRelativeStep: Math.sqrt(Number.EPSILON),
+      stepRule: "min(span, max(span * spanRelativeStep, roundoffRelativeStep * max(1, abs(transformedCenter))))",
+    },
+    morris: { delta: config.morrisLevels % 2 === 0 ? config.morrisLevels / (2 * (config.morrisLevels - 1)) : 1 / (config.morrisLevels - 1) },
+    monteCarlo: { quantileProbabilities: [0.025, 0.5, 0.975], propagateObservationError: false },
+    sobol: { independentInputs: true, minimumTailSamples: 5, quantileMethod: "R7" },
   };
 }
 
@@ -700,8 +760,16 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   const resolvedModel = options.resolvedModel;
   const carryingCapacity = assertSupportedResolvedModel(resolvedModel);
   const seed = uint32(options.seed ?? 0x5e4c0ab1, "seed");
-  const config = workflowConfiguration(options);
-  const progress = progressCallback(options.onProgress);
+  const config = researchWorkflowConfiguration(options);
+  const computation = researchWorkflowComputationSettings(options);
+  if (config.sobolBootstrapReplicates === 1 || !(config.sobolConfidenceLevel > 0 && config.sobolConfidenceLevel < 1) || !(config.sobolPrecisionTolerance > 0)) {
+    fail("INVALID_SOBOL_BOOTSTRAP_OPTIONS", "Sobol bootstrap requires 0 or >=2 replicates, confidence level in (0,1), and positive precision tolerance.");
+  }
+  if (options.developmentComparison !== undefined && typeof options.developmentComparison !== "boolean") fail("INVALID_DEVELOPMENT_COMPARISON", "developmentComparison must be boolean.");
+  const developmentComparison = options.developmentComparison === true;
+  const runtime = researchWorkflowRuntime(options);
+  const progress = runtime.progress;
+  runtime.check();
   const metadata = reproducibilityMetadata(options, datasetInput);
   const sourceArtifactSha256 = typeof datasetInput === "string"
     ? sha256HexFallback(datasetInput)
@@ -712,6 +780,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     monteCarlo: deriveSeed(seed, "monte-carlo"),
     morris: deriveSeed(seed, "morris"),
     sobol: deriveSeed(seed, "sobol"),
+    sobolBootstrap: uint32(options.sobolBootstrapSeed ?? deriveSeed(deriveSeed(seed, "sobol"), "sobol", "bootstrap"), "sobolBootstrapSeed"),
   };
 
   emit(progress, "dataset_import", 0, 1);
@@ -733,8 +802,10 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   emit(progress, "dataset_split", 0, 1);
   const split = await createDatasetSplit(dataset, {
     sourceDatasetFingerprint: datasetFingerprint,
-    strategy: "declared_training_validation_roles_by_complete_independent_unit",
-    lockedValidation: true,
+    strategy: developmentComparison
+      ? "declared_training_and_previously_viewed_development_using_legacy_validation_ids"
+      : "declared_training_validation_roles_by_complete_independent_unit",
+    lockedValidation: !developmentComparison,
   });
   const trainingObservations = dataset.observations.filter(({ role }) => role === "training");
   const validationObservations = dataset.observations.filter(({ role }) => role === "validation");
@@ -746,6 +817,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   const bounds = boundsFromSpace(parameterSpace);
   const startingParameters = initialParameters(resolvedModel, parameterSpace);
 
+  await runtime.checkpoint();
   emit(progress, "training_fit", 0, 1);
   const fit = fitParameters({
     observations: trainingObservations,
@@ -758,10 +830,11 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     seed: seeds.optimizer,
     restarts: config.optimizerRestarts,
     differentialEvolution: {
+      ...computation.differentialEvolution,
       populationSize: config.populationSize,
       maxEvaluations: config.differentialEvolutionMaxEvaluations,
     },
-    nelderMead: { maxEvaluations: config.nelderMeadMaxEvaluations },
+    nelderMead: { ...computation.nelderMead, maxEvaluations: config.nelderMeadMaxEvaluations },
     evaluator: (biologicalParameters, observations) =>
       profiledTrainingEvaluation(
         resolvedModel,
@@ -786,8 +859,10 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   });
   emit(progress, "training_fit", 1, 1);
 
+  await runtime.checkpoint();
   emit(progress, "identifiability", 0, 1);
   const identifiabilityRaw = analyzeIdentifiability({
+    ...computation.identifiability,
     parameters: fittedBiologicalParameters,
     parameterWhitelist: [...PARAMETER_NAMES],
     bounds,
@@ -806,13 +881,21 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
         trainingObservations,
         datasetFacts.maximumTimeHours,
       ).sumSquaredErrors,
-    profiles: { points: config.identifiabilityProfilePoints, maxParameters: 2 },
     optimization: fit.optimization,
   });
-  const identifiability = jsonSafe(identifiabilityRaw);
+  const slices = identifiabilityRaw.objectiveSlices.map((slice) => ({
+    ...slice,
+    nuisanceParametersOptimized: true,
+    otherBiologicalParametersOptimized: false,
+    optimizedNuisanceParameters: ["baselineOd", "scaleOd"],
+    profileLikelihood: false,
+    interpretation: "One biological parameter is scanned with other biological parameters fixed; OD observation-layer nuisance parameters are reoptimized on training data at each point. This is a nuisance-profiled objective slice, not a profile likelihood or confidence interval; endpoints are not confidence limits.",
+  }));
+  const identifiability = jsonSafe({ ...identifiabilityRaw, objectiveSlices: slices, profiles: slices });
   emit(progress, "identifiability", 1, 1);
 
-  emit(progress, "lock_validation_plan", 0, 1);
+  await runtime.checkpoint();
+  emit(progress, developmentComparison ? "freeze_development_plan" : "lock_validation_plan", 0, 1);
   const baseline = trainingBaseline(
     trainingObservations,
     validationObservations,
@@ -823,7 +906,9 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     schemaVersion: "1.0.0",
     kind: "analysis-plan",
     id: options.planId ?? `${DATASET_ID}-stage4-od-logistic-plan-v1`,
-    analysisKind: "training_profiled_od600_logistic_fit_and_locked_validation",
+    analysisKind: developmentComparison
+      ? "training_profiled_od600_logistic_fit_and_development_comparison"
+      : "training_profiled_od600_logistic_fit_and_locked_validation",
     datasetFingerprint,
     splitFingerprint: split.splitFingerprint,
     modelRef: { id: resolvedModel.ref.id, version: resolvedModel.ref.version },
@@ -858,6 +943,11 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     validationIndependentUnitIds: validationUnitIds,
     baseline,
     notes: {
+      ...(developmentComparison ? {
+        evaluationRole: "development_comparison", sourceObservationRole: "validation",
+        previouslyViewed: true, untouched: false, eligibleAsValidationEvidence: false,
+        lockSemantics: "lockedValidation is the legacy schema flag for frozen parameters/settings only; it does not assert untouched evidence.",
+      } : {}),
       latentModel: "No-drug piecewise-analytic logistic population model with fixed carrying capacity from the resolved model.",
       sampleAlignment: "Exact source times only; model time 0 is an initial state and is not a source observation.",
       carryingCapacityLog10CfuPerMl: carryingCapacity,
@@ -865,9 +955,10 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       treatmentInference: "No treatment or antibiotic parameter is inferred.",
     },
   });
-  emit(progress, "lock_validation_plan", 1, 1);
+  emit(progress, developmentComparison ? "freeze_development_plan" : "lock_validation_plan", 1, 1);
 
-  emit(progress, "locked_validation", 0, 1);
+  await runtime.checkpoint();
+  emit(progress, developmentComparison ? "development_comparison" : "locked_validation", 0, 1);
   let validationEvaluatorCalls = 0;
   const validation = validateLockedPlan({
     plan: lockedPlan,
@@ -893,7 +984,13 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       );
     },
   });
-  emit(progress, "locked_validation", 1, 1);
+  if (developmentComparison) Object.assign(validation, {
+    role: "development_comparison", evidenceStatus: "previously_viewed_development_comparison",
+    untouched: false, previouslyViewed: true, observationRoleUsed: "validation",
+    eligibleAsValidationEvidence: false,
+    lockSemantics: "Parameters and observation-layer settings frozen from training; not an untouched holdout.",
+  });
+  emit(progress, developmentComparison ? "development_comparison" : "locked_validation", 1, 1);
 
   const scalarEvaluator = (biologicalParameters) => {
     const [fraction] = simulateLatentFractions(
@@ -908,6 +1005,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     });
   };
 
+  await runtime.checkpoint();
   emit(progress, "parameter_scan", 0, config.scanPointsPerAxis ** 2);
   const scanValues = Object.fromEntries(parameterSpace.parameters.map((definition) => [
     definition.name,
@@ -931,8 +1029,10 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     uncertaintyFraction,
   );
 
+  await runtime.checkpoint();
   emit(progress, "monte_carlo", 0, config.monteCarloSamples);
   const monteCarloRaw = runMonteCarlo({
+    ...computation.monteCarlo,
     sampleCount: config.monteCarloSamples,
     seed: seeds.monteCarlo,
     parameterDistributions: distributions,
@@ -961,8 +1061,15 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       : {}),
   };
 
+  await runtime.checkpoint();
   emit(progress, "local_sensitivity", 0, 1);
   const local = localSensitivity({
+    scheme: computation.localSensitivity.scheme,
+    stepIsRelative: false,
+    steps: Object.fromEntries(parameterSpace.parameters.map(({ name, lower, upper }) => [name,
+      Math.max((upper - lower) * computation.localSensitivity.spanRelativeStep,
+        computation.localSensitivity.roundoffRelativeStep * Math.max(1, Math.abs(fittedBiologicalParameters[name]))),
+    ])),
     parameterSpace,
     baseline: fittedBiologicalParameters,
     outputNames: [`predictedOdAt${SCALAR_OUTPUT_TIME_HOURS}Hours`],
@@ -970,23 +1077,30 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   });
   emit(progress, "local_sensitivity", 1, 1);
 
+  await runtime.checkpoint();
   emit(progress, "morris_sensitivity", 0, 1);
   const morris = morrisSensitivity({
     parameterSpace,
     trajectories: config.morrisTrajectories,
     levels: config.morrisLevels,
+    delta: computation.morris.delta,
     seed: seeds.morris,
     outputNames: [`predictedOdAt${SCALAR_OUTPUT_TIME_HOURS}Hours`],
     evaluator: scalarEvaluator,
   });
   emit(progress, "morris_sensitivity", 1, 1);
 
+  await runtime.checkpoint();
   emit(progress, "sobol_sensitivity", 0, 1);
   const sobol = sobolJansenSensitivity({
     parameterDistributions: distributions,
     sampleCount: config.sobolSamples,
     seed: seeds.sobol,
-    independentInputs: true,
+    bootstrapReplicates: config.sobolBootstrapReplicates,
+    bootstrapSeed: seeds.sobolBootstrap,
+    confidenceLevel: config.sobolConfidenceLevel,
+    precisionTolerance: config.sobolPrecisionTolerance,
+    independentInputs: computation.sobol.independentInputs,
     outputNames: [`predictedOdAt${SCALAR_OUTPUT_TIME_HOURS}Hours`],
     evaluator: scalarEvaluator,
   });
@@ -1027,7 +1141,9 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     {
       code: "INDEPENDENT_UNIT_DOCUMENTATION_INCOMPLETE",
       severity: "warning",
-      message: "Held-out validation was locked and leakage-free, but source plate/well independence is incompletely documented; this evidence is not eligible for L4.",
+      message: developmentComparison
+        ? "Previously viewed development curves are not untouched validation; source plate/well independence is incompletely documented and this evidence is not eligible for L4."
+        : "Held-out validation was locked and leakage-free, but source plate/well independence is incompletely documented; this evidence is not eligible for L4.",
       independentUnitsDocumented: false,
     },
   ];
@@ -1041,6 +1157,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     });
   }
 
+  await runtime.checkpoint();
   emit(progress, "capability", 0, 1);
   const capability = assessCapability({
     runId: metadata?.runId ?? null,
@@ -1073,7 +1190,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       splitFingerprint: validation.splitFingerprint,
       independentUnitsDocumented: false,
       eligibleAsValidationEvidence: false,
-      l4Eligibility: "ineligible_due_to_incomplete_source_plate_well_independence_documentation",
+      l4Eligibility: developmentComparison ? "ineligible_previously_viewed_development" : "ineligible_due_to_incomplete_source_plate_well_independence_documentation",
     },
   });
   if (capability.level !== "L3") {
@@ -1117,13 +1234,16 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     nuisanceParametersReprofiled: false,
     validationEvaluatorCalls,
     eligibleForL4: false,
-    l4IneligibilityReason: "Source plate/well independence is incompletely documented.",
+    l4IneligibilityReason: developmentComparison
+      ? "Previously viewed development data; source plate/well independence is incompletely documented."
+      : "Source plate/well independence is incompletely documented.",
   };
 
   let manifest = null;
   let methodsSummaryMarkdown = null;
   let researchPackage = null;
   if (metadata) {
+    await runtime.checkpoint();
     emit(progress, "research_artifacts", 0, 1);
     const failures = allFailures(fit, parameterScan, monteCarloRaw);
     manifest = createAnalysisManifest({
@@ -1170,6 +1290,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
           nuisanceLockedBeforeValidation: true,
           validationOptimization: false,
           sensitivityOutputTimeHours: SCALAR_OUTPUT_TIME_HOURS,
+          computationSettings: computation,
         },
       },
       failures,
@@ -1204,9 +1325,9 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
         ],
         dependencies: [
           {
-            id: "ecolab-stage4-analysis-v1",
+            id: ANALYSIS_IMPLEMENTATION_ID,
             kind: "software_implementation",
-            version: "1.0.0",
+            version: ANALYSIS_ENGINE_VERSION,
             requirement: "exact",
             description: "Ecolab Stage 4 analysis implementation used for fitting, validation, uncertainty, and sensitivity calculations.",
           },
@@ -1259,7 +1380,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
         },
         {
           artifactId: "stage4-locked-validation",
-          role: "locked_validation_result",
+          role: developmentComparison ? "previously_viewed_development_result" : "locked_validation_result",
           path: "stage4-locked-validation.json",
           mediaType: "application/json",
           content: validationResult,
@@ -1354,7 +1475,8 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     capability: {
       ...capability,
       independentUnitsDocumented: false,
-      heldOutValidationPerformed: true,
+      heldOutValidationPerformed: !developmentComparison,
+      ...(developmentComparison ? { developmentComparisonPerformed: true, untouched: false } : {}),
       heldOutValidationEligibleForL4: false,
     },
     warnings,

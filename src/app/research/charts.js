@@ -1,5 +1,6 @@
 import { captureScrollPositions, restoreScrollPositions } from "../ui-state.js";
-import { RESEARCH_EXPORT_DISCLOSURES } from "./export.js";
+import { RESEARCH_EXPORT_DISCLOSURES, researchExportDisclosures } from "./export.js";
+import { researchEvaluationRole, researchSensitivityRows } from "./state.js";
 
 function escapeXml(value) {
   return String(value)
@@ -42,19 +43,25 @@ function number(value, digits = 3) {
   return value.toFixed(digits).replace(/\.0+$|(?<=\.[0-9]*?)0+$/g, "");
 }
 
-function labels(locale) {
+function labels(locale, result) {
   const zh = locale === "zh-CN";
+  const development = researchEvaluationRole(result) === "development";
   return {
-    overlay: zh ? "锁定留出单元：观测值与模型" : "Locked held-out unit: observed vs model",
-    overlayDesc: zh ? "所选锁定留出单元的原始 OD600 观测与锁定模型预测。" : "Raw OD600 observations and locked-model predictions for the selected locked held-out unit.",
-    residuals: zh ? "验证残差" : "Validation residuals",
+    overlay: development ? (zh ? "开发单元：观测值与冻结校准模型" : "Development unit: observed vs frozen calibration model") : (zh ? "锁定留出单元：观测值与模型" : "Locked held-out unit: observed vs model"),
+    overlayDesc: development ? (zh ? "已查看开发数据的原始 OD600 与冻结校准预测；源角色 validation 保留供审计，不是未触碰验证。" : "Previously viewed development OD600 and frozen calibration predictions; source role validation is retained for audit, not untouched validation.") : (zh ? "所选锁定留出单元的原始 OD600 观测与锁定模型预测。" : "Raw OD600 observations and locked-model predictions for the selected locked held-out unit."),
+    residuals: development ? (zh ? "开发残差" : "Development residuals") : (zh ? "验证残差" : "Validation residuals"),
     residualDesc: zh ? "残差定义为观测值减预测值；零线表示无偏差。" : "Residuals are observed minus predicted; the zero line marks no error.",
     scan: zh ? "二维参数扫描" : "Two-dimensional parameter scan",
     scanDesc: zh ? "生长率与汇总初始潜在状态网格上的 10 小时预测 OD600。" : "Predicted OD600 at 10 hours over the growth-rate and pooled initial-state grid.",
     uncertainty: zh ? "10 小时不确定性区间" : "Uncertainty interval at 10 h",
     uncertaintyDesc: zh ? "探索性三角参数范围产生的 2.5%、50% 与 97.5% 分位数；不是置信区间。" : "2.5%, 50%, and 97.5% quantiles from exploratory triangular parameter ranges; not a confidence interval.",
     sensitivity: zh ? "10 小时敏感性" : "Sensitivity at 10 h",
-    sensitivityDesc: zh ? "局部导数、Morris μ* 与 Sobol 一阶/总阶指标。" : "Local derivative, Morris μ*, and Sobol first-/total-order indices.",
+    sensitivityDesc: zh ? "有符号局部导数、Morris μ* 和未裁剪 Sobol 指标及区间；不同方法量纲不同，不能直接比较大小。" : "Signed local derivatives, Morris μ*, and un-clipped Sobol indices with intervals; methods have different units and magnitudes are not directly comparable.",
+    morrisScale: zh ? "Morris：每单位归一化坐标的输出变化；输出未标准化" : "Morris: output per unit normalized coordinate; outputs not standardized",
+    legacyMorris: zh ? "Morris：保留历史输出尺度（未声明归一化）" : "Morris: historical output scale (normalization not declared)",
+    precision: zh ? "精度" : "Precision",
+    sobolBootstrap: (level, replicates) => zh ? `${level}% 成对行 bootstrap 区间 · ${replicates} 次重复` : `${level}% paired-row bootstrap intervals · ${replicates} replicates`,
+    scales: zh ? "局部、Morris 与 Sobol 分别缩放；竖线为零，短横线为区间" : "Separate local, Morris and Sobol scales; vertical marks = zero, whiskers = intervals",
     time: zh ? "时间 (h)" : "Time (h)",
     od: "OD600",
     residual: zh ? "残差" : "Residual",
@@ -120,7 +127,7 @@ export function alignedValidationRows(dataset, result) {
 }
 
 function overlayFigure(dataset, result, unitId, locale) {
-  const text = labels(locale);
+  const text = labels(locale, result);
   const rows = alignedValidationRows(dataset, result).filter(({ observation }) => observation.independentUnitId === unitId);
   const width = 680;
   const height = 340;
@@ -139,7 +146,7 @@ function overlayFigure(dataset, result, unitId, locale) {
 }
 
 function residualFigure(dataset, result, unitId, locale) {
-  const text = labels(locale);
+  const text = labels(locale, result);
   const rows = alignedValidationRows(dataset, result).filter(({ observation, residual }) => observation.independentUnitId === unitId && Number.isFinite(residual));
   const width = 680;
   const height = 300;
@@ -226,44 +233,42 @@ function uncertaintyFigure(result, locale) {
   return figure("research-uncertainty", text.uncertainty, text.uncertaintyDesc, svg("uncertainty-10h", text.uncertainty, text.uncertaintyDesc, body, 680, 250), text.uncertaintyDesc);
 }
 
-function sensitivityRows(result) {
-  const local = result?.analyses?.sensitivity?.local?.byParameter ?? {};
-  const morris = result?.analyses?.sensitivity?.morris?.byParameter ?? {};
-  const sobol = result?.analyses?.sensitivity?.sobolJansen?.byParameter ?? {};
-  const names = [...new Set([...Object.keys(local), ...Object.keys(morris), ...Object.keys(sobol)])];
-  return names.map((name) => ({
-    name,
-    local: Math.abs(finite(local[name]?.derivative, 0)),
-    morris: Math.abs(finite(morris[name]?.muStar, 0)),
-    first: Math.abs(finite(sobol[name]?.firstOrder, 0)),
-    total: Math.abs(finite(sobol[name]?.totalOrder, 0)),
-  }));
-}
-
 function sensitivityFigure(result, locale) {
-  const text = labels(locale);
-  const rows = sensitivityRows(result);
+  const text = labels(locale, result);
+  const rows = researchSensitivityRows(result);
   const metrics = [
-    ["local", "Local |dY/dx|", "research-bar-local"],
-    ["morris", "Morris μ*", "research-bar-morris"],
-    ["first", "Sobol S1", "research-bar-sobol-first"],
-    ["total", "Sobol ST", "research-bar-sobol-total"],
+    { label: "Local dY/dx", family: "local", className: "research-bar-local", value: (row) => row.local },
+    { label: "Morris μ*", family: "morris", className: "research-bar-morris", value: (row) => row.morris.muStar },
+    { label: "Sobol S1", family: "sobol", className: "research-bar-sobol-first", value: (row) => row.sobol.firstOrder, interval: (row) => row.sobol.firstOrderInterval },
+    { label: "Sobol ST", family: "sobol", className: "research-bar-sobol-total", value: (row) => row.sobol.totalOrder, interval: (row) => row.sobol.totalOrderInterval },
   ];
   const width = 680;
-  const left = 210;
-  const right = 28;
-  const top = 35;
-  const groupHeight = 112;
-  const height = Math.max(250, top + rows.length * groupHeight + 55);
+  const groupHeights = rows.map((row) => 235 + Math.max(1, row.sobol.precision?.issues?.length ?? 0) * 18);
+  const height = Math.max(250, 100 + groupHeights.reduce((sum, value) => sum + value, 0));
   if (rows.length === 0) {
     return figure("research-sensitivity", text.sensitivity, text.sensitivityDesc, svg("sensitivity-10h-empty", text.sensitivity, text.sensitivityDesc, `<text x="340" y="125" text-anchor="middle">${escapeXml(text.noData)}</text>`, width, 250), text.sensitivityDesc);
   }
-  const max = Math.max(0.001, ...rows.flatMap((row) => metrics.map(([key]) => row[key])));
-  const body = `${ticks([0, max]).map((value) => `<line class="research-chart-grid" x1="${scale(value, [0, max], [left, width - right])}" y1="${top}" x2="${scale(value, [0, max], [left, width - right])}" y2="${height - 50}"/><text class="research-chart-axis" x="${scale(value, [0, max], [left, width - right])}" y="${height - 30}" text-anchor="middle">${number(value, 2)}</text>`).join("")}
-    ${rows.map((row, rowIndex) => {
-      const baseY = top + rowIndex * groupHeight;
-      return `<text x="${left - 10}" y="${baseY + 42}" text-anchor="end">${escapeXml(row.name.replace("initialStates.pooled.", "pooled."))}</text>${metrics.map(([key, label, className], metricIndex) => { const y = baseY + metricIndex * 18; return `<rect class="${className}" x="${left}" y="${y}" width="${scale(row[key], [0, max], [0, width - left - right])}" height="12"><title>${escapeXml(`${label}: ${number(row[key])}`)}</title></rect><text x="${left + 5}" y="${y + 10}">${escapeXml(label)}</text>`; }).join("")}`;
-    }).join("")}`;
+  const domains = Object.fromEntries(["local", "morris", "sobol"].map((family) => [family, extent([0, ...rows.flatMap((row) => metrics.filter((metric) => metric.family === family).flatMap((metric) => [metric.value(row), ...(metric.interval?.(row) ?? [])]))])]));
+  const effectScale = result?.analyses?.sensitivity?.morris?.effectScale;
+  const morrisLabel = effectScale === "output_per_unit_normalized_coordinate" ? text.morrisScale : effectScale ?? text.legacyMorris;
+  const bootstrap = result?.analyses?.sensitivity?.sobolJansen?.bootstrap;
+  const body = `<text x="20" y="18">${escapeXml(morrisLabel)}</text><text x="20" y="36">${escapeXml(text.scales)}</text>${bootstrap ? `<text x="20" y="54">${escapeXml(text.sobolBootstrap(number(bootstrap.confidenceLevel * 100, 1), number(bootstrap.replicates, 0)))}</text>` : ""}${rows.map((row, rowIndex) => {
+    const baseY = 80 + groupHeights.slice(0, rowIndex).reduce((sum, value) => sum + value, 0);
+    const bars = metrics.map((metric, index) => {
+      const y = baseY + 28 + index * 40;
+      const value = metric.value(row);
+      const interval = metric.interval?.(row);
+      const domain = domains[metric.family];
+      const x = (entry) => scale(entry, domain, [30, 650]);
+      const label = `${metric.label}: ${number(value)}${Array.isArray(interval) ? ` [${interval.map((entry) => number(entry)).join(", ")}]` : ""}`;
+      const whisker = Array.isArray(interval) && interval.length === 2 && interval.every(Number.isFinite)
+        ? `<path d="M${x(interval[0])} ${y + 4} V${y + 16} M${x(interval[0])} ${y + 10} H${x(interval[1])} M${x(interval[1])} ${y + 4} V${y + 16}" fill="none" stroke="currentColor"/>` : "";
+      return `<g><text x="20" y="${y}">${escapeXml(label)}</text><line class="research-zero-line" x1="${x(0)}" y1="${y + 3}" x2="${x(0)}" y2="${y + 17}"/>${Number.isFinite(value) ? `<rect class="${metric.className}" x="${Math.min(x(0), x(value))}" y="${y + 7}" width="${Math.abs(x(value) - x(0))}" height="6"><title>${escapeXml(label)}</title></rect>` : ""}${whisker}</g>`;
+    }).join("");
+    const precision = row.sobol.precision;
+    const status = precision ? `assessed=${precision.assessed ?? "—"}; imprecise=${precision.imprecise ?? "—"}; valid=${precision.validReplicates ?? "—"}; invalid=${precision.invalidReplicates ?? "—"}` : "—";
+    return `<text x="20" y="${baseY}">${escapeXml(row.name)}</text>${bars}<text x="20" y="${baseY + 193}">${escapeXml(`${text.precision}: ${status}`)}</text>${(precision?.issues ?? []).map((issue, index) => `<text x="20" y="${baseY + 211 + index * 18}">${escapeXml(issue)}</text>`).join("")}`;
+  }).join("")}`;
   return figure("research-sensitivity", text.sensitivity, text.sensitivityDesc, svg("sensitivity-10h", text.sensitivity, text.sensitivityDesc, body, width, height), text.sensitivityDesc);
 }
 
@@ -287,22 +292,25 @@ function stripFigure(markup) {
 
 export function serializeResearchDashboard({ dataset, result, selectedValidationUnit, locale = "en" }) {
   if (!dataset || !result) throw new Error("A completed Research result and dataset are required for SVG export.");
-  const chartBodies = [
+  const chartFigures = [
     overlayFigure(dataset, result, selectedValidationUnit, locale),
     residualFigure(dataset, result, selectedValidationUnit, locale),
     scanFigure(result, locale),
     uncertaintyFigure(result, locale),
     sensitivityFigure(result, locale),
-  ].map(stripFigure);
+  ];
+  const chartBodies = chartFigures.map(stripFigure);
+  const sensitivityHeight = Number(chartFigures[4].match(/viewBox="0 0 680 (\d+)"/)?.[1] ?? 250);
   const capability = result.capability?.level ?? "—";
   const runId = result.reproducibility?.runId ?? "research-run";
   const zh = locale === "zh-CN";
-  const disclosure = RESEARCH_EXPORT_DISCLOSURES[locale] ?? RESEARCH_EXPORT_DISCLOSURES.en;
+  const disclosure = researchExportDisclosures(result, locale);
+  const development = researchEvaluationRole(result) === "development";
   const exportText = {
-    title: zh ? "Ecolab Stage 4 研究仪表板" : "Ecolab Stage 4 Research dashboard",
+    title: zh ? "Ecolab 研究仪表板" : "Ecolab Research dashboard",
     description: zh
-      ? `运行 ${runId}，能力 ${capability}；包含留出单元叠加图、残差、参数扫描、不确定性和敏感性。来源 DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}，论文 DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}，许可 ${RESEARCH_EXPORT_DISCLOSURES.license}。`
-      : `Dedicated dashboard for run ${runId}, capability ${capability}, including held-out overlay, residuals, parameter scan, uncertainty, and sensitivity. Source DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}; article DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}; licensed ${RESEARCH_EXPORT_DISCLOSURES.license}.`,
+      ? `运行 ${runId}，能力 ${capability}；包含${development ? "开发" : "留出"}单元叠加图、残差、参数扫描、不确定性和敏感性。来源 DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}，论文 DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}，许可 ${RESEARCH_EXPORT_DISCLOSURES.license}。`
+      : `Dedicated dashboard for run ${runId}, capability ${capability}, including ${development ? "development" : "held-out"} overlay, residuals, parameter scan, uncertainty, and sensitivity. Source DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}; article DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}; licensed ${RESEARCH_EXPORT_DISCLOSURES.license}.`,
     run: zh ? `运行 ${runId} · 能力 ${capability}` : `Run ${runId} · capability ${capability}`,
     source: zh ? `来源 DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}` : `Source DOI ${RESEARCH_EXPORT_DISCLOSURES.sourceDoi}`,
     article: zh ? `论文 DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}` : `Article DOI ${RESEARCH_EXPORT_DISCLOSURES.articleDoi}`, 
@@ -312,7 +320,8 @@ export function serializeResearchDashboard({ dataset, result, selectedValidation
     { x: 800, y: 120, w: 740, h: 350, body: chartBodies[1], scale: 1.05 },
     { x: 30, y: 540, w: 740, h: 410, body: chartBodies[2], scale: 1.05 },
     { x: 800, y: 500, w: 740, h: 320, body: chartBodies[3], scale: 1.05 },
-    { x: 800, y: 850, w: 740, h: 390, body: chartBodies[4], scale: 1.05 },
+    { x: 800, y: 850, w: 740, h: sensitivityHeight * 1.05 + 20, body: chartBodies[4], scale: 1.05 },
   ];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1360" viewBox="0 0 1600 1360" role="img" aria-labelledby="dashboard-title dashboard-desc"><title id="dashboard-title">${escapeXml(exportText.title)}</title><desc id="dashboard-desc">${escapeXml(exportText.description)} ${escapeXml(disclosure.measurement)} ${escapeXml(disclosure.validation)} ${escapeXml(disclosure.uncertainty)} ${escapeXml(disclosure.exposure)} ${escapeXml(disclosure.calibration)}</desc><style>text{font-family:system-ui,sans-serif;fill:#14231f;font-size:12px}.research-chart-axis line{stroke:#64736d}.research-chart-grid line,.research-chart-grid{stroke:#d7dfda;stroke-width:1}.research-model-line{fill:none;stroke:#0b594e;stroke-width:2.5}.research-observed-point{fill:#d77a25}.research-residual-point{fill:#0b594e}.research-zero-line{stroke:#a43e36;stroke-dasharray:5 4}.research-interval-line,.research-interval-cap{stroke:#0b594e;stroke-width:5}.research-interval-median{fill:#d77a25}.research-bar-local{fill:#0b594e}.research-bar-morris{fill:#2a8f7e}.research-bar-sobol-first{fill:#d77a25}.research-bar-sobol-total{fill:#8d5a13}.research-heat-value{fill:#fff;font-weight:700;paint-order:stroke;stroke:#14231f;stroke-width:2px}.panel{fill:#fff;stroke:#d7dfda;stroke-width:1}</style><rect width="1600" height="1360" fill="#f2f5f0"/><text x="30" y="36" font-size="26" font-weight="700">${escapeXml(exportText.title)}</text><text x="30" y="62">${escapeXml(exportText.run)} · ${escapeXml(exportText.source)} · ${escapeXml(RESEARCH_EXPORT_DISCLOSURES.license)}</text><text x="30" y="82">${escapeXml(exportText.article)}</text><text x="30" y="102">${escapeXml(disclosure.measurement)}</text><text x="30" y="122">${escapeXml(disclosure.validation)}</text><text x="30" y="142">${escapeXml(disclosure.uncertainty)} ${escapeXml(disclosure.exposure)}</text><text x="30" y="162">${escapeXml(disclosure.calibration)}</text>${panels.map((panel) => `<g transform="translate(${panel.x} ${panel.y + 70})"><rect class="panel" width="${panel.w}" height="${panel.h}" rx="12"/><g transform="translate(10 10) scale(${panel.scale})">${panel.body}</g></g>`).join("")}</svg>\n`;
+  const dashboardHeight = Math.max(1360, 970 + panels[4].h);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${dashboardHeight}" viewBox="0 0 1600 ${dashboardHeight}" role="img" aria-labelledby="dashboard-title dashboard-desc"><title id="dashboard-title">${escapeXml(exportText.title)}</title><desc id="dashboard-desc">${escapeXml(exportText.description)} ${escapeXml(disclosure.measurement)} ${escapeXml(disclosure.validation)} ${escapeXml(disclosure.uncertainty)} ${escapeXml(disclosure.exposure)} ${escapeXml(disclosure.calibration)}</desc><style>text{font-family:system-ui,sans-serif;fill:#14231f;font-size:12px}.research-chart-axis line{stroke:#64736d}.research-chart-grid line,.research-chart-grid{stroke:#d7dfda;stroke-width:1}.research-model-line{fill:none;stroke:#0b594e;stroke-width:2.5}.research-observed-point{fill:#d77a25}.research-residual-point{fill:#0b594e}.research-zero-line{stroke:#a43e36;stroke-dasharray:5 4}.research-interval-line,.research-interval-cap{stroke:#0b594e;stroke-width:5}.research-interval-median{fill:#d77a25}.research-bar-local{fill:#0b594e}.research-bar-morris{fill:#2a8f7e}.research-bar-sobol-first{fill:#d77a25}.research-bar-sobol-total{fill:#8d5a13}.research-heat-value{fill:#fff;font-weight:700;paint-order:stroke;stroke:#14231f;stroke-width:2px}.panel{fill:#fff;stroke:#d7dfda;stroke-width:1}</style><rect width="1600" height="${dashboardHeight}" fill="#f2f5f0"/><text x="30" y="36" font-size="26" font-weight="700">${escapeXml(exportText.title)}</text><text x="30" y="62">${escapeXml(exportText.run)} · ${escapeXml(exportText.source)} · ${escapeXml(RESEARCH_EXPORT_DISCLOSURES.license)}</text><text x="30" y="82">${escapeXml(exportText.article)}</text><text x="30" y="102">${escapeXml(disclosure.measurement)}</text><text x="30" y="122">${escapeXml(disclosure.validation)}</text><text x="30" y="142">${escapeXml(disclosure.uncertainty)} ${escapeXml(disclosure.exposure)}</text><text x="30" y="162">${escapeXml(disclosure.calibration)}</text>${panels.map((panel) => `<g transform="translate(${panel.x} ${panel.y + 70})"><rect class="panel" width="${panel.w}" height="${panel.h}" rx="12"/><g transform="translate(10 10) scale(${panel.scale})">${panel.body}</g></g>`).join("")}</svg>\n`;
 }

@@ -5,6 +5,13 @@ import {
   resolveResearchWorkflow,
 } from "../research/research-worker.js";
 
+test("Research Worker prefers the versioned development workflow without removing legacy aliases", () => {
+  const current = () => "current";
+  const legacy = () => "legacy";
+  assert.equal(resolveResearchWorkflow({ runEcolabResearchWorkflow: current, runResearchWorkflow: legacy }), current);
+  assert.equal(researchAnalysisApi({ runEcolabResearchWorkflow: current }).runResearchWorkflow, current);
+});
+
 test("Research Worker bridges the primary public Stage 4 workflow export", () => {
   const primary = () => "primary";
   assert.equal(resolveResearchWorkflow({ runEcolabStage4ResearchWorkflow: primary }), primary);

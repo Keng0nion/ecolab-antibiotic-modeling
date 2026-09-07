@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ecolab.local/schemas/analysis-run.schema.json",
-  "title": "Ecolab Stage 4 analysis-run manifest",
+  "title": "Ecolab versioned analysis-run manifest (historical v1 and research v2)",
   "type": "object",
   "required": [
     "schemaVersion",
@@ -36,10 +36,14 @@
       "properties": {
         "application": { "$ref": "#/$defs/nonEmptyString" },
         "core": { "$ref": "#/$defs/nonEmptyString" },
-        "analysis": { "const": "1.0.0" },
+        "analysis": { "enum": ["1.0.0", "2.0.0"] },
         "analysisEngineId": { "const": "ecolab.stage4.analysis" },
-        "analysisImplementationId": { "const": "ecolab-stage4-analysis-v1" }
-      }
+        "analysisImplementationId": { "enum": ["ecolab-stage4-analysis-v1", "ecolab-research-analysis-v2"] }
+      },
+      "oneOf": [
+        { "properties": { "analysis": { "const": "1.0.0" }, "analysisImplementationId": { "const": "ecolab-stage4-analysis-v1" } } },
+        { "properties": { "analysis": { "const": "2.0.0" }, "analysisImplementationId": { "const": "ecolab-research-analysis-v2" } } }
+      ]
     },
     "model": {
       "type": "object",

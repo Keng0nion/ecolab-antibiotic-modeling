@@ -337,8 +337,9 @@ async function evaluateTask(payload, reportProgress, analysisApi) {
   return result;
 }
 
-async function researchWorkflow(payload, reportProgress, analysisApi) {
-  if (typeof analysisApi.runResearchWorkflow !== "function") {
+async function researchWorkflow(payload, reportProgress, analysisApi, runtime) {
+  const workflow = analysisApi.runEcolabResearchWorkflow ?? analysisApi.runResearchWorkflow;
+  if (typeof workflow !== "function") {
     fail(
       "RESEARCH_WORKFLOW_UNAVAILABLE",
       "The public analysis API does not currently export runResearchWorkflow.",
@@ -347,11 +348,29 @@ async function researchWorkflow(payload, reportProgress, analysisApi) {
   }
   const options = normalizeTaskOptions(payload, "analysis.research-workflow");
   reportProgress("research-workflow", 0, 1);
-  const result = await analysisApi.runResearchWorkflow({
+  const result = await workflow({
     ...options,
+    runtime,
     onProgress: analysisProgress(reportProgress, "research-workflow"),
   });
   reportProgress("research-workflow", 1, 1);
+  return result;
+}
+
+async function packageTask(payload, replay, reportProgress, analysisApi, runtime) {
+  record(payload, "research.package.payload");
+  if (Object.keys(payload).length !== 1 || typeof payload.input !== "string") {
+    fail("INVALID_TASK_PAYLOAD", "Package tasks accept only source text in payload.input; replay tolerances are fixed by the application.", "research.package.payload");
+  }
+  const method = replay ? "replayResearchPackage" : "inspectResearchPackage";
+  if (typeof analysisApi[method] !== "function") fail("RESEARCH_PACKAGE_API_UNAVAILABLE", `Built-in ${method} is unavailable.`);
+  reportProgress("package-inspect", 0, 1);
+  if (replay) return analysisApi[method](payload.input, {
+    runtime,
+    onProgress: analysisProgress(reportProgress, "package-replay"),
+  });
+  const result = analysisApi[method](payload.input);
+  reportProgress("package-inspect", 1, 1);
   return result;
 }
 
@@ -413,7 +432,11 @@ export async function dispatchTask(task, context = {}) {
     case "analysis.evaluate":
       return evaluateTask(task.payload, reportProgress, analysisApi);
     case "analysis.research-workflow":
-      return researchWorkflow(task.payload, reportProgress, analysisApi);
+      return researchWorkflow(task.payload, reportProgress, analysisApi, context.runtime);
+    case "research.package-inspect":
+      return packageTask(task.payload, false, reportProgress, analysisApi, context.runtime);
+    case "research.package-replay":
+      return packageTask(task.payload, true, reportProgress, analysisApi, context.runtime);
     default:
       fail("UNSUPPORTED_TASK_KIND", `Unsupported task kind: ${String(task.kind)}.`, "task.kind", task.kind);
   }

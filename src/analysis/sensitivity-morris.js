@@ -107,12 +107,13 @@ function summarize(values) {
     muStar: meanAbsolute,
     "μ": mean,
     "μ*": meanAbsolute,
-    sigma: count > 1 ? Math.sqrt(squared / (count - 1)) : 0,
-    "σ": count > 1 ? Math.sqrt(squared / (count - 1)) : 0,
+    sigma: count > 1 ? Math.sqrt(squared / (count - 1)) : null,
+    "σ": count > 1 ? Math.sqrt(squared / (count - 1)) : null,
+    sigmaEstimable: count > 1,
   };
 }
 
-/** Deterministic Morris elementary-effects screening in transformed space. */
+/** Morris effects per unit-cube coordinate, after the declared parameter transform. */
 export function morrisSensitivity(options) {
   plainObject(options, "options");
   const evaluator = options.evaluator ?? options.evaluate;
@@ -136,6 +137,11 @@ export function morrisSensitivity(options) {
   if (typeof deltaFraction !== "number" || !Number.isFinite(deltaFraction) || deltaFraction <= 0 || deltaFraction > 1) {
     fail("INVALID_MORRIS_DELTA", "delta must be within (0, 1].");
   }
+  const gridSteps = Math.round(deltaFraction * (levels - 1));
+  const gridTolerance = 8 * Number.EPSILON * Math.max(1, gridSteps);
+  if (gridSteps < 1 || Math.abs(deltaFraction * (levels - 1) - gridSteps) > gridTolerance) {
+    fail("INVALID_MORRIS_DELTA", "delta * (levels - 1) must be an integer for a grid-compatible trajectory.");
+  }
   const seed = normalizeSeed(options.seed ?? 0);
   const transformed = definitions.map(transformedBounds);
   const effects = Object.fromEntries(
@@ -149,8 +155,7 @@ export function morrisSensitivity(options) {
     const order = shuffle([...Array(dimension).keys()], random);
     const current = transformed.map(([lower, upper]) => {
       const span = upper - lower;
-      const maximumStart = 1 - deltaFraction;
-      const gridMaximumIndex = Math.floor(maximumStart * (levels - 1) + 1e-12);
+      const gridMaximumIndex = levels - 1 - gridSteps;
       const gridIndex = Math.floor(random.next() * (gridMaximumIndex + 1));
       return lower + (gridIndex / (levels - 1)) * span;
     });
@@ -180,7 +185,8 @@ export function morrisSensitivity(options) {
       const parameterIndex = order[stepIndex];
       const definition = definitions[parameterIndex];
       const [lower, upper] = transformed[parameterIndex];
-      const signedStep = directions[parameterIndex] * deltaFraction * (upper - lower);
+      const signedNormalizedStep = directions[parameterIndex] * deltaFraction;
+      const signedStep = signedNormalizedStep * (upper - lower);
       const nextPoint = [...current];
       nextPoint[parameterIndex] += signedStep;
       const next = evaluate(
@@ -196,7 +202,7 @@ export function morrisSensitivity(options) {
       outputNames.forEach((outputName, outputIndex) => {
         if (!effects[definition.name][outputName]) effects[definition.name][outputName] = [];
         effects[definition.name][outputName].push(
-          (next.values[outputIndex] - previous.values[outputIndex]) / signedStep,
+          (next.values[outputIndex] - previous.values[outputIndex]) / signedNormalizedStep,
         );
       });
       current[parameterIndex] = nextPoint[parameterIndex];
@@ -225,7 +231,9 @@ export function morrisSensitivity(options) {
     trajectories,
     levels,
     delta: deltaFraction,
-    coordinate: "declared_transformed_parameter_space",
+    coordinate: "normalized_unit_cube",
+    effectScale: "output_per_unit_normalized_coordinate",
+    normalization: "Each declared transformed parameter bound span maps to [0, 1]; outputs are not standardized.",
     parameterSpace: space,
     outputNames,
     evaluationCount,

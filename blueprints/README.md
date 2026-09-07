@@ -15,16 +15,18 @@
 - [Architecture](../docs/architecture.md)
 - [Limitations](../docs/limitations.md)
 - [Portfolio case study](../docs/portfolio-case-study.md)
-- [Stage 5 release checklist](../docs/release-checklist.md)
+- [当前发布检查表](../docs/release-checklist.md)
+- [方程、参数与论文证据](../docs/research-method-evidence.md)
 
 ## 当前项目状态
 
 - Stage 1–3 已实施并获项目所有者批准。
 - **Stage 4 已实施、完成内部审计并获项目所有者批准。**
-- **Stage 5 发布/作品集线已实施；完整 `npm run build`（238 项测试）与 release audit 通过，最终公开发布状态仍为 in progress。** 人工跨浏览器与浏览器 P95 尚未完成；详见 [release checklist](../docs/release-checklist.md)。
-- 应用版本为 `5.0.0`；科学核心引擎保持 `2.0.0`，分析引擎保持 `1.0.0`。
+- Stage 5 的历史 5.0.0 工件原样保留；旧验证记录不作为本轮检查结果。
+- **用户已批准 B 方案，应用 6.0.0 / 分析 2.0.0 升级已实现。** 教学科学核心保持 `2.0.0`、模型 `1.0.0`；新增 OD 经验曲线比较、整训练轨迹 CV / 联合 bootstrap、安全显式回放及数值/存储修复。
+- 当前自动化构建、回放与隔离 Chromium 检查以 [发布检查表](../docs/release-checklist.md) 为准；人工跨浏览器 / 可访问性矩阵与 P95 尚未完成，本轮未推送或部署。
 - 默认构建生成 `dist/core/` 与 `dist/web/`；临时 `--out-dir` 构建、两次内容哈希复现检查、大小预算、禁止路径、部署头和排序 SHA-256 manifest 已进入发布审计。
-- 版本化 small-preset artifact 使用真实 bundled dataset 实际生成，报告 L3、L4 不合格以及验证差于预声明基线。
+- 6.0.0 small 示例由真实 bundled dataset 计算；训练 CV 选中均值基线，原潜在模型开发表现仍更差且未收敛。旧留出已经查看，仅开发比较，不具备 L4。完成、收敛、可识别性与精度状态独立报告。
 - 七步课程和所有蓝图中的建模浓度术语统一使用 `zMIC`；它不是未经限定的普通 MIC。
 
 ## 蓝图维护规则

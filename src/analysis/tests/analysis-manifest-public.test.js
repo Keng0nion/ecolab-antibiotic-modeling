@@ -109,7 +109,7 @@ test("analysis manifests are immutable, JSON-safe, fully versioned, and use anal
   const value = await manifest();
   assert.equal(value.versions.application, "3.0.0");
   assert.equal(value.versions.core, "2.0.0");
-  assert.equal(value.versions.analysis, "1.0.0");
+  assert.equal(value.versions.analysis, "2.0.0");
   assert.equal(value.random.algorithm, "xoshiro128ss-splitmix32-v1");
   assert.equal(value.random.seed, 42);
   assert.equal(Object.hasOwn(value.random, "used"), false);
@@ -214,6 +214,14 @@ test("generated manifest and package objects satisfy schemas and schema checks r
   assertSchemaValid(researchPackage, researchPackageSchema, {
     documents: { "analysis-run.schema.json": analysisRunSchema },
   });
+
+  const historical = structuredClone(value);
+  historical.versions.analysis = "1.0.0";
+  historical.versions.analysisImplementationId = "ecolab-stage4-analysis-v1";
+  assertSchemaValid(historical, analysisRunSchema);
+  const mismatchedVersion = structuredClone(value);
+  mismatchedVersion.versions.analysisImplementationId = "ecolab-stage4-analysis-v1";
+  assert.throws(() => assertSchemaValid(mismatchedVersion, analysisRunSchema), /oneOf/);
 
   const missingRequired = structuredClone(value);
   delete missingRequired.dataset.normalizedDatasetFingerprint;

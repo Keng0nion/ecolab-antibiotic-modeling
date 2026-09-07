@@ -8,6 +8,7 @@ import {
   profileOdObservationLayer,
 } from "../od-observation-model.js";
 import { runEcolabStage4ResearchWorkflow } from "../research-workflow.js";
+import { ANALYSIS_IMPLEMENTATION_ID, ANALYSIS_ENGINE_VERSION } from "../version.js";
 import { assertSchemaValid } from "./schema-test-helper.js";
 
 const root = new URL("../../../", import.meta.url);
@@ -220,8 +221,9 @@ test("real bundled import, training fit, lock, and held-out validation are deter
   ]);
   assert.deepEqual(
     first.researchPackage.replay.dependencies.map(({ id }) => id),
-    ["ecolab-stage4-analysis-v1", "regoes-logistic-piecewise-analytic-v1"],
+    [ANALYSIS_IMPLEMENTATION_ID, "regoes-logistic-piecewise-analytic-v1"],
   );
+  assert.equal(first.researchPackage.replay.dependencies[0].version, ANALYSIS_ENGINE_VERSION);
   assert.equal(
     first.researchPackage.contents.artifacts["normalized-observation-dataset"].metadata.datasetId,
     first.dataset.id,

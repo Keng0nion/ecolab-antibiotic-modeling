@@ -245,7 +245,8 @@ test("local, Morris, and Sobol sensitivity support serializable scalar evaluator
       },
     },
   });
-  assert.ok(Math.abs(morris.byParameter.psiMaxLog10PerHour.muStar - 2) < 1e-12);
+  assert.ok(Math.abs(morris.byParameter.psiMaxLog10PerHour.muStar - 4) < 1e-12);
+  assert.equal(morris.coordinate, "normalized_unit_cube");
 
   const sobol = await dispatch({
     kind: "analysis.sensitivity-sobol",
@@ -328,6 +329,27 @@ test("research workflow is called directly when exported and reports unavailable
     dispatch({ kind: "analysis.research-workflow", payload: {} }, { analysisApi: {} }),
     { code: "RESEARCH_WORKFLOW_UNAVAILABLE" },
   );
+});
+
+test("package tasks use only the built-in inspector and replayer and forward progress", async () => {
+  const calls = [];
+  const progress = [];
+  const api = {
+    inspectResearchPackage(input) { calls.push(["inspect", input]); return { replayable: false, status: "inspect_only" }; },
+    async replayResearchPackage(input, options) {
+      calls.push(["replay", input]);
+      options.onProgress({ phase: "package-comparison", completed: 1, total: 1 });
+      return { matched: true, comparison: { mismatchCount: 0 } };
+    },
+  };
+  const inspected = await dispatch({ kind: "research.package-inspect", payload: { input: "package source" } }, { analysisApi: api });
+  assert.equal(inspected.status, "inspect_only");
+  assert.deepEqual(calls, [["inspect", "package source"]]);
+  const replayed = await dispatch({ kind: "research.package-replay", payload: { input: "package source" } }, { analysisApi: api, reportProgress: (...entry) => progress.push(entry) });
+  assert.equal(replayed.matched, true);
+  assert.deepEqual(calls[1], ["replay", "package source"]);
+  assert.ok(progress.some(([phase]) => phase === "package-comparison"));
+  await assert.rejects(dispatch({ kind: "research.package-replay", payload: { input: "x", options: { absoluteTolerance: 1e100 } } }, { analysisApi: api }), { code: "INVALID_TASK_PAYLOAD" });
 });
 
 test("run-envelope handler emits validated progress/result and serialized error messages", async () => {

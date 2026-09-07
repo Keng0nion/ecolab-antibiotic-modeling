@@ -2,9 +2,9 @@
 
 ## 定位
 
-Ecolab 5.0.0 保留本地优先、响应式、中英文的 `Learn / Sandbox` 浏览器应用。Stage 5 更新发布与作品集线；科学核心引擎仍为 `2.0.0`。应用直接调用版本化科学核心，不在 UI 中复制或改写方程。
+Ecolab 6.0.0 保留本地优先、响应式、中英文的 `Learn / Sandbox` 浏览器应用。新版升级独立研究分析与回放；教学科学核心引擎仍为 `2.0.0`，模型 `1.0.0` 不变。应用直接调用版本化科学核心，不在 UI 中复制或改写方程。
 
-本页只说明 `#/learn` 与 `#/sandbox`。第 4 步新增的 `#/research`、真实数据、拟合、敏感性和留出评价见 [Research Workspace](./research-workspace.md)。
+本页只说明 `#/learn` 与 `#/sandbox`。`#/research` 的真实数据、拟合、训练 CV、开发集比较、敏感性和安全回放见 [Research Workspace](./research-workspace.md)。
 
 Learn / Sandbox 的演示运行属于 **L1 — Reproducible exploration**：可以用于大学一年级水平教学、模型探索和可复现实验演示，但没有在匹配条件下完成生物学验证，不能用于临床决策或真实实验结果预测。科研能力按每次运行评估；Research Workspace 的 L3 结果不会自动提高普通 Sandbox 运行的等级。
 
@@ -58,7 +58,7 @@ dist/
 - 种群、药物浓度和净增长率三图联动；
 - `log10`/线性种群坐标和 `mg/L`/`×zMIC` 浓度显示；
 - 公式检查器、来源与限制、操作时间线和可访问数据表；
-- IndexedDB 本地保存与恢复；不支持时自动退化为内存存储并显示警告；
+- IndexedDB 本地保存与恢复；初始化不可用时退化为易失内存并显示原因，运行时配额/事务失败明确报错，不静默切库；
 - JSON 运行清单、CSV 轨迹和独立 SVG 图表导出。
 
 导出契约：JSON 是当前已提交运行的审计清单，不是可重新导入的项目包；保存/恢复使用 IndexedDB 中的项目记录。CSV 是带电子表格公式注入防护的展示/分析格式，不承诺任意文本的字节级往返；需要机器可读的完整运行语义时使用 JSON 清单。当前 UI 不声称支持文件形式的 Sandbox project import/export round trip。
@@ -109,7 +109,7 @@ npm run build
 npm run audit:release
 ```
 
-发布构建、临时输出目录、CSP 和复现检查见 [Deployment](./deployment.md) 与 [Stage 5 release checklist](./release-checklist.md)。
+发布构建、临时输出目录、CSP 和复现检查见 [Deployment](./deployment.md) 与 [当前发布检查表](./release-checklist.md)。
 
 Safari 浏览器冒烟测试：
 
@@ -118,3 +118,5 @@ npm run smoke:safari
 ```
 
 该命令需要在 Safari 设置的 Developer 部分启用 **Allow remote automation**。它会打开构建产物、载入无药四小时课程实验、检查三联图和数据表，再验证语言切换。
+
+2026-09-07 的隔离 Chromium 自动化已检查 Learn/Sandbox 启动及研究 Worker 流程，不等于完成 Safari/Firefox 或人工可访问性矩阵。首次静态资源加载访问部署站点；用户导入数据不发送至分析服务器，IndexedDB 保存也不等于异地备份。

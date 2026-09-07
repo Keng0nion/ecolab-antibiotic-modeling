@@ -1,3 +1,5 @@
+import { researchEvaluationRole, researchSensitivityRows } from "./state.js";
+
 export const RESEARCH_EXPORT_DISCLOSURES = Object.freeze({
   sourceDoi: "10.6084/m9.figshare.28342064.v1",
   articleDoi: "10.1038/s41597-025-05356-3",
@@ -41,13 +43,32 @@ export function protectCsvFormula(value) {
 
 export function csvCell(value) {
   if (value === null || value === undefined) return "";
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
   const source = typeof value === "object" ? JSON.stringify(value) : String(value);
   const text = protectCsvFormula(source);
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function disclosureRows(locale = "en") {
+function developmentValidationDisclosure(locale) {
+  return locale === "zh-CN"
+    ? "L4 不合格：已查看的开发曲线，不是未触碰或外部验证。源角色 validation 保留供审计；轨迹间独立性未验证。"
+    : "L4 ineligible: previously viewed development curves, not untouched or external validation. Source role validation is retained for audit; between-trajectory independence is unverified.";
+}
+
+export function researchExportDisclosures(result, locale = "en") {
   const text = RESEARCH_EXPORT_DISCLOSURES[locale] ?? RESEARCH_EXPORT_DISCLOSURES.en;
+  if (researchEvaluationRole(result) !== "development") return text;
+  return {
+    ...text,
+    validation: developmentValidationDisclosure(locale),
+    uncertainty: locale === "zh-CN"
+      ? "工程范围分位数不是置信区间；完整曲线联合重拟合区间是条件性探索区间，失败重拟合被排除，精度和覆盖率尚未确立。"
+      : "Engineering-range quantiles are not confidence intervals; whole-curve joint-refit intervals are conditional and exploratory, exclude failed refits, and do not establish precision or coverage.",
+  };
+}
+
+function disclosureRows(locale = "en", result) {
+  const text = researchExportDisclosures(result, locale);
   return [
     ["source_doi", RESEARCH_EXPORT_DISCLOSURES.sourceDoi],
     ["article_doi", RESEARCH_EXPORT_DISCLOSURES.articleDoi],
@@ -60,8 +81,19 @@ function disclosureRows(locale = "en") {
   ];
 }
 
-function csvDisclosurePreamble(locale) {
-  return disclosureRows(locale).map(([key, value]) => `# ${key}: ${csvCell(value)}`).join("\n");
+function csvDisclosurePreamble(dataset, locale, result) {
+  const metadata = dataset.metadata ?? {};
+  const sourceIds = Array.isArray(metadata.sourceIds) ? metadata.sourceIds : [];
+  const rows = sourceIds.includes("figshare-bw25113-growth-v1")
+    ? disclosureRows(locale, result).filter(([key]) => key !== "license").map(([key, value]) => [
+      key,
+      // Standalone source exports disclose current evidence status, not a historical run's role.
+      key === "validation_limitation" && result === undefined ? developmentValidationDisclosure(locale) : value,
+    ])
+    : [];
+  if (sourceIds.length) rows.push(["source_ids", sourceIds]);
+  if (metadata.license) rows.push(["license", metadata.license]);
+  return rows.map(([key, value]) => `# ${key}: ${csvCell(value)}\n`).join("");
 }
 
 export function normalizedDatasetToCsv(dataset, locale = "en") {
@@ -71,7 +103,7 @@ export function normalizedDatasetToCsv(dataset, locale = "en") {
   const rows = dataset.observations.map((observation) => OBSERVATION_HEADERS
     .map((header) => csvCell(observation[header]))
     .join(","));
-  return `${csvDisclosurePreamble(locale)}\n${OBSERVATION_HEADERS.join(",")}\n${rows.join("\n")}\n`;
+  return `${csvDisclosurePreamble(dataset, locale)}${OBSERVATION_HEADERS.join(",")}\n${rows.join("\n")}\n`;
 }
 
 function validationRows(dataset, result) {
@@ -109,10 +141,13 @@ export function predictionsMetricsToCsv(dataset, result, locale = "en") {
     "residual_observed_minus_predicted",
     "metric_name",
     "metric_value",
+    "source_role",
+    "model",
   ];
+  const evaluationRole = researchEvaluationRole(result);
   const rows = validationRows(dataset, result).map(({ observation, prediction, residual }) => [
     "prediction",
-    "validation",
+    evaluationRole,
     observation.observationId,
     observation.independentUnitId,
     observation.timeHours,
@@ -122,39 +157,80 @@ export function predictionsMetricsToCsv(dataset, result, locale = "en") {
     residual?.residual,
     "",
     "",
+    observation.role,
+    "calibration",
   ]);
   const metrics = [
     ...metricEntries("training", result?.training?.metrics),
-    ...metricEntries("validation", result?.validation?.metrics),
+    ...metricEntries(evaluationRole, result?.validation?.metrics),
     ...metricEntries(
-      `validation.baseline.${result?.validation?.metrics?.baselineComparison?.baselineId ?? "predeclared"}`,
+      `${evaluationRole}.baseline.${result?.validation?.metrics?.baselineComparison?.baselineId ?? "predeclared"}`,
       result?.validation?.metrics?.baselineComparison?.baselineMetrics,
     ),
   ];
+  const append = (type, role, name, value, sourceRole = "", model = "") => rows.push([type, role, "", "", "", "", "", "", "", name, value, sourceRole, model]);
   for (const [name, value] of metrics) {
-    rows.push(["metric", name.startsWith("training") ? "training" : "validation", "", "", "", "", "", "", "", name, value]);
+    const training = name.startsWith("training");
+    append("metric", training ? "training" : evaluationRole, name, value, training ? "training" : "validation", "calibration");
   }
-  return `${csvDisclosurePreamble(locale)}\n${headers.join(",")}\n${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
+  const growth = result?.growthComparison;
+  if (growth) {
+    for (const [model, candidate] of Object.entries(growth.crossValidation?.candidates ?? {})) {
+      append("metric", "training", `growth.cv.${model}.macroRmse`, candidate.score, "training", model);
+      append("diagnostic", "training", `growth.cv.${model}.eligible`, candidate.eligible, "training", model);
+      append("diagnostic", "training", `growth.cv.${model}.convergence`, candidate.folds?.map((fold) => ({ finite: fold.fit?.finite, converged: fold.fit?.converged })), "training", model);
+    }
+    for (const [model, fit] of Object.entries(growth.trainingFits ?? {})) {
+      for (const [name, value] of metricEntries(`growth.training.${model}`, fit.metrics)) append("metric", "training", name, value, "training", model);
+      append("diagnostic", "training", `growth.training.${model}.converged`, fit.converged, "training", model);
+    }
+    append("diagnostic", "training", "growth.selection", growth.selection, "training");
+    for (const variant of ["selected", "baseline"]) {
+      const evaluation = growth.development?.[variant];
+      const model = variant === "selected" ? growth.selection?.selectedModel : "training_mean";
+      for (const [name, value] of metricEntries(`growth.development.${variant}`, evaluation?.metrics)) append("metric", "development", name, value, growth.development?.observationRoleUsed, model);
+      append("diagnostic", "development", `growth.development.${variant}.status`, evaluation?.status, growth.development?.observationRoleUsed, model);
+      for (const prediction of evaluation?.predictions ?? []) {
+        rows.push(["growth_prediction", "development", prediction.observationId, prediction.independentUnitId, prediction.timeHours, "od600", prediction.observed, prediction.predicted, prediction.residual, "", "", growth.development?.observationRoleUsed, model]);
+      }
+    }
+    append("metric", "development", "growth.development.deltaMacroRmseVsBaseline", growth.development?.deltaMacroRmseVsBaseline, growth.development?.observationRoleUsed);
+    for (const key of ["requestedSamples", "successfulSamples", "jointSamplesRetained", "resamplingUnit", "independenceAssumption", "intervals", "failures", "warnings"]) {
+      append("diagnostic", "training", `growth.bootstrap.${key}`, growth.bootstrap?.[key], "training");
+    }
+    append("diagnostic", "", "growth.warnings", growth.warnings);
+  }
+  for (const [key, value] of Object.entries(result?.researchAssessment ?? {})) append("diagnostic", "", `researchAssessment.${key}`, value);
+  for (const row of researchSensitivityRows(result)) {
+    append("sensitivity", "", `local.${row.name}.derivative`, row.local);
+    append("sensitivity", "", `morris.${row.name}.muStar`, row.morris.muStar);
+    for (const key of ["firstOrder", "totalOrder", "firstOrderInterval", "totalOrderInterval", "precision"]) append("sensitivity", "", `sobol.${row.name}.${key}`, row.sobol[key]);
+  }
+  append("diagnostic", "", "sobol.bootstrap", result?.analyses?.sensitivity?.sobolJansen?.bootstrap);
+  const morris = result?.analyses?.sensitivity?.morris;
+  append("diagnostic", "", "morris.effectScale", morris?.effectScale);
+  append("diagnostic", "", "morris.normalization", morris?.normalization);
+  for (const slice of result?.identifiability?.objectiveSlices ?? result?.identifiability?.profiles ?? []) {
+    append("diagnostic", "training", `objective_slice.${slice.parameter}.interpretation`, slice.interpretation, "training");
+    for (const entry of slice.values ?? []) append("objective_slice", "training", slice.parameter, entry, "training");
+  }
+  return `${csvDisclosurePreamble(dataset, locale, result)}${headers.join(",")}\n${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
 }
 
-function exportNotice(locale = "en") {
-  return Object.fromEntries(disclosureRows(locale));
-}
-
-export function analysisManifestJson(result, locale = "en") {
+export function analysisManifestJson(result) {
   if (!result?.manifest) throw new Error("No completed Research analysis manifest is available.");
-  return JSON.stringify({ ...result.manifest, ecolabExportNotice: exportNotice(locale) }, null, 2);
+  return JSON.stringify(result.manifest, null, 2);
 }
 
-export function researchPackageJson(result, locale = "en") {
+export function researchPackageJson(result) {
   if (!result?.researchPackage) throw new Error("No completed Research package is available.");
-  return JSON.stringify({ ...result.researchPackage, ecolabExportNotice: exportNotice(locale) }, null, 2);
+  return JSON.stringify(result.researchPackage, null, 2);
 }
 
 export function researchMethodsText(result, locale = "en") {
   if (!result?.methodsSummaryMarkdown) throw new Error("No completed Research methods summary is available.");
   const heading = locale === "zh-CN" ? "## 必须保留的来源与限制" : "## Required provenance and limitations";
-  const bullets = disclosureRows(locale).map(([key, value]) => `- **${key.replaceAll("_", " ")}**: ${value}`).join("\n");
+  const bullets = disclosureRows(locale, result).map(([key, value]) => `- **${key.replaceAll("_", " ")}**: ${value}`).join("\n");
   return `${result.methodsSummaryMarkdown.trim()}\n\n${heading}\n\n${bullets}\n`;
 }
 

@@ -29,6 +29,8 @@ import {
 } from "./state.js";
 import { renderResearchWorkspace } from "./view.js";
 
+const RESEARCH_PACKAGE_MAX_BYTES = 32 * 1024 * 1024;
+
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -54,7 +56,7 @@ function mergeRecord(records, saved) {
 }
 
 function progressKey(phase) {
-  return String(phase || "idle").replaceAll("-", "_");
+  return String(phase || "idle").replace(/[-:]/g, "_");
 }
 
 export function buildCompletedAnalysisRecord({ run, datasetRecord, result, completedAt }) {
@@ -82,10 +84,20 @@ export function buildCompletedAnalysisRecord({ run, datasetRecord, result, compl
   };
 }
 
+function matchesAnalysisDataset(dataset, analysis) {
+  return Boolean(dataset
+    && typeof dataset.id === "string" && dataset.id.length > 0
+    && Number.isInteger(dataset.revision) && dataset.revision >= 0
+    && typeof dataset.contentHash === "string" && dataset.contentHash.length > 0
+    && dataset.id === analysis?.datasetRef?.id
+    && dataset.revision === analysis?.datasetRef?.revision
+    && dataset.contentHash === analysis?.datasetRef?.contentHash);
+}
+
 export function selectRestorableResearch({ datasets, analyses }) {
   const analysis = newestCompletedAnalysis(analyses);
   const linkedDataset = analysis
-    ? datasets.find((dataset) => dataset.id === analysis.datasetRef?.id && dataset.contentHash === analysis.datasetRef?.contentHash)
+    ? datasets.find((dataset) => matchesAnalysisDataset(dataset, analysis))
     : null;
   return {
     dataset: linkedDataset ?? datasets[0] ?? null,
@@ -118,6 +130,8 @@ export function createResearchController(options) {
     taskClient: null,
     runTask: null,
     importTask: null,
+    packageTask: null,
+    disposed: false,
   };
 
   function client() {
@@ -169,7 +183,7 @@ export function createResearchController(options) {
     }
     if (preserveSelection && state.selectedAnalysis) {
       const selected = analyses.find((record) => record.id === state.selectedAnalysis.id) ?? state.selectedAnalysis;
-      const linked = datasets.find((dataset) => dataset.id === selected.datasetRef?.id && dataset.contentHash === selected.datasetRef?.contentHash);
+      const linked = datasets.find((dataset) => matchesAnalysisDataset(dataset, selected));
       if (isCompletedAnalysis(selected) && linked) {
         state.selectedAnalysis = selected;
         state.selectedDataset = linked;
@@ -204,8 +218,7 @@ export function createResearchController(options) {
   function attachDataset(record) {
     state.selectedDataset = record;
     const matching = state.analyses.find((analysis) => isCompletedAnalysis(analysis)
-      && analysis.datasetRef?.id === record.id
-      && analysis.datasetRef?.contentHash === record.contentHash);
+      && matchesAnalysisDataset(record, analysis));
     state.selectedAnalysis = matching ?? null;
     state.result = matching?.result ?? null;
     setDefaultValidationUnit();
@@ -315,6 +328,93 @@ export function createResearchController(options) {
     }
   }
 
+  function packageProgress(message) {
+    if (!state.packageOperation || state.packageCancelling) return;
+    const fraction = Number.isFinite(message.fraction) ? message.fraction
+      : message.total > 0 ? message.completed / message.total : 0;
+    state.packageProgress = { phase: progressKey(message.phase), fraction: Math.max(0, Math.min(1, fraction)) };
+    const progress = app.querySelector("#research-package-progress");
+    const phase = app.querySelector("#research-package-phase");
+    if (progress) progress.value = state.packageProgress.fraction;
+    if (phase) phase.textContent = t(`research.progress.${state.packageProgress.phase}`);
+  }
+
+  async function packageOperation(kind, { file, preview } = {}) {
+    if (runtime.disposed || state.running || state.busy || state.packageOperation) return;
+    if (file && Number.isFinite(file.size) && file.size > RESEARCH_PACKAGE_MAX_BYTES) {
+      state.packageError = t("research.package.tooLarge", { maximum: 32 });
+      requestRender();
+      return;
+    }
+    const task = { handle: null, cancelled: false };
+    runtime.packageTask = task;
+    state.packageOperation = kind;
+    state.packageCancelling = false;
+    state.packageError = null;
+    state.packageProgress = { phase: kind === "inspect" ? "package_read" : "replay_execute", fraction: 0 };
+    requestRender();
+    try {
+      const input = file ? await file.text() : preview.input;
+      if (runtime.packageTask !== task || task.cancelled || runtime.disposed) return;
+      task.handle = client().run(`research.package-${kind}`, { input }, { onProgress: packageProgress });
+      const response = await task.handle.promise;
+      if (runtime.packageTask !== task || task.cancelled || runtime.disposed) return;
+      if (kind === "inspect") {
+        state.replayPreview = {
+          input, fileName: file.name, researchPackage: response.researchPackage,
+          replayable: response.replayable === true && response.status === "replayable",
+          status: response.status, reasons: response.reasons,
+          matched: null, comparison: null, result: null,
+        };
+      } else {
+        state.replayPreview = {
+          ...preview, matched: response.matched, comparison: response.comparison, result: response.result,
+          status: response.matched === true ? "matched" : "mismatch",
+        };
+      }
+      state.packageProgress = { phase: "complete", fraction: 1 };
+    } catch (error) {
+      if (runtime.packageTask !== task || runtime.disposed) return;
+      if (task.cancelled || ["TASK_CANCELLED", "ANALYSIS_CANCELLED"].includes(error?.code)) {
+        state.packageProgress = { phase: "cancelled", fraction: 0 };
+      } else {
+        state.packageError = [error?.code, errorMessage(error), error?.path].filter(Boolean).join(" · ");
+        state.packageProgress = { phase: "failed", fraction: 0 };
+      }
+    } finally {
+      if (runtime.packageTask === task) {
+        runtime.packageTask = null;
+        state.packageOperation = null;
+        state.packageCancelling = false;
+        if (task.cancelled) state.packageProgress = { phase: "cancelled", fraction: 0 };
+        if (!runtime.disposed) requestRender();
+      }
+    }
+  }
+
+  function replayPackage() {
+    const preview = state.replayPreview;
+    if (!preview?.replayable || typeof preview.input !== "string") return;
+    return packageOperation("replay", { preview });
+  }
+
+  function cancelPackage() {
+    const task = runtime.packageTask;
+    if (!task || task.cancelled) return false;
+    task.cancelled = true;
+    state.packageCancelling = true;
+    state.packageProgress = { ...state.packageProgress, phase: "cancelling" };
+    if (task.handle) task.handle.cancel();
+    else {
+      runtime.packageTask = null;
+      state.packageOperation = null;
+      state.packageCancelling = false;
+      state.packageProgress = { phase: "cancelled", fraction: 0 };
+    }
+    requestRender();
+    return true;
+  }
+
   function updateProgress(message) {
     if (state.cancelling) return;
     const fraction = Number.isFinite(message.fraction)
@@ -337,9 +437,12 @@ export function createResearchController(options) {
   }
 
   async function runAnalysis() {
+    if (runtime.disposed || state.running || state.busy || state.packageOperation) return;
     const datasetRecord = state.selectedDataset;
     if (!datasetRecord?.workflowEligible || !datasetRecord.qualityReport?.valid) {
-      throw new Error(t("research.analysis.disabledReason"));
+      state.analysisError = t("research.analysis.disabledReason");
+      requestRender();
+      return;
     }
     const run = captureResearchRun({
       dataset: datasetRecord,
@@ -362,18 +465,20 @@ export function createResearchController(options) {
     state.progress = { phase: "research_workflow", completed: 0, total: 1, fraction: 0 };
     notify("research.status.running", "info");
     requestRender();
-    const handle = client().run("analysis.research-workflow", payload, {
-      taskId: run.runId,
-      onProgress: updateProgress,
-    });
-    runtime.runTask = { handle, run, datasetRecord };
+    runtime.runTask = { handle: null, run, datasetRecord };
     try {
+      const handle = client().run("analysis.research-workflow", payload, {
+        taskId: run.runId,
+        onProgress: updateProgress,
+      });
+      runtime.runTask.handle = handle;
       const result = await handle.promise;
-      if (runtime.runTask?.run.runId !== run.runId) return;
+      if (runtime.runTask?.run.runId !== run.runId || runtime.disposed || state.cancelling) return;
       const completedAt = now().toISOString();
       const record = buildCompletedAnalysisRecord({ run, datasetRecord, result, completedAt });
       const saved = await repository.saveAnalysis(record);
       state.analyses = mergeRecord(state.analyses, saved);
+      state.selectedDataset = datasetRecord;
       state.selectedAnalysis = saved;
       state.result = result;
       state.running = false;
@@ -386,11 +491,12 @@ export function createResearchController(options) {
       requestFocus("research-section-heading-results");
       requestRender();
     } catch (error) {
-      if (runtime.runTask?.run.runId !== run.runId) return;
+      if (runtime.runTask?.run.runId !== run.runId || runtime.disposed) return;
+      const cancelled = state.cancelling || ["TASK_CANCELLED", "ANALYSIS_CANCELLED"].includes(error?.code);
       state.running = false;
       state.cancelling = false;
       state.currentRun = null;
-      if (error?.code === "TASK_CANCELLED") {
+      if (cancelled) {
         state.analysisError = null;
         state.progress = { phase: "cancelled", completed: 0, total: 1, fraction: 0 };
         notify("research.status.cancelled", "warning");
@@ -401,7 +507,19 @@ export function createResearchController(options) {
       }
       requestRender();
     } finally {
-      if (runtime.runTask?.run.runId === run.runId) runtime.runTask = null;
+      if (runtime.runTask?.run.runId === run.runId) {
+        runtime.runTask = null;
+        if (state.running) {
+          state.running = false;
+          state.cancelling = false;
+          state.currentRun = null;
+          state.progress = { phase: "cancelled", completed: 0, total: 1, fraction: 0 };
+          if (!runtime.disposed) {
+            notify("research.status.cancelled", "warning");
+            requestRender();
+          }
+        }
+      }
     }
   }
 
@@ -429,9 +547,9 @@ export function createResearchController(options) {
   async function selectAnalysis(id) {
     const record = state.analyses.find((candidate) => candidate.id === id) ?? await repository.loadAnalysis(id);
     if (!isCompletedAnalysis(record)) throw new Error(t("research.analysis.notComplete"));
-    const linked = state.datasets.find((dataset) => dataset.id === record.datasetRef?.id && dataset.contentHash === record.datasetRef?.contentHash)
+    const linked = state.datasets.find((dataset) => matchesAnalysisDataset(dataset, record))
       ?? await repository.loadDataset(record.datasetRef?.id);
-    if (!linked || linked.contentHash !== record.datasetRef?.contentHash) {
+    if (!matchesAnalysisDataset(linked, record)) {
       throw new Error(t("research.analysis.datasetUnavailable"));
     }
     state.selectedAnalysis = record;
@@ -511,7 +629,12 @@ export function createResearchController(options) {
       requestRender();
       return true;
     }
-    if (action === "research-load-bundled") { await loadBundled(); return true; }
+    if (action === "research-package-replay") { void replayPackage(); return true; }
+    if (action === "research-package-cancel") { cancelPackage(); return true; }
+    if (action === "research-load-bundled") {
+      if (!state.running && !state.busy && !state.packageOperation) await loadBundled();
+      return true;
+    }
     if (action === "research-run") { void runAnalysis(); return true; }
     if (action === "research-cancel") { cancelAnalysis(); return true; }
     if (action === "research-select-dataset") { await selectDataset(target.dataset.id); return true; }
@@ -545,8 +668,11 @@ export function createResearchController(options) {
       case "research-csv-license":
         state.csvMetadata.license = input.value;
         return true;
+      case "research-package-file":
+        if (input.files?.[0]) await packageOperation("inspect", { file: input.files[0] });
+        return true;
       case "research-dataset-file":
-        await importFile(input.files?.[0]);
+        if (!state.running && !state.busy && !state.packageOperation) await importFile(input.files?.[0]);
         return true;
       case "research-validation-unit":
         state.selectedValidationUnit = input.value;
@@ -558,7 +684,9 @@ export function createResearchController(options) {
   }
 
   function dispose() {
-    runtime.runTask?.handle.cancel();
+    runtime.disposed = true;
+    cancelPackage();
+    runtime.runTask?.handle?.cancel();
     runtime.importTask?.cancel();
     runtime.taskClient?.close();
   }

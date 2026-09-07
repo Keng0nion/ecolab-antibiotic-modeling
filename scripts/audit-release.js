@@ -1,6 +1,13 @@
 import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { canonicalJson } from "../src/analysis/fingerprint.js";
+import { RNG_ALGORITHM } from "../src/analysis/random.js";
+import { inspectResearchPackage, replayResearchPackage } from "../src/analysis/research-replay.js";
+import { RESEARCH_WORKFLOW_IMPLEMENTATION_ID } from "../src/analysis/research-upgrade.js";
+import { ANALYSIS_ENGINE_ID, ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "../src/analysis/version.js";
+import { researchPreset } from "../src/app/research/state.js";
+import { ENGINE_VERSION } from "../src/model/version.js";
 import {
   assertKnownOptions,
   fileInventory,
@@ -8,6 +15,7 @@ import {
   listFiles,
   resolveDirectoryOption,
   resolveFileOption,
+  sha256,
   slashPath,
 } from "./lib/release-utils.js";
 
@@ -76,23 +84,114 @@ async function auditMarkdownLinks() {
   return markdownFiles.length;
 }
 
+function assertSame(actual, expected, label) {
+  assert(actual !== undefined && expected !== undefined && canonicalJson(actual) === canonicalJson(expected),
+    `${label} differs from the recorded inputs or computed scientific result.`);
+}
+
+function assertPreset(actual, expected, path = "options") {
+  // Presets may omit fields that the versioned workflow resolves to explicit defaults.
+  if (expected !== null && typeof expected === "object" && !Array.isArray(expected)) {
+    for (const [key, value] of Object.entries(expected)) assertPreset(actual?.[key], value, `${path}.${key}`);
+  } else {
+    assert(actual !== undefined && canonicalJson(actual) === canonicalJson(expected),
+      `Example preset is stale at ${path}; regenerate with npm run example:research after the preset is stable.`);
+  }
+}
+
 async function auditPortfolioExample(packageVersion) {
-  const path = resolve(rootPath, `data/examples/ecolab-stage5-small-research-${packageVersion}.json`);
+  const path = resolve(rootPath, `data/examples/ecolab-stage6-research-${packageVersion}.json`);
   const artifact = JSON.parse(await readFile(path, "utf8"));
-  assert(artifact.artifactVersion === packageVersion, "Portfolio example version differs from package.json.");
-  assert(artifact.generatedFrom?.applicationVersion === packageVersion, "Portfolio example application version is stale.");
-  assert(artifact.generatedFrom?.scientificCoreVersion === "2.0.0", "Portfolio example must retain scientific core 2.0.0.");
-  assert(artifact.generatedFrom?.analysisEngineVersion === "1.0.0", "Portfolio example must retain analysis engine 1.0.0.");
-  assert(artifact.generatedFrom?.dataset?.normalizedJsonArtifactSha256 === "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817", "Portfolio example must label the bundled normalized JSON artifact hash explicitly.");
-  assert(/^[0-9a-f]{64}$/u.test(artifact.generatedFrom?.dataset?.normalizedCanonicalFingerprint ?? ""), "Portfolio example must include the normalized canonical dataset fingerprint.");
-  assert(!Object.hasOwn(artifact.generatedFrom?.dataset ?? {}, "sourceContentSha256"), "Portfolio example must not ambiguously label the normalized JSON artifact hash as a source-file hash.");
-  assert(artifact.capability?.level === "L3", "Portfolio example must report L3 capability.");
-  assert(artifact.capability?.heldOutValidationEligibleForL4 === false, "Portfolio example must remain L4-ineligible.");
-  assert(artifact.capability?.l4GatePassed === false, "Portfolio example must record the failed L4 gate.");
-  assert(artifact.validation?.modelWorseThanBaseline === true, "Portfolio example must retain the worse-than-baseline result.");
-  assert(artifact.validation?.deltaModelMinusBaseline?.macroRmse > 0, "Portfolio example macro RMSE must be worse than baseline.");
-  assert(artifact.validation?.deltaModelMinusBaseline?.pooledRmse > 0, "Portfolio example pooled RMSE must be worse than baseline.");
-  assert(artifact.reproduction?.command === "npm run example:research", "Portfolio example must include its reproduction command.");
+  assert(artifact.schemaVersion === "1.0.0" && artifact.kind === "ecolab-stage6-research-example",
+    "Example must use the Stage 6 example wrapper schema.");
+  assertSame(artifact.artifactVersion, packageVersion, "Example provenance artifactVersion");
+  let inspected;
+  try {
+    inspected = inspectResearchPackage(artifact.researchPackage);
+  } catch (error) {
+    throw new Error(`Example strict package inspection failed: ${error.code} at ${error.path}: ${error.message}`, { cause: error });
+  }
+  assert(inspected.replayable, `Example is not replayable: ${inspected.reasons.map(({ code, message }) => `${code}: ${message}`).join("; ")}`);
+  const pkg = inspected.researchPackage;
+  const { analysisManifest: manifest, artifacts } = pkg.contents;
+  const input = artifacts["research-replay-input"];
+  const options = input.options;
+  const result = artifacts["scientific-result"];
+  const dataset = artifacts["normalized-observation-dataset"];
+  const scientificReference = pkg.artifactInventory.find(({ artifactId }) => artifactId === "scientific-result");
+  assertSame(artifact.scientificResultRef, { artifactId: scientificReference.artifactId, sha256: scientificReference.sha256 },
+    "Example scientific-result reference");
+
+  const datasetPath = "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json";
+  const checksumsPath = "data/datasets/figshare-bw25113-growth-v1/checksums.json";
+  const [datasetText, checksumsText] = await Promise.all([
+    readFile(resolve(rootPath, datasetPath), "utf8"), readFile(resolve(rootPath, checksumsPath), "utf8"),
+  ]);
+  const checksums = JSON.parse(checksumsText);
+  const contentHash = sha256(datasetText);
+  assertSame(contentHash, checksums.normalizedDataSha256, "Example provenance source checksum");
+  assertSame(options.datasetInput, datasetText, "Example provenance embedded source text");
+  assertSame(options.contentHash, contentHash, "Example provenance embedded source hash");
+  assertSame(options.datasetVersion, checksums.datasetVersion, "Example provenance dataset version");
+  const provenance = {
+    applicationVersion: packageVersion, scientificCoreVersion: ENGINE_VERSION, analysisEngineVersion: ANALYSIS_ENGINE_VERSION,
+    analysisEngineId: ANALYSIS_ENGINE_ID, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID,
+    workflowImplementationId: RESEARCH_WORKFLOW_IMPLEMENTATION_ID, model: manifest.model,
+    seed: options.seed, seeds: { algorithm: RNG_ALGORITHM, ...options.seeds }, runId: options.runId, createdAt: options.createdAt,
+    dataset: {
+      id: manifest.dataset.id, version: options.datasetVersion, path: datasetPath,
+      normalizedJsonArtifactSha256: contentHash, normalizedCanonicalFingerprint: sha256(canonicalJson(dataset)),
+      observationCount: dataset.observations.length,
+      trainingObservationCount: dataset.observations.filter(({ role }) => role === "training").length,
+      developmentObservationCount: dataset.observations.filter(({ role }) => role === "validation").length,
+      sourceEvaluationRole: "validation", evaluationRole: "development_comparison", previouslyViewed: true,
+    },
+  };
+  for (const [key, expected] of Object.entries(provenance)) assertSame(artifact.generatedFrom?.[key], expected, `Example provenance ${key}`);
+  assertSame(artifact.sourceProvenance?.checksumsPath, checksumsPath, "Example provenance checksums path");
+  assertSame(artifact.sourceProvenance?.checksumsSha256, sha256(checksumsText), "Example provenance checksums hash");
+  assertSame(artifact.sourceProvenance?.source, checksums.source, "Example provenance original source declarations");
+  assert(/not recomputed/iu.test(artifact.sourceProvenance?.workbookHashStatus ?? ""), "Example provenance must distinguish declared workbook hashes from recomputed input hashes.");
+  assert(artifact.reproduction?.command === "npm run example:research", "Example must include its reproduction command.");
+  assert(pkg.replay.selfContained === false && /data-self-contained/iu.test(artifact.reproduction?.statement ?? "")
+    && /not a standalone executable/iu.test(artifact.reproduction.statement) && /exact built-in software/iu.test(artifact.reproduction.statement),
+  "Example must describe data-self-contained inputs with exact built-in software dependencies, not a standalone executable.");
+  let preset;
+  try {
+    preset = researchPreset(artifact.generatedFrom.preset);
+  } catch (error) {
+    throw new Error("Example preset is unknown; regenerate with npm run example:research.", { cause: error });
+  }
+  assertPreset(options, preset);
+
+  const historical = [
+    ["data/examples/ecolab-stage5-small-research-5.0.0.json", "f3365e5c616597c042aa87eb76040b620955f4ea9e8865c77b83e5245acc41b8"],
+    ["data/examples/ecolab-stage5-small-research-5.0.0.md", "05ca4c25a2327f81119ee7af609d2536c1ec7072f35a4532f32319406f416bbd"],
+  ];
+  assert(Array.isArray(artifact.historicalArtifacts) && artifact.historicalArtifacts.length === historical.length,
+    "Example historical references must retain both frozen Stage 5 artifacts.");
+  for (const [historicalPath, expectedHash] of historical) {
+    const actualHash = sha256(await readFile(resolve(rootPath, historicalPath)));
+    assertSame(actualHash, expectedHash, `Example historical bytes ${historicalPath}`);
+    assertSame(artifact.historicalArtifacts.find((entry) => entry.path === historicalPath), {
+      path: historicalPath, artifactVersion: "5.0.0", sha256: actualHash, status: "frozen_historical_record_not_regenerated",
+    }, `Example historical reference ${historicalPath}`);
+  }
+
+  for (const [name, metrics] of Object.entries({
+    training: result.training?.metrics, development: result.validation?.metrics,
+    growthDevelopment: result.growthComparison?.development?.selected?.metrics,
+  })) assertSame(manifest.diagnostics.metrics?.[name], metrics, `Example manifest metrics.${name}`);
+  assertSame(manifest.convergence, { converged: result.researchAssessment?.converged, researchAssessment: result.researchAssessment }, "Example manifest convergence");
+  assertSame(manifest.diagnostics.identifiability, result.identifiability, "Example manifest identifiability");
+  assertSame(manifest.capabilityAssessment, result.capability, "Example manifest capability");
+  assertSame(manifest.warnings, result.warnings, "Example manifest warnings");
+
+  // Matching rehashed artifacts is not scientific validation: execute the embedded
+  // settings and compare every scientific field, including failed/imprecise results.
+  const replay = await replayResearchPackage(pkg, { absoluteTolerance: 1e-10, relativeTolerance: 1e-8 });
+  assert(replay.matched, `Scientific replay mismatch (${replay.comparison.mismatchCount}): ${replay.comparison.mismatchPaths.join(", ")}`);
+  return { preset: artifact.generatedFrom.preset, presetFingerprint: sha256(canonicalJson(preset)), scientificSha256: scientificReference.sha256 };
 }
 
 async function auditInlineHandlers() {
@@ -158,11 +257,11 @@ const [packageJson, corePackageJson, sourceVersion, builtVersion, headers, markd
   auditMarkdownLinks(),
   auditInlineHandlers(),
 ]);
-assert(packageJson.version === "5.0.0", `Stage 5 release must be 5.0.0, found ${packageJson.version}.`);
+assert(packageJson.version === "6.0.0", `Stage 6 release must be 6.0.0, found ${packageJson.version}.`);
 assert(sourceVersion.APPLICATION_VERSION === packageJson.version, "Source application version differs from package.json.");
 assert(builtVersion.APPLICATION_VERSION === packageJson.version, "Built application version differs from package.json.");
 assert(corePackageJson.version === packageJson.version, "Built core package version differs from package.json.");
-await auditPortfolioExample(packageJson.version);
+const example = await auditPortfolioExample(packageJson.version);
 assert(!/unsafe-inline/iu.test(headers), "CSP must not use unsafe-inline.");
 assert(/worker-src\s+'self'/iu.test(headers), "CSP must allow same-origin module Workers.");
 assert(/navigate-to[^\n;]*\bblob:/iu.test(headers), "CSP must permit blob downloads.");
@@ -172,8 +271,10 @@ const [modelVersion, analysisVersion] = await Promise.all([
   import(`${pathToFileURL(resolve(webPath, "src/model/version.js")).href}?audit=${Date.now()}`),
   import(`${pathToFileURL(resolve(webPath, "src/analysis/version.js")).href}?audit=${Date.now()}`),
 ]);
-assert(modelVersion.ENGINE_VERSION === "2.0.0", "Scientific core engine must remain at 2.0.0 in Stage 5.");
-assert(analysisVersion.ANALYSIS_ENGINE_VERSION === "1.0.0", "Analysis engine must remain at 1.0.0 in Stage 5.");
+assert(ENGINE_VERSION === "2.0.0" && modelVersion.ENGINE_VERSION === ENGINE_VERSION, "Scientific core engine must remain at 2.0.0 in Stage 6.");
+assert(ANALYSIS_ENGINE_VERSION === "2.0.0" && analysisVersion.ANALYSIS_ENGINE_VERSION === ANALYSIS_ENGINE_VERSION, "Stage 6 analysis engine must be 2.0.0.");
+assert(ANALYSIS_ENGINE_ID === "ecolab.stage4.analysis" && analysisVersion.ANALYSIS_ENGINE_ID === ANALYSIS_ENGINE_ID, "The stable analysis engine ID must remain ecolab.stage4.analysis.");
+assert(ANALYSIS_IMPLEMENTATION_ID === "ecolab-research-analysis-v2" && analysisVersion.ANALYSIS_IMPLEMENTATION_ID === ANALYSIS_IMPLEMENTATION_ID, "Stage 6 must use the ecolab-research-analysis-v2 implementation.");
 
 const [coreInventory, webInventory] = await Promise.all([
   fileInventory(corePath, "core"),
@@ -188,6 +289,7 @@ await mkdir(dirname(manifestPath), { recursive: true });
 await writeFile(manifestPath, manifest);
 
 console.log(`Release audit passed for application ${packageJson.version}.`);
+console.log(`Example: strict package inspection passed; scientific replay matched (abs=1e-10, rel=1e-8); preset=${example.preset}; preset SHA-256=${example.presetFingerprint}; scientific SHA-256=${example.scientificSha256}.`);
 console.log(`Markdown files checked: ${markdownCount}.`);
 console.log(`Core: ${formatBytes(coreBudget.total)} total; largest ${coreBudget.largest.path} at ${formatBytes(coreBudget.largest.bytes)}.`);
 console.log(`Web: ${formatBytes(webBudget.total)} total; largest ${webBudget.largest.path} at ${formatBytes(webBudget.largest.bytes)}.`);

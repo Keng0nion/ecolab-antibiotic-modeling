@@ -24,6 +24,8 @@ const expectedKinds = [
   "analysis.fit",
   "analysis.evaluate",
   "analysis.research-workflow",
+  "research.package-inspect",
+  "research.package-replay",
 ];
 
 test("worker protocol exposes the exact Stage 4 task kinds and deterministic envelopes", () => {

@@ -1,4 +1,4 @@
-# Ecolab 5.0.0
+# Ecolab 6.0.0
 
 Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种群建模项目，包含中英文 Learn / Sandbox 与真实数据 Research Workspace。
 
@@ -16,14 +16,16 @@ Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic populati
 
 ## Version contract / 版本契约
 
-- Application / 应用：`5.0.0`
-- Scientific core engine / 科学核心：`2.0.0`（Stage 5 未改变）
-- Analysis engine / 分析引擎：`1.0.0`（Stage 5 未改变）
+- Application / 应用：`6.0.0`
+- Scientific core engine / 科学核心：`2.0.0`（教学动力学不变）
+- Analysis engine / 分析引擎：`2.0.0`（数值修复、OD 模型比较和同版回放）
 - Model / 模型：`ecolab.single-population.regoes-logistic@1.0.0`
 
-根 `package.json` 是应用版本唯一来源。当前内置真实数据案例达到 L3 数据校准，但因源孔/板独立性记录不足而不具备 L4 证据资格；其验证结果差于预声明基线并被原样保留。
+根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
 
-The root `package.json` is the sole application-version authority. The bundled case demonstrates L3 calibration but is ineligible for L4 evidence; its worse-than-predeclared-baseline validation result is retained.
+实际 `small` 示例中，训练交叉验证选中逐时间均值基线，开发集 macro RMSE 为 `0.00304756`；原潜在种群模型为 `0.00833386`，仍差于基线。参数模型未收敛、独立性与统计精度不足的警告均保留。未处理 OD600 数据不能验证三种抗生素药效，也不能识别绝对 CFU。
+
+Version 6 adds empirical OD-scale model comparison, training-trajectory CV/bootstrap and integrity-checked exact-version replay. The previously inspected holdout is development data, not untouched/external validation. The quick example selects the training-mean baseline; parameterized fits remain nonconverged. Completion, convergence, identification and precision are reported separately. No antibiotic-effect validation is claimed.
 
 ## Commands / 命令
 
@@ -45,16 +47,18 @@ npm run preview
 
 ## Documentation / 文档
 
+- [6.0.0 release notes / 本次详细更新说明](./docs/release-notes-6.0.0.md)
 - [Project overview / 项目概览](./docs/project-overview.md)
 - [Architecture / 系统架构](./docs/architecture.md)
 - [Scientific core / 科学核心](./docs/scientific-core.md)
 - [Learn / Sandbox](./docs/interactive-app.md)
 - [Research Workspace](./docs/research-workspace.md)
 - [Limitations / 局限性](./docs/limitations.md)
-- [Portfolio case study / 作品集案例](./docs/portfolio-case-study.md)
+- [Portfolio case study / 项目介绍与真实结果](./docs/portfolio-case-study.md)
+- [Equations, parameters and papers / 方程、参数与论文证据](./docs/research-method-evidence.md)
 - [Deployment / 部署](./docs/deployment.md)
 - [Maintenance, versioning, data updates / 维护、版本与数据更新](./docs/maintenance.md)
-- [Stage 5 release checklist / 发布检查表](./docs/release-checklist.md)
+- [Release checklist / 发布检查表](./docs/release-checklist.md)
 - [Data admission review / 数据准入审查](./docs/data-candidate-review.md)
 - [Technical blueprints / 技术蓝图](./blueprints/README.md)
 
@@ -64,7 +68,11 @@ Ecolab 自有代码以 [MIT License](./LICENSE) 发布，版权所有 © 2026 Ke
 
 Original Ecolab code is released under the [MIT License](./LICENSE), copyright © 2026 Kengo Kubota. Third-party datasets, papers, and source materials are not relicensed by the software license. The bundled Figshare BW25113 data remain subject to their original `CC BY 4.0` license and the attribution/provenance requirements documented in the dataset card.
 
-Versioned generated example:
+Versioned generated examples:
 
-- [Small-preset Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)
-- [Small-preset JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
+- [Current 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
+- [Current 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
+- [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)
+- [Frozen historical 5.0.0 JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
+
+计算在本地 Worker 执行，合格数据源文本与结果存入 IndexedDB；初始化不可用时使用易失性内存，运行时配额失败明确报错。研究包包含数据与完整输入，但需要精确匹配的内置软件，不是独立可执行文件。旧包可校验查看，缺少完整输入或版本不兼容时拒绝复算。静态资源初次加载仍需要访问部署站点；用户数据不上传到分析服务器。

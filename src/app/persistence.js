@@ -22,7 +22,15 @@ export class ProjectRepositoryError extends Error {
 }
 
 function revisionConflict(code) {
-  return new Error(code);
+  return new ProjectRepositoryError(code, code);
+}
+
+function repositoryErrorDetails(error, fallbackCode = "PERSISTENCE_ERROR") {
+  return {
+    name: error?.name ?? "Error",
+    code: typeof error?.code === "string" ? error.code : fallbackCode,
+    message: error?.message ?? String(error),
+  };
 }
 
 function normalizeRepositoryError(error) {
@@ -98,15 +106,28 @@ function listMemoryRecords(records, normalize = clone) {
 }
 
 export class MemoryProjectRepository {
-  constructor() {
+  #storageStatus;
+
+  constructor({ fallbackReason = "PERSISTENCE_UNAVAILABLE", lastError = null } = {}) {
     this.persistent = false;
+    this.#storageStatus = {
+      backend: "memory",
+      persistent: false,
+      state: "memory-only",
+      fallbackReason,
+      lastError: clone(lastError),
+    };
     this.projects = new Map();
     this.datasets = new Map();
     this.analyses = new Map();
   }
 
+  getStorageStatus() {
+    return clone(this.#storageStatus);
+  }
+
   async saveProject(project) {
-    return saveMemoryRecord(this.projects, project);
+    return saveMemoryRecord(this.projects, project, "PROJECT_REVISION_CONFLICT");
   }
 
   async loadProject(id) {
@@ -165,15 +186,45 @@ function transactionDone(transaction) {
   return new Promise((resolve, reject) => {
     transaction.addEventListener("complete", resolve, { once: true });
     transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
-    transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+    transaction.addEventListener("error", (event) => {
+      const error = event.target?.error ?? transaction.error;
+      // A request error can bubble before transaction.error is set by the abort.
+      if (error) reject(error);
+    }, { once: true });
   });
 }
 
 export class IndexedDbProjectRepository {
+  #storageStatus = {
+    backend: "indexeddb",
+    persistent: true,
+    state: "ready",
+    fallbackReason: null,
+    lastError: null,
+  };
+
   constructor(indexedDb) {
     this.indexedDb = indexedDb;
     this.persistent = true;
     this.databasePromise = null;
+  }
+
+  getStorageStatus() {
+    return clone(this.#storageStatus);
+  }
+
+  async withStorageStatus(operation) {
+    try {
+      const result = await operation();
+      this.#storageStatus.state = "ready";
+      this.#storageStatus.lastError = null;
+      return result;
+    } catch (error) {
+      const normalized = normalizeRepositoryError(error);
+      this.#storageStatus.state = "error";
+      this.#storageStatus.lastError = repositoryErrorDetails(normalized);
+      throw normalized;
+    }
   }
 
   async database() {
@@ -234,7 +285,7 @@ export class IndexedDbProjectRepository {
   }
 
   async saveRecord(storeName, record, conflictCode) {
-    try {
+    return this.withStorageStatus(async () => {
       const database = await this.database();
       const transaction = database.transaction(storeName, "readwrite");
       const store = transaction.objectStore(storeName);
@@ -247,32 +298,36 @@ export class IndexedDbProjectRepository {
       store.put(saved);
       await transactionDone(transaction);
       return clone(saved);
-    } catch (error) {
-      throw normalizeRepositoryError(error);
-    }
+    });
   }
 
   async loadRecord(storeName, id, normalize = clone) {
-    const database = await this.database();
-    const transaction = database.transaction(storeName, "readonly");
-    const value = await requestPromise(transaction.objectStore(storeName).get(id));
-    await transactionDone(transaction);
-    return value ? normalize(value) : null;
+    return this.withStorageStatus(async () => {
+      const database = await this.database();
+      const transaction = database.transaction(storeName, "readonly");
+      const value = await requestPromise(transaction.objectStore(storeName).get(id));
+      await transactionDone(transaction);
+      return value ? normalize(value) : null;
+    });
   }
 
   async listRecords(storeName, normalize = clone) {
-    const database = await this.database();
-    const transaction = database.transaction(storeName, "readonly");
-    const values = await requestPromise(transaction.objectStore(storeName).getAll());
-    await transactionDone(transaction);
-    return sortNewestFirst(values.map(normalize));
+    return this.withStorageStatus(async () => {
+      const database = await this.database();
+      const transaction = database.transaction(storeName, "readonly");
+      const values = await requestPromise(transaction.objectStore(storeName).getAll());
+      await transactionDone(transaction);
+      return sortNewestFirst(values.map(normalize));
+    });
   }
 
   async deleteRecord(storeName, id) {
-    const database = await this.database();
-    const transaction = database.transaction(storeName, "readwrite");
-    transaction.objectStore(storeName).delete(id);
-    await transactionDone(transaction);
+    return this.withStorageStatus(async () => {
+      const database = await this.database();
+      const transaction = database.transaction(storeName, "readwrite");
+      transaction.objectStore(storeName).delete(id);
+      await transactionDone(transaction);
+    });
   }
 
   async saveProject(project) {
@@ -324,16 +379,18 @@ export class IndexedDbProjectRepository {
   }
 
   async probe() {
-    const database = await this.database();
-    const transaction = database.transaction(STORE_NAMES, "readwrite");
-    const probeId = createPersistenceProbeId();
-    const probe = { id: probeId, revision: 0, updatedAt: new Date(0).toISOString() };
-    for (const storeName of STORE_NAMES) {
-      const store = transaction.objectStore(storeName);
-      store.add(probe);
-      store.delete(probeId);
-    }
-    await transactionDone(transaction);
+    return this.withStorageStatus(async () => {
+      const database = await this.database();
+      const transaction = database.transaction(STORE_NAMES, "readwrite");
+      const probeId = createPersistenceProbeId();
+      const probe = { id: probeId, revision: 0, updatedAt: new Date(0).toISOString() };
+      for (const storeName of STORE_NAMES) {
+        const store = transaction.objectStore(storeName);
+        store.add(probe);
+        store.delete(probeId);
+      }
+      await transactionDone(transaction);
+    });
   }
 }
 
@@ -365,7 +422,8 @@ export async function createProjectRepository(
       void repository.database().then((database) => database.close(), () => {});
     });
     return repository;
-  } catch {
-    return new MemoryProjectRepository();
+  } catch (error) {
+    const lastError = repositoryErrorDetails(normalizeRepositoryError(error), "PERSISTENCE_UNAVAILABLE");
+    return new MemoryProjectRepository({ fallbackReason: lastError.code, lastError });
   }
 }

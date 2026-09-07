@@ -52,7 +52,7 @@ test("run capture records reproducibility once and workflow options include ever
   });
   assert.equal(calls, 1);
   assert.equal(run.createdAt, "2026-08-21T12:00:00.000Z");
-  assert.match(run.runId, /^stage4-figshare-bw25113-growth-v1-67b5fc275707-17-/);
+  assert.match(run.runId, /^research-v2-figshare-bw25113-growth-v1-67b5fc275707-17-/);
   assert.equal(Object.isFrozen(run), true);
 
   const resolvedModel = { ref: { id: "model" } };
@@ -66,6 +66,32 @@ test("run capture records reproducibility once and workflow options include ever
   assert.equal(options.contentHash, dataset.contentHash);
   assert.equal(options.seed, 17);
   assert.deepEqual(options.optimizer, researchPreset("small").optimizer);
+});
+
+test("development presets explicitly bound growth refits and Sobol uncertainty and clone deeply", () => {
+  for (const [name, de, nm, samples] of [["small", 120, 80, 20], ["standard", 1200, 800, 100]]) {
+    const config = researchPreset(name);
+    assert.deepEqual(config.growthComparison?.bounds, {
+      baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30],
+    });
+    assert.equal(config.growthComparison.optimizer.differentialEvolutionMaxEvaluations, de);
+    assert.equal(config.growthComparison.optimizer.nelderMeadMaxEvaluations, nm);
+    assert.equal(config.growthComparison.bootstrap.samples, samples);
+    assert.equal(config.growthComparison.bootstrap.intervalLevel, 0.95);
+    assert.equal(config.growthComparison.crossValidation.tieTolerance, 1e-10);
+    assert.ok(config.sobolBootstrapReplicates >= 2);
+    assert.equal(config.sobolConfidenceLevel, 0.95);
+    assert.equal(config.sobolPrecisionTolerance, 0.2);
+    assert.equal(Object.isFrozen(RESEARCH_PRESETS[name].growthComparison.bounds.baselineOd), true);
+    config.growthComparison.bounds.baselineOd[0] = -99;
+    config.growthComparison.bootstrap.samples = 0;
+    config.growthComparison.optimizer.restarts = 5;
+    const next = researchPreset(name);
+    assert.equal(next.growthComparison.bounds.baselineOd[0], 0);
+    assert.equal(next.growthComparison.bootstrap.samples, samples);
+    assert.equal(next.growthComparison.optimizer.restarts, 1);
+  }
+  assert.equal(createResearchState().replayPreview, null);
 });
 
 test("only completed analyses are restorable scientific results", () => {

@@ -51,7 +51,9 @@ npm run check:reproducible
 npm run smoke:safari
 ```
 
-`audit:release` 检查部署配置、版本、文件内容、大小预算、禁止路径、Markdown 链接和 SHA-256 manifest。`check:reproducible` 在两个临时目录完成干净构建并比较每个文件的内容哈希。Safari 冒烟测试需要手动启用远程自动化。
+`audit:release` 检查部署配置、版本、文件内容、大小预算、禁止路径、Markdown 链接和 SHA-256 manifest。6.0.0 还严格检查实际生成示例的研究包、来源/版本/预算关联，并显式复算比较科学投影与完整分析 manifest，不要求某个模型获胜或误差改善。`check:reproducible` 在两个临时目录完成干净构建并比较每个文件的内容哈希。Safari 冒烟测试需要手动启用远程自动化。
+
+浏览器生成的研究包不是站点静态资产，可能大于静态最大单文件预算；导入另外受 32 MiB 安全限额约束。包内数据与算法输入可自包含，但回放仍需要精确内置软件，不联网安装依赖。6.0.0 在完成本地验证后，于 2026-09-07 获用户授权提交并上传现有 GitHub 仓库；推送到 `main` 会触发上述部署。具体线上结论以 [GitHub Actions](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/workflows/deploy-pages.yml) 为准，本地验证记录见 [发布检查表](./release-checklist.md)，变更内容见 [6.0.0 更新说明](./release-notes-6.0.0.md)。
 
 ## English
 

@@ -98,6 +98,7 @@ function copyBounds(bounds, names) {
 function makeEvaluator(objective, names, budget, failedCandidates, context) {
   let evaluations = 0;
   let exhausted = false;
+  let best = null;
   return {
     evaluate(vector) {
       if (evaluations >= budget) {
@@ -116,6 +117,7 @@ function makeEvaluator(objective, names, budget, failedCandidates, context) {
           });
           return Infinity;
         }
+        if (best === null || value < best.value) best = { vector: [...vector], value };
         return value;
       } catch (error) {
         failedCandidates.push({
@@ -126,6 +128,9 @@ function makeEvaluator(objective, names, budget, failedCandidates, context) {
         });
         return Infinity;
       }
+    },
+    get best() {
+      return best;
     },
     get evaluations() {
       return evaluations;
@@ -409,8 +414,9 @@ export function nelderMead(options) {
     seed,
     bounds: copyBounds(bounds, names),
     starts,
-    bestParameters: candidateFromVector(simplex[winner], names),
-    bestValue: values[winner],
+    // A budget can end after reflection but before that point enters the simplex.
+    bestParameters: candidateFromVector(evaluator.best?.vector ?? simplex[winner], names),
+    bestValue: evaluator.best?.value ?? values[winner],
     evaluationCount: evaluator.evaluations,
     iterations,
     terminationReason,

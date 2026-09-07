@@ -8,6 +8,7 @@ import {
 import {
   createNormalizedDataset,
   createResearchResult,
+  createResearchV2Result,
 } from "./research-test-fixtures.js";
 
 test("validation observations, predictions, and residuals align for charting", () => {
@@ -94,6 +95,28 @@ test("missing uncertainty and sensitivity values render no-data text rather than
   });
   assert.doesNotMatch(container.innerHTML, /NaN/);
   assert.match(container.innerHTML, /No plottable data/);
+});
+
+test("v2 sensitivity plots retain signed un-clipped Sobol intervals and missing values, with normalized Morris semantics", () => {
+  const result = createResearchV2Result();
+  const before = structuredClone(result);
+  const container = { innerHTML: "" };
+  renderResearchCharts(container, { dataset: createNormalizedDataset(), result, selectedValidationUnit: "validation-unit" });
+  for (const html of [container.innerHTML, serializeResearchDashboard({ dataset: createNormalizedDataset(), result, selectedValidationUnit: "validation-unit" })]) {
+    assert.match(html, /Sobol S1: -0\.24/);
+    assert.match(html, /\[-0\.48, 0\.13\]/);
+    assert.match(html, /Sobol ST: 1\.18/);
+    assert.match(html, /\[0\.81, 1\.46\]/);
+    assert.match(html, /WIDE_BOOTSTRAP_INTERVAL/);
+    assert.match(html, /95% paired-row bootstrap intervals · 40 replicates/);
+    assert.match(html, /<text[^>]*>WIDE_BOOTSTRAP_INTERVAL<\/text>/, "precision issues have separate lines rather than overflowing one long label");
+    assert.match(html, /Sobol S1: —/);
+    assert.match(html, /output per unit normalized coordinate/i);
+    assert.match(html, /Development residuals/);
+    assert.match(html, /source role.*validation/i);
+    assert.doesNotMatch(html, /width="-|NaN|Locked held-out unit:/);
+  }
+  assert.deepEqual(result, before);
 });
 
 test("Research dashboard SVG is standalone and describes all five chart concepts", () => {

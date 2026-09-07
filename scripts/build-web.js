@@ -88,6 +88,9 @@ await Promise.all([
   access(new URL("src/analysis/analysis-manifest.js", web)),
   access(new URL("src/analysis/analysis-plan.js", web)),
   access(new URL("src/analysis/research-workflow.js", web)),
+  access(new URL("src/analysis/growth-comparison.js", web)),
+  access(new URL("src/analysis/research-upgrade.js", web)),
+  access(new URL("src/analysis/research-replay.js", web)),
   access(new URL("src/registry/resolve.js", web)),
   access(new URL("src/experiment/run-manifest.js", web)),
   access(new URL("data/registry/datasets.json", web)),
@@ -118,12 +121,15 @@ if (dataset.metadata?.datasetId !== "figshare-bw25113-growth-v1") {
 }
 
 const buildId = Date.now();
-const [modelApi, analysisApi, researchApi, workerApi, taskClientApi] = await Promise.all([
+const [modelApi, analysisApi, researchApi, workerApi, taskClientApi, growthApi, upgradeApi, replayApi] = await Promise.all([
   import(`${new URL("src/model.js", web).href}?build=${buildId}`),
   import(`${new URL("src/analysis.js", web).href}?build=${buildId}`),
   import(`${new URL("src/analysis/research-workflow.js", web).href}?build=${buildId}`),
   import(`${new URL("src/app/workers/analysis-worker.js", web).href}?build=${buildId}`),
   import(`${new URL("src/app/workers/task-client.js", web).href}?build=${buildId}`),
+  import(`${new URL("src/analysis/growth-comparison.js", web).href}?build=${buildId}`),
+  import(`${new URL("src/analysis/research-upgrade.js", web).href}?build=${buildId}`),
+  import(`${new URL("src/analysis/research-replay.js", web).href}?build=${buildId}`),
 ]);
 if (typeof modelApi.simulatePiecewise !== "function") {
   throw new Error("The web model entry is not importable.");
@@ -136,6 +142,16 @@ if (typeof researchApi.runEcolabStage4ResearchWorkflow !== "function") {
 }
 if (typeof workerApi.dispatchTask !== "function" || typeof taskClientApi.TaskClient !== "function") {
   throw new Error("The Stage 4 Worker modules are not importable.");
+}
+
+if (typeof growthApi.runGrowthModelComparison !== "function") {
+  throw new Error("growth-comparison.js does not expose the direct-OD comparison.");
+}
+if (typeof upgradeApi.runEcolabResearchWorkflow !== "function") {
+  throw new Error("research-upgrade.js does not expose the v2 workflow.");
+}
+if (typeof replayApi.inspectResearchPackage !== "function") {
+  throw new Error("research-replay.js does not expose the package inspector.");
 }
 
 console.log(`Browser application built successfully in ${webPath}.`);

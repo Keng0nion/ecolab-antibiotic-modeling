@@ -7,6 +7,7 @@ import {
   createCatalogFixture,
   createDatasetRecord,
   createResearchResult,
+  createResearchV2Result,
 } from "./research-test-fixtures.js";
 
 function t(key, params = {}) {
@@ -17,15 +18,15 @@ function t(key, params = {}) {
   );
 }
 
-function render(state) {
+function render(state, locale = "en") {
   const catalog = createCatalogFixture();
   return renderResearchWorkspace({
     state,
     catalog,
     registryRecord: catalog.datasetRegistry.records[0],
     sourceRecord: catalog.sourceRegistry.records[0],
-    t,
-    locale: "en",
+    t: locale === "en" ? t : (key) => MESSAGES[locale][key] ?? key,
+    locale,
   });
 }
 
@@ -100,6 +101,125 @@ test("Design and Analysis sections expose the locked model, presets, progress, a
   html = render(state);
   assert.match(html, /aria-busy="true"/);
   assert.match(html, /data-action="research-cancel" disabled>Cancelling…<\/button>/);
+});
+
+test("package controls require compatibility, render inspection/report metrics, and never imply automatic execution", () => {
+  const state = createResearchState();
+  state.activeSection = "analysis";
+  let html = render(state);
+  assert.match(html, /name="research-package-file"/);
+  assert.match(html, /32 MiB/);
+  assert.match(html, /data-action="research-package-replay"[^>]*disabled/);
+  assert.match(html, /Inspection never runs/);
+  state.replayPreview = { replayable: false, status: "inspect_only", reasons: [{ code: "MISSING_REPLAY_INPUT", message: "<script>legacy</script>" }],
+    researchPackage: { packageId: "historical-package", contents: { analysisManifest: { runId: "historical-run", versions: { application: "5.0.0", analysis: "1.0.0" }, model: { version: "1.0.0" } } } } };
+  html = render(state);
+  assert.match(html, /historical-run/);
+  assert.match(html, /5\.0\.0/);
+  assert.match(html, /MISSING_REPLAY_INPUT/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /data-action="research-package-replay"[^>]*disabled/);
+  state.replayPreview.replayable = true;
+  state.replayPreview.status = "matched";
+  state.replayPreview.matched = true;
+  state.replayPreview.result = createResearchV2Result();
+  state.replayPreview.comparison = { mismatchCount: 0, mismatchPaths: [], absoluteTolerance: 1e-10, relativeTolerance: 1e-8 };
+  html = render(state);
+  assert.match(html, /Replay matched/);
+  assert.match(html, /0\.023/);
+  assert.match(html, /Memory-only preview/);
+  assert.doesNotMatch(html, /data-action="research-package-replay"[^>]*disabled/);
+  state.packageOperation = "replay";
+  state.packageCancelling = true;
+  html = render(state);
+  assert.match(html, /data-action="research-package-replay"[^>]*disabled/);
+  assert.match(html, /data-action="research-package-cancel"[^>]*disabled/);
+  state.packageOperation = null;
+  state.packageCancelling = false;
+  state.replayPreview.matched = false;
+  state.replayPreview.status = "mismatch";
+  state.replayPreview.comparison.mismatchCount = 1;
+  state.replayPreview.comparison.mismatchPaths = ["$.growthComparison.development"];
+  html = render(state);
+  assert.match(html, /Replay mismatch/);
+  assert.match(html, /\$\.growthComparison\.development/);
+});
+
+test("replay preview labels unavailable selected-growth metrics rather than substituting calibration", () => {
+  const state = createResearchState();
+  state.activeSection = "analysis";
+  const result = createResearchV2Result();
+  result.growthComparison.development.selected = { status: "unavailable", metrics: null, predictions: [] };
+  state.replayPreview = { replayable: true, status: "matched", reasons: [], result };
+  const html = render(state);
+  assert.match(html, /Replay preview metrics/);
+  assert.match(html, /training_mean.*unavailable/);
+  assert.doesNotMatch(html, /<dd>0\.005<\/dd>/);
+  assert.match(html, /<dd>—<\/dd>/);
+});
+
+test("v2 results distinguish assessment, training CV selection, frozen development and joint curve bootstrap", () => {
+  const state = createResearchState();
+  state.activeSection = "results";
+  state.selectedDataset = createDatasetRecord();
+  state.result = createResearchV2Result();
+  const before = structuredClone(state.result);
+  const html = render(state);
+  for (const label of ["Completed", "Converged", "Identified", "Precision assessed", "Training-only complete-trajectory CV", "logistic", "gompertz", "training_mean", "Frozen development", "Successful joint refits", "BOOTSTRAP_REFIT_FAILURES", "Objective slices", "reoptimized", "Sobol", "WIDE_BOOTSTRAP_INTERVAL"]) assert.ok(html.includes(label), label);
+  assert.match(html, /17 \/ 20/);
+  assert.match(html, /0\.012/);
+  assert.match(html, /0\.023/);
+  assert.match(html, /-0\.24/);
+  assert.match(html, /-0\.48/);
+  assert.match(html, /1\.46/);
+  assert.match(html, /95% paired-row bootstrap intervals · 40 replicates/);
+  assert.match(html, /source role.*validation/i);
+  assert.match(html, /not untouched|not an untouched/i);
+  assert.match(html, /independence.*unverified/i);
+  assert.doesNotMatch(html, /Locked validation/);
+  assert.deepEqual(state.result, before);
+});
+
+test("v2 design and result copy is bilingual and avoids legacy validation and independence claims", () => {
+  const state = createResearchState();
+  for (const locale of ["en", "zh-CN"]) {
+    state.activeSection = "design";
+    const design = render(state, locale);
+    assert.match(design, /logistic/);
+    assert.match(design, /Gompertz/);
+    assert.match(design, locale === "en" ? /development/i : /开发/);
+    assert.doesNotMatch(design, /before validation|see validation values|training or validation|完整独立单元|在验证前锁定|接触验证值/);
+    state.activeSection = "results";
+    state.selectedDataset = createDatasetRecord();
+    state.result = createResearchV2Result();
+    const html = render(state, locale);
+    assert.doesNotMatch(html, /complete independent units|完整独立单元|Stage 4 results|Stage 4 结果/);
+    assert.match(html, locale === "en" ? /failed refits.*excluded/i : /失败重拟合.*排除/);
+  }
+});
+
+test("bilingual privacy describes persisted QC sourceText and volatile memory-only data", () => {
+  for (const locale of ["en", "zh-CN"]) {
+    const html = render(createResearchState(), locale);
+    assert.match(html, /IndexedDB/);
+    assert.match(html, /sourceText/);
+    assert.doesNotMatch(html, /Files remain runtime-only|文件只在运行时存在/);
+    assert.match(html, locale === "en" ? /memory-only.*lost/i : /仅内存.*丢失/);
+    const keys = Object.keys(MESSAGES.en).filter((key) => key.startsWith("research."));
+    for (const key of keys) assert.equal(typeof MESSAGES[locale][key], "string", `${locale}: ${key}`);
+  }
+});
+
+test("legacy 5 results render a historical notice without recomputation or mutation", () => {
+  const state = createResearchState();
+  state.activeSection = "results";
+  state.selectedDataset = createDatasetRecord();
+  state.result = createResearchResult();
+  state.result.reproducibility.applicationVersion = "5.0.0";
+  const before = structuredClone(state.result);
+  assert.match(render(state), /Historical result/);
+  assert.match(render(state), /not recomputed or rewritten/);
+  assert.deepEqual(state.result, before);
 });
 
 test("Results section labels training vs validation roles and keeps scientific warnings visible", () => {

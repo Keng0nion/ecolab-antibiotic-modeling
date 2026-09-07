@@ -2,12 +2,13 @@ import * as analysisApi from "../../analysis/index.js";
 import { handleRunEnvelope } from "../workers/analysis-worker.js";
 
 export function resolveResearchWorkflow(api) {
-  const workflow = api?.runResearchWorkflow
+  const workflow = api?.runEcolabResearchWorkflow
+    ?? api?.runResearchWorkflow
     ?? api?.runEcolabStage4ResearchWorkflow
     ?? api?.runStage4ResearchWorkflow
     ?? api?.runOd600ResearchWorkflow;
   if (typeof workflow !== "function") {
-    const error = new Error("No public Stage 4 Research workflow export is available.");
+    const error = new Error("No compatible built-in Research workflow export is available.");
     error.code = "RESEARCH_WORKFLOW_UNAVAILABLE";
     throw error;
   }

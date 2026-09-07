@@ -85,6 +85,9 @@ await Promise.all([
   access(new URL("analysis.js", dist)),
   access(new URL("analysis/index.js", dist)),
   access(new URL("analysis/research-workflow.js", dist)),
+  access(new URL("analysis/growth-comparison.js", dist)),
+  access(new URL("analysis/research-upgrade.js", dist)),
+  access(new URL("analysis/research-replay.js", dist)),
   access(new URL("data/registry/datasets.json", dist)),
   access(new URL("data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json", dist)),
   access(new URL("data/datasets/figshare-bw25113-growth-v1/README.md", dist)),
@@ -104,7 +107,11 @@ await writeFile(
     + `]);\n`
     + `if (typeof rootEntry.simulatePiecewise !== "function") throw new Error("The package root does not expose the model API.");\n`
     + `if (rootEntry.simulatePiecewise !== modelEntry.simulatePiecewise) throw new Error("The root and model subpath resolve to different model APIs.");\n`
-    + `if (typeof analysisEntry.runEcolabStage4ResearchWorkflow !== "function") throw new Error("The analysis subpath does not expose the Stage 4 workflow.");\n`,
+    + `if (typeof analysisEntry.runEcolabStage4ResearchWorkflow !== "function") throw new Error("The analysis subpath does not expose the Stage 4 workflow.");\n`
+    + `const [growth, research, replay] = await Promise.all([import("./analysis/growth-comparison.js"), import("./analysis/research-upgrade.js"), import("./analysis/research-replay.js")]);\n`
+    + `if (typeof growth.runGrowthModelComparison !== "function") throw new Error("growth-comparison.js does not expose the direct-OD comparison.");\n`
+    + `if (typeof research.runEcolabResearchWorkflow !== "function") throw new Error("research-upgrade.js does not expose the v2 workflow.");\n`
+    + `if (typeof replay.inspectResearchPackage !== "function") throw new Error("research-replay.js does not expose the package inspector.");\n`,
 );
 try {
   await import(`${pathToFileURL(verificationPath).href}?verify=${Date.now()}`);

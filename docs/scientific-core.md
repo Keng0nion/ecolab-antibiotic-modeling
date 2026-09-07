@@ -2,7 +2,7 @@
 
 ## 版本契约
 
-Stage 5 应用版本为 `5.0.0`，但没有改变科学核心或分析算法版本。当前科学模型为：
+应用 `6.0.0` 保留教学科学核心 `2.0.0` 与模型 `1.0.0`；分析引擎升级为 `2.0.0`，以区分数值修复、新 OD 比较及安全回放语义。当前教学科学模型为：
 
 - Model ID：`ecolab.single-population.regoes-logistic`
 - Model version：`1.0.0`
@@ -16,11 +16,11 @@ Stage 5 应用版本为 `5.0.0`，但没有改变科学核心或分析算法版�
 
 - Public entry：`src/analysis.js`
 - Analysis engine ID：`ecolab.stage4.analysis`
-- Analysis engine version：`1.0.0`
-- Analysis implementation ID：`ecolab-stage4-analysis-v1`
+- Analysis engine version：`2.0.0`
+- Analysis implementation ID：`ecolab-research-analysis-v2`
 - Core package subpath：`@ecolab/scientific-core/analysis`
 
-应用版本、分析版本与确定性模型引擎版本分开维护。根 `package.json` 管理应用发布版本；科学核心 `2.0.0` 与分析引擎 `1.0.0` 只在各自语义契约改变时升级。模拟 `createRunManifest()` 描述一条确定性模型运行；研究分析使用 `ecolab.analysis-run` manifest 和 `ecolab.research-package`，另外记录数据集、拆分、锁定计划、随机种子、优化、拟合、指标、残差、能力等级和警告。二者不能混用来暗示确定性模拟已经完成真实数据验证。
+应用版本、分析版本与确定性模型引擎版本分开维护。根 `package.json` 管理应用发布版本；科学核心 `2.0.0` 与分析引擎 `2.0.0` 只在各自语义契约改变时升级。稳定分析 ID `ecolab.stage4.analysis` 不随发布代次重命名。模拟 `createRunManifest()` 描述一条确定性模型运行；研究分析使用 `ecolab.analysis-run` manifest 和 `ecolab.research-package`，另外记录数据集、拆分、锁定计划、随机种子、优化、拟合、指标、残差、能力等级和警告。二者不能混用来暗示确定性模拟已经完成真实数据验证。
 
 ## 状态与单位
 
@@ -45,6 +45,13 @@ Stage 5 应用版本为 `5.0.0`，但没有改变科学核心或分析算法版�
 ## 药效函数
 
 净增长率采用 Regoes 等人 2004 年的四参数药效函数。实现使用代数等价的稳定 logistic 形式，避免在极高浓度下直接计算巨大幂。
+
+```text
+q(C) = (C/zMIC)^κ
+ψ(C) = ψmax - (ψmax-ψmin) × q(C)/(q(C)-ψmin/ψmax)
+```
+
+[完整论文依据、三药参数、单位与适用条件](./research-method-evidence.md) 区分 CAB1/LB 药效参数迁移与 BW25113 生长基线；`K=10^9 CFU/mL` 是教学假设。
 
 关键性质：
 
@@ -126,7 +133,7 @@ d log10(N)/dt = psi(a)
 
 同一个 JSON 兼容请求在相同版本下产生相同轨迹。
 
-## 第 4 步分析层
+## 分析层 2.0.0
 
 分析层位于 `src/analysis/`，保持纯函数和无 UI 依赖，并可在浏览器 Worker 与 Node 测试中运行。它包括：
 
@@ -140,7 +147,14 @@ d log10(N)/dt = psi(a)
 - 参数相关性与可识别性诊断；
 - 锁定分析计划与验证执行；
 - 每次运行的 L1–L5 能力评估；
-- 分析 manifest、方法摘要和研究包。
+- 分析 manifest、方法摘要和研究包；
+- 直接 OD Logistic/Gompertz 与训练均值基线的整训练轨迹 CV；
+- 冻结选模后的开发集比较、整训练轨迹联合 bootstrap；
+- 严格包检查与精确兼容版本显式复算。
+
+公开组合入口为 `runEcolabResearchWorkflow()`；原 `runEcolabStage4ResearchWorkflow()` 保留为校准组合 API，不表示分析 1.0.0 的算法可在新版按旧版语义复算。研究入口只接收显式数据和已解析模型，无隐式注册表解析或网络 I/O。
+
+Morris 基本效应使用归一化步长；Sobol–Jansen 保留未裁剪指数及配对行 bootstrap 精度诊断。可识别性中的 `objectiveSlices` 固定其他生物参数但重估 OD 干扰参数，不是真 profile likelihood；旧 `profiles` 仅作兼容 alias。秩亏协方差为 `null`，不能将伪逆视为校准参数不确定性。
 
 所有生产科学拟合默认执行 Stage 4 参数白名单，只接受全局模型参数、已声明药物参数和已声明初始状态路径。合成回归测试可显式使用 `generic_test_adapter`，但该策略不能作为生产科学参数路径的默认值。
 
@@ -156,4 +170,6 @@ d log10(N)/dt = psi(a)
 OD600 = baselineOd + scaleOd × (N/K)
 ```
 
-`baselineOd` 与 `scaleOd` 是训练数据上的观测层干扰参数，不改变源值，也不构成普适 OD→CFU 转换。验证前它们被锁定，验证时不重新拟合。详细流程见 [Research Workspace](./research-workspace.md)。
+`baselineOd` 与 `scaleOd` 是训练数据上的观测层干扰参数，不改变源值，也不构成普适 OD→CFU 转换。开发评价前它们被锁定，评价时不重新拟合。新增直接 OD 曲线是独立经验观测模型，其 `ratePerHour`/`timingHours` 不等于生理比增长率/延滞期。
+
+内置后四条曲线已经查看，6.0.0 的评价是开发集比较，不是未触碰或外部验证。`completed`、`converged`、`identified`、`precisionAssessed` 分开报告。详细流程见 [Research Workspace](./research-workspace.md)。

@@ -15,7 +15,7 @@ const MEMORY_RECORD_TYPES = [
     load: "loadProject",
     list: "listProjects",
     remove: "deleteProject",
-    conflictCode: null,
+    conflictCode: "PROJECT_REVISION_CONFLICT",
   },
   {
     name: "datasets",
@@ -339,6 +339,7 @@ test("repository falls back to memory when an IndexedDB upgrade is blocked", asy
   }, { probeTimeoutMs: 50 });
 
   assert.equal(repository.persistent, false);
+  assert.equal(repository.getStorageStatus().fallbackReason, "PERSISTENCE_BLOCKED");
 });
 
 test("repository probe timeout prevents a suspended IndexedDB request from blocking startup", async () => {
@@ -353,6 +354,19 @@ test("repository probe timeout prevents a suspended IndexedDB request from block
 
   assert.equal(repository.persistent, false);
   assert.ok(Date.now() - startedAt < 500);
+  assert.equal(repository.getStorageStatus().fallbackReason, "PERSISTENCE_TIMEOUT");
+});
+
+test("memory storage status explicitly describes session-only storage", async () => {
+  const repository = await createProjectRepository(null);
+  const status = repository.getStorageStatus();
+  assert.deepEqual(status, {
+    backend: "memory", persistent: false, state: "memory-only",
+    fallbackReason: "PERSISTENCE_UNAVAILABLE", lastError: null,
+  });
+  status.backend = "indexeddb";
+  assert.equal(repository.getStorageStatus().backend, "memory");
+  assert.equal(new MemoryProjectRepository().getStorageStatus().fallbackReason, "PERSISTENCE_UNAVAILABLE");
 });
 
 test("repository rejects invalid persistence probe timeouts", async () => {
@@ -361,3 +375,167 @@ test("repository rejects invalid persistence probe timeouts", async () => {
     /positive integer/,
   );
 });
+
+for (const recordType of MEMORY_RECORD_TYPES) {
+  test(`memory ${recordType.name} conflicts expose a code and preserve the current record`, async () => {
+    const repository = new MemoryProjectRepository();
+    const first = await repository[recordType.save]({ id: "record", revision: 0, value: "first" });
+    const current = await repository[recordType.save]({ ...first, value: "current" });
+    await assert.rejects(repository[recordType.save]({ ...first, value: "stale" }), {
+      code: recordType.conflictCode,
+    });
+    assert.deepEqual(await repository[recordType.load](first.id), current);
+  });
+}
+
+test("memory storage status defensively copies supplied and returned error details", () => {
+  const lastError = { name: "ProjectRepositoryError", code: "PERSISTENCE_BLOCKED", message: "Another tab is open." };
+  const repository = new MemoryProjectRepository({ fallbackReason: lastError.code, lastError });
+  lastError.message = "mutated input";
+  const status = repository.getStorageStatus();
+  assert.deepEqual(status, {
+    backend: "memory", persistent: false, state: "memory-only",
+    fallbackReason: "PERSISTENCE_BLOCKED",
+    lastError: { name: "ProjectRepositoryError", code: "PERSISTENCE_BLOCKED", message: "Another tab is open." },
+  });
+  status.lastError.message = "mutated output";
+  assert.equal(repository.getStorageStatus().lastError.message, "Another tab is open.");
+});
+
+for (const eventName of ["blocked", "timeout"]) {
+  test(`initialization fallback retains ${eventName} error details`, async () => {
+    const repository = await createProjectRepository({
+      open() {
+        const request = new EventTarget();
+        if (eventName === "blocked") queueMicrotask(() => request.dispatchEvent(new Event("blocked")));
+        return request;
+      },
+    }, { probeTimeoutMs: 20 });
+    const status = repository.getStorageStatus();
+    const code = eventName === "blocked" ? "PERSISTENCE_BLOCKED" : "PERSISTENCE_TIMEOUT";
+    assert.equal(status.state, "memory-only");
+    assert.equal(status.fallbackReason, code);
+    assert.equal(status.lastError.code, code);
+    assert.equal(status.lastError.name, "ProjectRepositoryError");
+    assert.match(status.lastError.message, eventName === "blocked" ? /another open.*tab/ : /20 ms/);
+    status.lastError.code = "changed";
+    assert.equal(repository.getStorageStatus().lastError.code, code);
+  });
+}
+
+test("initialization fallback records unavailable and quota errors without losing their reason", async () => {
+  for (const [error, code] of [
+    [new Error("Storage access denied"), "PERSISTENCE_UNAVAILABLE"],
+    [Object.assign(new Error("storage full"), { name: "QuotaExceededError" }), "PERSISTENCE_QUOTA_EXCEEDED"],
+  ]) {
+    const repository = await createProjectRepository({ open() { throw error; } });
+    const status = repository.getStorageStatus();
+    assert.equal(status.backend, "memory");
+    assert.equal(status.fallbackReason, code);
+    assert.equal(status.lastError.code, code);
+    assert.match(status.lastError.message, code === "PERSISTENCE_UNAVAILABLE" ? /access denied/ : /quota/);
+  }
+});
+
+function indexedDbOpening(database) {
+  return {
+    open() {
+      const request = new EventTarget();
+      request.result = database;
+      queueMicrotask(() => request.dispatchEvent(new Event("success")));
+      return request;
+    },
+  };
+}
+
+async function createPersistentRepository() {
+  const database = Object.assign(new EventTarget(), createProbeDatabase(), { close() {} });
+  const repository = await createProjectRepository(indexedDbOpening(database));
+  return { database, repository };
+}
+
+test("successful IndexedDB initialization exposes a defensive persistent status", async () => {
+  const { repository } = await createPersistentRepository();
+  const status = repository.getStorageStatus();
+  assert.deepEqual(status, {
+    backend: "indexeddb", persistent: true, state: "ready", fallbackReason: null, lastError: null,
+  });
+  status.backend = "memory";
+  status.persistent = false;
+  status.state = "memory-only";
+  assert.equal(repository.getStorageStatus().backend, "indexeddb");
+  assert.equal(repository.getStorageStatus().persistent, true);
+  assert.equal(repository.getStorageStatus().state, "ready");
+});
+
+for (const recordType of MEMORY_RECORD_TYPES) {
+  for (const failureMode of ["synchronous", "transaction-abort", "request-error-then-abort"]) {
+    test(`runtime ${failureMode} quota failure saving ${recordType.name} is explicit, with no memory fallback`, async () => {
+      const { database, repository } = await createPersistentRepository();
+      const quotaError = Object.assign(new Error("storage full"), { name: "QuotaExceededError" });
+      database.transaction = () => {
+        const transaction = new EventTarget();
+        transaction.error = null;
+        transaction.objectStore = () => ({
+          get() {
+            const request = new EventTarget();
+            request.result = null;
+            queueMicrotask(() => request.dispatchEvent(new Event("success")));
+            return request;
+          },
+          put() {
+            if (failureMode === "synchronous") throw quotaError;
+            queueMicrotask(() => {
+              if (failureMode === "request-error-then-abort") transaction.dispatchEvent(new Event("error"));
+              transaction.error = quotaError;
+              transaction.dispatchEvent(new Event("abort"));
+            });
+          },
+        });
+        return transaction;
+      };
+      await assert.rejects(repository[recordType.save]({ id: "unsaved", revision: 0 }), (error) =>
+        error instanceof ProjectRepositoryError && error.code === "PERSISTENCE_QUOTA_EXCEEDED" && error.cause === quotaError);
+      const status = repository.getStorageStatus();
+      assert.equal(repository instanceof IndexedDbProjectRepository, true);
+      assert.equal(repository.persistent, true);
+      assert.equal(status.backend, "indexeddb");
+      assert.equal(status.state, "error");
+      assert.equal(status.fallbackReason, null);
+      assert.equal(status.lastError.code, "PERSISTENCE_QUOTA_EXCEEDED");
+      status.lastError.message = "mutated";
+      assert.notEqual(repository.getStorageStatus().lastError.message, "mutated");
+
+      database.transaction = () => {
+        const transaction = new EventTarget();
+        transaction.objectStore = () => ({
+          get() {
+            const request = new EventTarget();
+            request.result = null;
+            queueMicrotask(() => request.dispatchEvent(new Event("success")));
+            return request;
+          },
+        });
+        setImmediate(() => transaction.dispatchEvent(new Event("complete")));
+        return transaction;
+      };
+      assert.equal(await repository[recordType.load]("unsaved"), null);
+      assert.deepEqual(repository.getStorageStatus(), {
+        backend: "indexeddb", persistent: true, state: "ready", fallbackReason: null, lastError: null,
+      });
+    });
+  }
+}
+
+for (const operation of ["loadDataset", "listDatasets", "deleteDataset"]) {
+  test(`runtime ${operation} failures update storage status and still reject`, async () => {
+    const { database, repository } = await createPersistentRepository();
+    const error = Object.assign(new Error("Storage access denied"), { name: "SecurityError" });
+    database.transaction = () => { throw error; };
+    await assert.rejects(repository[operation]("record"), (caught) => caught === error);
+    assert.deepEqual(repository.getStorageStatus(), {
+      backend: "indexeddb", persistent: true, state: "error", fallbackReason: null,
+      lastError: { name: "SecurityError", code: "PERSISTENCE_ERROR", message: "Storage access denied" },
+    });
+  });
+}

@@ -1,6 +1,6 @@
 {
   "name": "ecolab-antibiotic-sandbox",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
   "type": "module",
   "description": "An auditable bilingual E. coli–antibiotic learning sandbox and scientific modeling core.",
@@ -12,7 +12,7 @@
     "build:clean": "node scripts/clean-dist.js",
     "build:core": "node scripts/build-core.js",
     "build:web": "node scripts/build-web.js",
-    "check:syntax": "node --check src/model.js && node --check src/analysis.js && node --check src/analysis/index.js && node --check src/analysis/research-workflow.js && node --check src/app/main.js && node --check src/app/boot-watchdog.js && node --check src/app/ui-state.js && node --check src/app/workers/analysis-worker.js && node --check src/app/workers/task-client.js && node --check src/app/workers/task-protocol.js && node --check scripts/acquire-figshare-bw25113.js && node --check scripts/extract-figshare-bw25113.js && node --check scripts/audit-data.js && node --check scripts/audit-release.js && node --check scripts/check-reproducible-build.js && node --check scripts/check-version.js && node --check scripts/clean-dist.js && node --check scripts/build-core.js && node --check scripts/build-web.js && node --check scripts/generate-example-research.js && node --check scripts/lib/release-utils.js && node --check scripts/serve-static.js && node --check scripts/smoke-safari.js && node --check scripts/smoke-startup-chrome.js",
+    "check:syntax": "node --check src/model.js && node --check src/analysis.js && node --check src/analysis/index.js && node --check src/analysis/research-workflow.js && node --check src/analysis/growth-comparison.js && node --check src/analysis/research-upgrade.js && node --check src/analysis/research-replay.js && node --check src/app/main.js && node --check src/app/boot-watchdog.js && node --check src/app/ui-state.js && node --check src/app/workers/analysis-worker.js && node --check src/app/workers/task-client.js && node --check src/app/workers/task-protocol.js && node --check scripts/acquire-figshare-bw25113.js && node --check scripts/extract-figshare-bw25113.js && node --check scripts/audit-data.js && node --check scripts/audit-release.js && node --check scripts/check-reproducible-build.js && node --check scripts/check-version.js && node --check scripts/clean-dist.js && node --check scripts/build-core.js && node --check scripts/build-web.js && node --check scripts/generate-example-research.js && node --check scripts/lib/release-utils.js && node --check scripts/serve-static.js && node --check scripts/smoke-safari.js && node --check scripts/smoke-startup-chrome.js",
     "check:version": "node scripts/check-version.js",
     "check:reproducible": "node scripts/check-reproducible-build.js",
     "data:acquire:figshare": "node scripts/acquire-figshare-bw25113.js",
@@ -24,7 +24,7 @@
     "smoke:safari": "node scripts/smoke-safari.js",
     "smoke:startup:chrome": "node scripts/smoke-startup-chrome.js",
     "test": "node --test",
-    "test:release": "node --test scripts/tests/release.test.js src/app/tests/web-build.test.js",
+    "test:release": "node --test scripts/tests/version.test.js scripts/tests/generate-example-research.test.js scripts/tests/build.test.js scripts/tests/release.test.js src/app/tests/web-build.test.js",
     "check": "npm run check:syntax && npm run check:version && npm run audit:data && npm test",
     "check:public": "npm run check:syntax && npm run check:version && npm run test:release"
   },

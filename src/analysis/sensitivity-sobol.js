@@ -1,6 +1,12 @@
 import { sampleDistribution, validateDistribution } from "./distributions.js";
+import { quantileR7 } from "./monte-carlo.js";
 import { applyParameterOverrides } from "./parameter-space.js";
-import { createSubstream, normalizeSeed, RNG_ALGORITHM } from "./random.js";
+import { createSubstream, deriveSeed, normalizeSeed, RNG_ALGORITHM } from "./random.js";
+
+export const SOBOL_LIMITS = Object.freeze({
+  maximumBootstrapReplicates: 2000,
+  maximumBootstrapSquaredDifferences: 100_000_000,
+});
 
 function fail(code, message, path = null, ErrorType = TypeError) {
   const error = new ErrorType(message);
@@ -89,6 +95,135 @@ function varianceSample(values) {
   return values.length > 1 ? m2 / (values.length - 1) : 0;
 }
 
+function bootstrapOptions(options, seed) {
+  const replicates = options.bootstrapReplicates ?? 200;
+  const confidenceLevel = options.confidenceLevel ?? 0.95;
+  const precisionTolerance = options.precisionTolerance ?? 0.2;
+  if (!Number.isSafeInteger(replicates) || replicates < 0 || replicates === 1 || replicates > SOBOL_LIMITS.maximumBootstrapReplicates) {
+    fail("INVALID_SOBOL_BOOTSTRAP_OPTIONS", `bootstrapReplicates must be 0 (disabled) or an integer from 2 to ${SOBOL_LIMITS.maximumBootstrapReplicates}.`);
+  }
+  if (typeof confidenceLevel !== "number" || !Number.isFinite(confidenceLevel) || confidenceLevel <= 0 || confidenceLevel >= 1) {
+    fail("INVALID_SOBOL_BOOTSTRAP_OPTIONS", "confidenceLevel must be in (0, 1).");
+  }
+  if (typeof precisionTolerance !== "number" || !Number.isFinite(precisionTolerance) || precisionTolerance <= 0) {
+    fail("INVALID_SOBOL_BOOTSTRAP_OPTIONS", "precisionTolerance must be a positive finite full interval width.");
+  }
+  return {
+    method: "paired_row_percentile",
+    resamplingUnit: "paired_rows_A_B_A_Bi",
+    quantileMethod: "R7",
+    seed: normalizeSeed(options.bootstrapSeed ?? deriveSeed(seed, "sobol", "bootstrap")),
+    replicates,
+    confidenceLevel,
+    precisionTolerance,
+    minimumTailSamples: 5,
+    interpretation: "Monte Carlo sampling uncertainty conditional on independent input distributions and the evaluator; not model or data uncertainty. Percentile coverage is approximate.",
+  };
+}
+
+function validateBootstrapWork(replicates, sampleCount, parameterCount, outputCount = 1) {
+  // Jansen accumulates two squared differences per replicate/row/parameter/output.
+  const squaredDifferences = 2 * replicates * sampleCount * parameterCount * outputCount;
+  if (squaredDifferences > SOBOL_LIMITS.maximumBootstrapSquaredDifferences) {
+    fail(
+      "SOBOL_BOOTSTRAP_WORK_LIMIT",
+      `Sobol bootstrap requires ${squaredDifferences} scalar squared differences, above the limit of ${SOBOL_LIMITS.maximumBootstrapSquaredDifferences}.`,
+      "bootstrapReplicates",
+      RangeError,
+    );
+  }
+}
+
+function pooledVariances(outputsA, outputsB, rows, outputNames) {
+  return outputNames.map((_, outputIndex) => varianceSample([
+    ...rows.map((row) => outputsA[row][outputIndex]),
+    ...rows.map((row) => outputsB[row][outputIndex]),
+  ]));
+}
+
+function jansenIndices(outputsA, outputsB, mixed, rows, outputIndex, variance) {
+  let firstNumerator = 0;
+  let totalNumerator = 0;
+  for (const row of rows) {
+    // A_Bi keeps A's other coordinates and replaces coordinate i with B's.
+    totalNumerator += (outputsA[row][outputIndex] - mixed[row][outputIndex]) ** 2;
+    firstNumerator += (outputsB[row][outputIndex] - mixed[row][outputIndex]) ** 2;
+  }
+  const denominator = 2 * rows.length * variance;
+  return {
+    firstOrder: 1 - firstNumerator / denominator,
+    totalOrder: totalNumerator / denominator,
+  };
+}
+
+function bootstrapIndices(config, outputsA, outputsB, mixed, rows, names, outputNames) {
+  const samples = Object.fromEntries(names.map((name) => [name,
+    outputNames.map(() => ({ firstOrder: [], totalOrder: [] })),
+  ]));
+  for (let replicate = 0; replicate < config.replicates; replicate += 1) {
+    const random = createSubstream(config.seed, "sobol", "bootstrap", replicate);
+    // One shared row selection preserves A/B/hybrid dependence across every index/output.
+    const selected = rows.map(() => Math.floor(random.next() * rows.length));
+    const variances = pooledVariances(outputsA, outputsB, selected, outputNames);
+    for (const name of names) {
+      outputNames.forEach((_, outputIndex) => {
+        if (!(variances[outputIndex] > 0) || !Number.isFinite(variances[outputIndex])) return;
+        const estimate = jansenIndices(outputsA, outputsB, mixed[name], selected, outputIndex, variances[outputIndex]);
+        if (!Number.isFinite(estimate.firstOrder) || !Number.isFinite(estimate.totalOrder)) return;
+        samples[name][outputIndex].firstOrder.push(estimate.firstOrder);
+        samples[name][outputIndex].totalOrder.push(estimate.totalOrder);
+      });
+    }
+  }
+  return samples;
+}
+
+function uncertaintySummary(estimate, samples, config) {
+  const validReplicates = samples.firstOrder.length;
+  const invalidReplicates = config.replicates - validReplicates;
+  const assessed = validReplicates >= 2;
+  const alpha = (1 - config.confidenceLevel) / 2;
+  const tailSampleCount = validReplicates * alpha;
+  const interval = (values) => {
+    if (!assessed) return null;
+    const sorted = [...values].sort((left, right) => left - right);
+    return [quantileR7(sorted, alpha), quantileR7(sorted, 1 - alpha)];
+  };
+  const firstOrderInterval = interval(samples.firstOrder);
+  const totalOrderInterval = interval(samples.totalOrder);
+  const intervalWidths = {
+    firstOrder: assessed ? firstOrderInterval[1] - firstOrderInterval[0] : null,
+    totalOrder: assessed ? totalOrderInterval[1] - totalOrderInterval[0] : null,
+  };
+  const issues = [];
+  if (config.replicates === 0) issues.push("BOOTSTRAP_DISABLED");
+  else if (!assessed) issues.push("INSUFFICIENT_VALID_BOOTSTRAP_REPLICATES");
+  if (assessed && tailSampleCount < config.minimumTailSamples) issues.push("LOW_BOOTSTRAP_TAIL_COUNT");
+  if (invalidReplicates > 0) issues.push("INVALID_BOOTSTRAP_REPLICATES");
+  if (estimate.firstOrder < 0 || estimate.firstOrder > 1) issues.push("FIRST_ORDER_OUT_OF_RANGE");
+  if (estimate.totalOrder < 0 || estimate.totalOrder > 1) issues.push("TOTAL_ORDER_OUT_OF_RANGE");
+  if (estimate.firstOrder > estimate.totalOrder) issues.push("FIRST_ORDER_EXCEEDS_TOTAL_ORDER");
+  if (assessed && Math.max(intervalWidths.firstOrder, intervalWidths.totalOrder) > config.precisionTolerance) {
+    issues.push("WIDE_BOOTSTRAP_INTERVAL");
+  }
+  return {
+    firstOrderInterval,
+    totalOrderInterval,
+    firstOrderStandardError: assessed ? Math.sqrt(varianceSample(samples.firstOrder)) : null,
+    totalOrderStandardError: assessed ? Math.sqrt(varianceSample(samples.totalOrder)) : null,
+    precision: {
+      assessed,
+      imprecise: config.replicates === 0 ? null : !assessed || issues.length > 0,
+      validReplicates,
+      invalidReplicates,
+      tailSampleCount,
+      intervalWidths,
+      tolerance: config.precisionTolerance,
+      issues,
+    },
+  };
+}
+
 function rejectCorrelation(options) {
   const correlated =
     options.correlated === true ||
@@ -106,7 +241,7 @@ function rejectCorrelation(options) {
   }
 }
 
-/** Sobol–Jansen first-order and total-order indices for independent inputs. */
+/** Raw Sobol–Jansen indices with paired-row bootstrap uncertainty for independent inputs. */
 export function sobolJansenSensitivity(options) {
   plainObject(options, "options");
   rejectCorrelation(options);
@@ -137,6 +272,9 @@ export function sobolJansenSensitivity(options) {
     );
   }
   const seed = normalizeSeed(options.seed ?? 0);
+  const bootstrap = bootstrapOptions(options, seed);
+  // Every valid evaluator has at least one output; reject that lower bound before sampling.
+  validateBootstrapWork(bootstrap.replicates, sampleCount, names.length);
   const matrixA = [];
   const matrixB = [];
   for (let row = 0; row < sampleCount; row += 1) {
@@ -156,27 +294,23 @@ export function sobolJansenSensitivity(options) {
   for (let row = 0; row < sampleCount; row += 1) {
     const a = evaluate(evaluator, matrixA[row], options, { matrix: "A", row }, outputNames);
     if (outputNames === null) outputNames = [...a.names];
+    if (row === 0) validateBootstrapWork(bootstrap.replicates, sampleCount, names.length, outputNames.length);
     const b = evaluate(evaluator, matrixB[row], options, { matrix: "B", row }, outputNames);
     outputsA.push(a.values);
     outputsB.push(b.values);
   }
 
-  const variances = outputNames.map((_, outputIndex) =>
-    varianceSample([
-      ...outputsA.map((values) => values[outputIndex]),
-      ...outputsB.map((values) => values[outputIndex]),
-    ]),
-  );
+  const rows = Array.from({ length: sampleCount }, (_, index) => index);
+  const variances = pooledVariances(outputsA, outputsB, rows, outputNames);
   variances.forEach((variance, index) => {
     if (!(variance > 0) || !Number.isFinite(variance)) {
       fail("ZERO_OUTPUT_VARIANCE", `Output ${outputNames[index]} has zero or invalid variance.`);
     }
   });
 
-  const byParameter = {};
+  const mixed = {};
   for (const name of names) {
-    const firstNumerators = outputNames.map(() => 0);
-    const totalNumerators = outputNames.map(() => 0);
+    mixed[name] = [];
     for (let row = 0; row < sampleCount; row += 1) {
       const hybrid = { ...matrixA[row], [name]: matrixB[row][name] };
       const output = evaluate(
@@ -186,19 +320,16 @@ export function sobolJansenSensitivity(options) {
         { matrix: "A_Bi", row, parameter: name },
         outputNames,
       );
-      outputNames.forEach((_, outputIndex) => {
-        const a = outputsA[row][outputIndex];
-        const b = outputsB[row][outputIndex];
-        const hybridValue = output.values[outputIndex];
-        totalNumerators[outputIndex] += (a - hybridValue) ** 2;
-        firstNumerators[outputIndex] += (b - hybridValue) ** 2;
-      });
+      mixed[name].push(output.values);
     }
+  }
+  const samples = bootstrapIndices(bootstrap, outputsA, outputsB, mixed, rows, names, outputNames);
+  const byParameter = {};
+  for (const name of names) {
     const outputs = {};
     outputNames.forEach((outputName, outputIndex) => {
-      const denominator = 2 * sampleCount * variances[outputIndex];
-      const totalOrder = totalNumerators[outputIndex] / denominator;
-      const firstOrder = 1 - firstNumerators[outputIndex] / denominator;
+      const estimate = jansenIndices(outputsA, outputsB, mixed[name], rows, outputIndex, variances[outputIndex]);
+      const { firstOrder, totalOrder } = estimate;
       outputs[outputName] = freeze({
         firstOrder,
         totalOrder,
@@ -206,6 +337,7 @@ export function sobolJansenSensitivity(options) {
         total: totalOrder,
         S1: firstOrder,
         ST: totalOrder,
+        ...uncertaintySummary(estimate, samples[name][outputIndex], bootstrap),
       });
     });
     byParameter[name] = freeze({
@@ -222,6 +354,7 @@ export function sobolJansenSensitivity(options) {
     randomAlgorithm: RNG_ALGORITHM,
     sampleCount,
     evaluationCount,
+    bootstrap,
     parameterDistributions: freeze(distributions),
     outputNames,
     outputVariances: freeze(Object.fromEntries(outputNames.map((name, index) => [name, variances[index]]))),

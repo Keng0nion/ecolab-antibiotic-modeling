@@ -28,7 +28,7 @@ function normalizeInputs(options) {
     fail("BOUNDS_REQUIRED", "Explicit bounds are required for normalized diagnostics.");
   }
   const normalizedBounds = {};
-  const normalizedParameters = {};
+  const normalizedParameters = { ...parameters };
   for (const name of names) {
     finite(parameters[name], `parameters.${name}`);
     const bound = bounds[name];
@@ -299,6 +299,20 @@ function correlationsFromCovariance(covariance, names) {
   return { matrix, pairs };
 }
 
+function columnCollinearity(information, names) {
+  const matrix = information.map((row, left) => row.map((value, right) => {
+    const denominator = Math.sqrt(information[left][left] * information[right][right]);
+    return denominator > 0 ? value / denominator : null;
+  }));
+  const pairs = [];
+  for (let left = 0; left < names.length; left += 1) {
+    for (let right = left + 1; right < names.length; right += 1) {
+      pairs.push({ parameters: [names[left], names[right]], cosineSimilarity: matrix[left][right] });
+    }
+  }
+  return { matrix, pairs, interpretation: "Cosines between normalized Jacobian columns, not parameter-estimate correlations." };
+}
+
 function boundaryHits(parameters, bounds, names, tolerance) {
   const hits = [];
   for (const name of names) {
@@ -372,20 +386,34 @@ function analyzeNearOptima(options, names, bounds) {
   return { bestValue, tolerance, optima: near, distinctCount: representatives.length };
 }
 
-function profileScans(options, names, bounds, parameters) {
-  if (!options.profiles) return [];
+function objectiveSliceScans(options, names, bounds, parameters) {
+  const supplied = options.objectiveSlices ?? options.profiles;
+  if (supplied === undefined || supplied === null || supplied === false) return [];
   if (typeof options.objective !== "function") {
-    fail("PROFILE_OBJECTIVE_REQUIRED", "Profile scans require an objective callback.");
+    fail("SLICE_OBJECTIVE_REQUIRED", "Objective slices require an objective callback.");
   }
-  const config = Array.isArray(options.profiles)
-    ? { parameters: options.profiles }
-    : options.profiles === true
-      ? {}
-      : options.profiles;
-  const maximum = Math.min(5, config.maxParameters ?? options.maxProfileParameters ?? 3);
-  const selected = (config.parameters ?? names).filter((name) => names.includes(name)).slice(0, maximum);
-  const points = Math.min(21, Math.max(3, config.points ?? options.profilePoints ?? 9));
+  const config = Array.isArray(supplied)
+    ? { parameters: supplied }
+    : supplied === true ? {} : supplied;
+  if (!config || typeof config !== "object" || Object.getPrototypeOf(config) !== Object.prototype) {
+    fail("INVALID_OBJECTIVE_SLICES", "objectiveSlices must be false, true, a parameter-name array, or a configuration object.");
+  }
+  const maximumRequested = config.maxParameters ?? options.maxSliceParameters ?? options.maxProfileParameters ?? 3;
+  const pointsRequested = config.points ?? options.slicePoints ?? options.profilePoints ?? 9;
+  if (!Number.isSafeInteger(maximumRequested) || maximumRequested < 1 || !Number.isSafeInteger(pointsRequested) || pointsRequested < 3) {
+    fail("INVALID_OBJECTIVE_SLICES", "maxParameters must be a positive integer and points must be an integer >= 3.");
+  }
+  const requested = config.parameters ?? names;
+  if (!Array.isArray(requested) || requested.length === 0 || requested.some((name) => !names.includes(name)) || new Set(requested).size !== requested.length) {
+    fail("INVALID_OBJECTIVE_SLICES", "Slice parameters must be a non-empty list of distinct analyzed parameter names.");
+  }
+  const maximum = Math.min(5, maximumRequested);
+  const points = Math.min(21, pointsRequested);
+  const selected = requested.slice(0, maximum);
   const flatRelativeTolerance = config.flatRelativeTolerance ?? 1e-4;
+  if (typeof flatRelativeTolerance !== "number" || !Number.isFinite(flatRelativeTolerance) || flatRelativeTolerance < 0) {
+    fail("INVALID_OBJECTIVE_SLICES", "flatRelativeTolerance must be finite and non-negative.");
+  }
   return selected.map((name) => {
     const [lower, upper] = bounds[name];
     const values = [];
@@ -393,27 +421,50 @@ function profileScans(options, names, bounds, parameters) {
       const parameterValue = lower + (index / (points - 1)) * (upper - lower);
       const candidate = cloneParameters(parameters);
       candidate[name] = parameterValue;
-      let objectiveValue;
       try {
-        objectiveValue = options.objective(candidate);
-      } catch {
-        objectiveValue = Infinity;
+        const objectiveValue = options.objective(candidate);
+        if (typeof objectiveValue === "number" && Number.isFinite(objectiveValue)) {
+          values.push({ parameterValue, objectiveValue, status: "completed" });
+        } else {
+          values.push({ parameterValue, objectiveValue: null, status: "failed", reason: "non_finite_objective" });
+        }
+      } catch (error) {
+        values.push({
+          parameterValue, objectiveValue: null, status: "failed", reason: "objective_error",
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
-      values.push({ parameterValue, objectiveValue });
     }
-    const finiteValues = values.filter((item) => Number.isFinite(item.objectiveValue));
-    if (finiteValues.length === 0) {
-      return { parameter: name, values, flat: false, open: true, minimumIndex: null };
+    const finiteValues = values.filter((item) => item.status === "completed");
+    const failedEvaluationCount = values.length - finiteValues.length;
+    let minimumIndex = null;
+    for (let index = 0; index < values.length; index += 1) {
+      if (values[index].status !== "completed") continue;
+      if (minimumIndex === null || values[index].objectiveValue < values[minimumIndex].objectiveValue) minimumIndex = index;
     }
-    let minimumIndex = 0;
-    for (let index = 1; index < values.length; index += 1) {
-      if (values[index].objectiveValue < values[minimumIndex].objectiveValue) minimumIndex = index;
-    }
-    const minimum = values[minimumIndex].objectiveValue;
+    const minimum = minimumIndex === null ? null : values[minimumIndex].objectiveValue;
     const maximumValue = Math.max(...finiteValues.map((item) => item.objectiveValue));
-    const flat = maximumValue - minimum <= flatRelativeTolerance * Math.max(1, Math.abs(minimum));
-    const open = minimumIndex === 0 || minimumIndex === values.length - 1;
-    return { parameter: name, values, flat, open, minimumIndex };
+    const flat = failedEvaluationCount > 0 || minimum === null
+      ? null
+      : maximumValue - minimum <= flatRelativeTolerance * Math.max(1, Math.abs(minimum));
+    const minimumAtBoundary = minimumIndex === null ? null : minimumIndex === 0 || minimumIndex === values.length - 1;
+    return {
+      kind: "objective_slice",
+      parameter: name,
+      fixedParameters: Object.fromEntries(Object.entries(parameters).filter(([key]) => key !== name)),
+      nuisanceParametersOptimized: false,
+      values,
+      status: finiteValues.length === 0 ? "failed" : failedEvaluationCount > 0 ? "partial" : "completed",
+      failedEvaluationCount,
+      flat,
+      minimumIndex,
+      minimumAtBoundary,
+      // Compatibility only: "open" describes the sampled minimum, never an interval.
+      open: minimumAtBoundary,
+      deprecatedAliases: { open: "minimumAtBoundary" },
+      confidenceInterval: null,
+      interpretation: "One parameter is scanned with all other supplied parameters fixed. This is not a profile likelihood or confidence interval; scan endpoints are not confidence limits.",
+    };
   });
 }
 
@@ -432,16 +483,44 @@ export function analyzeIdentifiability(options) {
     rank < names.length || rank === 0
       ? Infinity
       : largest / singularValues[rank - 1];
-  const covariance = pseudoInverseFromEigen(eigen, threshold * threshold);
-  const correlations = correlationsFromCovariance(covariance, names);
+  const informationPseudoInverse = pseudoInverseFromEigen(eigen, threshold * threshold);
+  const fullRank = rank === names.length;
+  const correlations = fullRank
+    ? correlationsFromCovariance(informationPseudoInverse, names)
+    : { matrix: null, pairs: [] };
+  const sensitivityCollinearity = columnCollinearity(jtj, names);
+  const covarianceDiagnostics = {
+    status: fullRank ? "unscaled_local_geometry" : "unavailable_rank_deficient",
+    parameterUncertaintyEstimated: false,
+    coordinate: "normalized_parameter_bound_spans",
+    interpretation: "The pseudoinverse of the normalized JtJ is local geometry only, without a calibrated observation-noise model. Null-space zero entries do not imply zero uncertainty.",
+  };
   const boundaryTolerance = options.boundaryTolerance ?? 0.01;
   const hits = boundaryHits(parameters, bounds, names, boundaryTolerance);
   const nearOptima = analyzeNearOptima(options, names, bounds);
-  const profiles = profileScans(options, names, bounds, parameters);
+  const objectiveSlices = objectiveSliceScans(options, names, bounds, parameters);
   const warnings = [];
   const conditionWarning = options.conditionWarning ?? 1e6;
   const correlationWarning = options.correlationWarning ?? 0.95;
 
+  warnings.push({
+    code: fullRank ? "UNSCALED_INFORMATION_NOT_PARAMETER_UNCERTAINTY" : "PARAMETER_COVARIANCE_UNAVAILABLE",
+    message: fullRank
+      ? "Inverse normalized information is unscaled local geometry, not calibrated parameter uncertainty."
+      : "Rank deficiency prevents full parameter covariance and parameter-estimate correlations; the information pseudoinverse is diagnostic only.",
+  });
+  if (options.profiles !== undefined) {
+    warnings.push({
+      code: "DEPRECATED_PROFILES_ALIAS",
+      message: "profiles is deprecated; use objectiveSlices. Nuisance parameters are not reoptimized.",
+    });
+  }
+  if (objectiveSlices.length > 0) {
+    warnings.push({
+      code: "OBJECTIVE_SLICES_NOT_PROFILE_LIKELIHOOD",
+      message: "Objective slices hold other supplied parameters fixed. Neither their endpoints nor their minima define likelihood confidence limits.",
+    });
+  }
   if (rank < names.length) {
     warnings.push({
       code: "RANK_DEFICIENT_JACOBIAN",
@@ -458,11 +537,20 @@ export function analyzeIdentifiability(options) {
       threshold: conditionWarning,
     });
   }
-  for (const pair of correlations.pairs) {
-    if (Math.abs(pair.correlation) >= correlationWarning) {
+  const correlationDiagnostics = fullRank
+    ? correlations.pairs.map((pair) => ({ ...pair, source: "unscaled_inverse_information" }))
+    : sensitivityCollinearity.pairs.map((pair) => ({
+        parameters: pair.parameters,
+        correlation: pair.cosineSimilarity,
+        source: "normalized_jacobian_columns",
+      }));
+  for (const pair of correlationDiagnostics) {
+    if (pair.correlation !== null && Math.abs(pair.correlation) >= correlationWarning) {
       warnings.push({
         code: "STRONG_PARAMETER_CORRELATION",
-        message: `${pair.parameters.join(" and ")} have correlation ${pair.correlation}.`,
+        message: fullRank
+          ? `${pair.parameters.join(" and ")} have strong inverse-information geometry correlation ${pair.correlation}; this is not calibrated parameter uncertainty.`
+          : `${pair.parameters.join(" and ")} have collinear normalized sensitivity columns (cosine ${pair.correlation}), not an estimable parameter correlation.`,
         ...pair,
         threshold: correlationWarning,
       });
@@ -483,19 +571,27 @@ export function analyzeIdentifiability(options) {
       tolerance: nearOptima.tolerance,
     });
   }
-  for (const profile of profiles) {
-    if (profile.flat) {
+  for (const slice of objectiveSlices) {
+    if (slice.failedEvaluationCount > 0) {
       warnings.push({
-        code: "FLAT_PROFILE",
-        message: `${profile.parameter} has a flat limited profile.`,
-        parameter: profile.parameter,
+        code: "OBJECTIVE_SLICE_EVALUATION_FAILED",
+        message: `${slice.parameter} objective slice has ${slice.failedEvaluationCount} failed evaluations.`,
+        parameter: slice.parameter,
+        failedEvaluationCount: slice.failedEvaluationCount,
       });
     }
-    if (profile.open) {
+    if (slice.flat) {
       warnings.push({
-        code: "OPEN_PROFILE",
-        message: `${profile.parameter} profile minimum is open at a scanned bound.`,
-        parameter: profile.parameter,
+        code: "FLAT_OBJECTIVE_SLICE",
+        message: `${slice.parameter} has a flat objective slice with other parameters fixed.`,
+        parameter: slice.parameter,
+      });
+    }
+    if (slice.minimumAtBoundary) {
+      warnings.push({
+        code: "SLICE_MINIMUM_AT_BOUND",
+        message: `${slice.parameter} objective slice has its sampled minimum at a bound; this is not a confidence limit.`,
+        parameter: slice.parameter,
       });
     }
   }
@@ -509,15 +605,23 @@ export function analyzeIdentifiability(options) {
     singularValues,
     rank,
     conditionNumber,
-    covarianceApproximation: covariance,
+    informationPseudoInverse,
+    covarianceApproximation: fullRank ? informationPseudoInverse : null,
+    covarianceDiagnostics,
     correlationMatrix: correlations.matrix,
     correlations: correlations.pairs,
+    sensitivityCollinearity,
     boundaryHits: hits,
     nearOptima,
-    profiles,
+    objectiveSlices,
+    profiles: objectiveSlices,
+    deprecatedAliases: {
+      profiles: "objectiveSlices",
+      covarianceApproximation: "informationPseudoInverse (full rank only)",
+    },
     warnings,
     evaluationCount:
-      jacobian.evaluationCount + profiles.reduce((sum, profile) => sum + profile.values.length, 0),
+      jacobian.evaluationCount + objectiveSlices.reduce((sum, slice) => sum + slice.values.length, 0),
   };
 }
 

@@ -15,7 +15,7 @@ async function assertMissing(path) {
   await assert.rejects(access(path), (error) => error?.code === "ENOENT");
 }
 
-test("web build emits importable Stage 5 assets in a temporary directory with deployment headers and no release-forbidden files", async (t) => {
+test("web build emits importable Stage 6 assets in a temporary directory with deployment headers and no release-forbidden files", async (t) => {
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "ecolab-web-build-test-"));
   t.after(() => rm(temporaryRoot, { recursive: true, force: true }));
   const webPath = resolve(temporaryRoot, "web");
@@ -46,6 +46,9 @@ test("web build emits importable Stage 5 assets in a temporary directory with de
     access(new URL("src/analysis/analysis-manifest.js", web)),
     access(new URL("src/analysis/analysis-plan.js", web)),
     access(new URL("src/analysis/research-workflow.js", web)),
+    access(new URL("src/analysis/growth-comparison.js", web)),
+    access(new URL("src/analysis/research-upgrade.js", web)),
+    access(new URL("src/analysis/research-replay.js", web)),
     access(new URL("src/registry/resolve.js", web)),
     access(new URL("src/experiment/run-manifest.js", web)),
     access(new URL("data/registry/datasets.json", web)),
@@ -93,5 +96,18 @@ test("web build emits importable Stage 5 assets in a temporary directory with de
   assert.equal(typeof researchApi.runEcolabStage4ResearchWorkflow, "function");
   assert.equal(typeof workerApi.dispatchTask, "function");
   assert.equal(typeof taskClientApi.TaskClient, "function");
-  assert.equal(versionApi.APPLICATION_VERSION, "5.0.0");
+  assert.equal(versionApi.APPLICATION_VERSION, "6.0.0");
+  const [upgradeApi, replayApi, growthApi, analysisVersion] = await Promise.all([
+    import(`${new URL("src/analysis/research-upgrade.js", web).href}?test=${buildId}`),
+    import(`${new URL("src/analysis/research-replay.js", web).href}?test=${buildId}`),
+    import(`${new URL("src/analysis/growth-comparison.js", web).href}?test=${buildId}`),
+    import(`${new URL("src/analysis/version.js", web).href}?test=${buildId}`),
+  ]);
+  assert.equal(typeof upgradeApi.runEcolabResearchWorkflow, "function");
+  assert.equal(typeof replayApi.inspectResearchPackage, "function");
+  assert.equal(typeof growthApi.runGrowthModelComparison, "function");
+  assert.equal(analysisVersion.ANALYSIS_ENGINE_VERSION, "2.0.0");
+  assert.equal(analysisVersion.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
+  assert.equal(analysisVersion.ANALYSIS_IMPLEMENTATION_ID, "ecolab-research-analysis-v2");
+  assert.equal(modelApi.ENGINE_VERSION, "2.0.0");
 });
