@@ -1,5 +1,7 @@
 # Ecolab 6.0.0
 
+![Ecolab 学习界面截图 / Screenshot of the Learn interface](./docs/screenshot.png)
+
 Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种群建模项目，包含中英文 Learn / Sandbox 与真实数据 Research Workspace。
 
 Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic population-modeling project with a bilingual Learn / Sandbox and a real-data Research Workspace.
@@ -517,3 +519,8 @@ Versioned generated examples:
 - [Frozen historical 5.0.0 JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
 
 研究数据解析、分析和复算在本地 Worker 执行，教学解析模拟在浏览器主线程执行；合格数据源文本与研究结果存入 IndexedDB。初始化不可用时使用易失性内存，运行时配额失败明确报错。研究包包含数据与完整输入，但需要精确匹配的内置软件，不是独立可执行文件。旧包可校验查看，缺少完整输入或版本不兼容时拒绝复算。静态资源初次加载仍需要访问部署站点；用户数据不上传到分析服务器。
+
+## 相关阅读 / Related reading
+
+**中文**　更多项目与文章在我的个人站：[keng0nion.github.io](https://keng0nion.github.io/)。
+**English**　More projects and write-ups live on my personal site: [keng0nion.github.io](https://keng0nion.github.io/).
