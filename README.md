@@ -1,18 +1,20 @@
+**目录：**
+
+- [中文版](README.md)
+- [英文版](README.en.md)
+- [日文版](README.ja.md)
+
 # Ecolab 6.0.0
 
-![Ecolab 学习界面截图 / Screenshot of the Learn interface](./docs/screenshot.png)
+![Ecolab 学习界面截图](./docs/screenshot.png)
 
 Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种群建模项目，包含中英文 Learn / Sandbox 与真实数据 Research Workspace。
 
-Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic population-modeling project with a bilingual Learn / Sandbox and a real-data Research Workspace.
-
 > 用于教学、模型探索和研究型分析；不是临床决策工具，也不是经过条件匹配验证的通用实验预测器。
->
-> For teaching, model exploration, and research-oriented analysis; not for clinical decisions or as a condition-matched general experimental predictor.
 
-## Reading guide / 阅读导航
+## 阅读导航
 
-- [在线网站](#live-site--在线网站) · [版本契约](#version-contract--版本契约) · [运行命令](#commands--命令)
+- [在线网站](#在线网站) · [版本契约](#版本契约) · [命令](#命令)
 - [代码原理](#代码原理)
   - [1. 分层结构与调用链](#1-分层结构与调用链)
   - [2. 教学模型与分段解析计算](#2-教学模型与分段解析计算)
@@ -24,30 +26,27 @@ Ecolab is a local-first, auditable, reproducible *E. coli*–antibiotic populati
   - [8. 本地存储与恢复](#8-本地存储与恢复)
   - [9. 研究包校验与显式复算](#9-研究包校验与显式复算)
   - [10. 构建测试与源码阅读顺序](#10-构建测试与源码阅读顺序)
-- [详细文档](#documentation--文档) · [许可证与数据归属](#license-and-data-attribution--许可证与数据归属)
+- [文档](#文档) · [许可证与数据归属](#许可证与数据归属)
 
-## Live site / 在线网站
+## 在线网站
 
 - GitHub Pages: https://keng0nion.github.io/ecolab-antibiotic-modeling/
 - 每次推送到 `main` 后，`.github/workflows/deploy-pages.yml` 会运行 `npm run build:public`，验证公开仓库材料并自动发布 `dist/web/`。
-- Every push to `main` runs `npm run build:public` to validate the public repository materials and deploy `dist/web/`.
 
-## Version contract / 版本契约
+## 版本契约
 
-- Application / 应用：`6.0.0`
-- Scientific core engine / 科学核心：`2.0.0`（教学动力学不变）
-- Analysis engine / 分析引擎：`2.0.0`（数值修复、OD 模型比较和同版回放）
-- Model / 模型：`ecolab.single-population.regoes-logistic@1.0.0`
+- 应用：`6.0.0`
+- 科学核心：`2.0.0`（教学动力学不变）
+- 分析引擎：`2.0.0`（数值修复、OD 模型比较和同版回放）
+- 模型：`ecolab.single-population.regoes-logistic@1.0.0`
 
 根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
 
 实际 `small` 示例中，训练交叉验证选中逐时间均值基线，开发集 macro RMSE 为 `0.00304756`；原潜在种群模型为 `0.00833386`，仍差于基线。参数模型未收敛、独立性与统计精度不足的警告均保留。未处理 OD600 数据不能验证三种抗生素药效，也不能识别绝对 CFU。
 
-Version 6 adds empirical OD-scale model comparison, training-trajectory CV/bootstrap and integrity-checked exact-version replay. The previously inspected holdout is development data, not untouched/external validation. The quick example selects the training-mean baseline; parameterized fits remain nonconverged. Completion, convergence, identification and precision are reported separately. No antibiotic-effect validation is claimed.
+## 命令
 
-## Commands / 命令
-
-Requires Node.js 20.19 or newer; no third-party runtime dependencies.
+需要 Node.js 20.19 或更新版本；没有第三方运行时依赖。
 
 ```bash
 npm start
@@ -64,8 +63,6 @@ npm run preview
 **从公开 GitHub 仓库首次运行，推荐 `npm run build:public`，再执行 `npm run preview`**；`npm run dev` 则直接提供源码目录，不执行构建或完整检查。`npm start` 会执行完整 `build`，随后启动服务并打开默认浏览器，但其数据审计需要本地原始数据材料，不能假定只克隆公开仓库就具备这些材料。具体获取与审计步骤见 [数据准入审查](./docs/data-candidate-review.md)。
 
 在终端按 `Ctrl+C` 停止服务。默认产物为 `dist/core/` 和 `dist/web/`，两个构建脚本均接受 `--out-dir` 指定隔离输出目录。`npm run example:research` 会生成版本化示例文件，修改算法后不要用重新生成示例来掩盖历史回归差异。
-
-Default products are `dist/core/` and `dist/web/`. Public clones should use `build:public` then `preview`; `start` performs the full build, including the local raw-data audit. See the release checklist for the current full-suite and manual-browser validation status.
 
 ## 代码原理
 
@@ -486,32 +483,28 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 4. [研究 controller](./src/app/research/controller.js) → [TaskClient](./src/app/workers/task-client.js) → [persistence.js](./src/app/persistence.js)：理解浏览器生命周期与保存。
 5. [analysis-manifest.js](./src/analysis/analysis-manifest.js) → [research-replay.js](./src/analysis/research-replay.js)：理解完整性检查与实际科学复算的区别。
 
-Code-principle summary: the deterministic teaching kernel resolves versioned parameters and advances a piecewise analytic population state. The separate research engine fits explicit OD observation models, compares direct-OD candidates using whole-training-trajectory CV, and reports conditional uncertainty and diagnostics without claiming antibiotic validation. Research jobs use isolated Workers; local persistence, package integrity checks, and exact-compatible scientific replay are separate mechanisms with separate guarantees.
+## 文档
 
-## Documentation / 文档
-
-- [6.0.0 release notes / 本次详细更新说明](./docs/release-notes-6.0.0.md)
-- [Project overview / 项目概览](./docs/project-overview.md)
-- [Architecture / 系统架构](./docs/architecture.md)
-- [Scientific core / 科学核心](./docs/scientific-core.md)
+- [本次详细更新说明](./docs/release-notes-6.0.0.md)
+- [项目概览](./docs/project-overview.md)
+- [系统架构](./docs/architecture.md)
+- [科学核心](./docs/scientific-core.md)
 - [Learn / Sandbox](./docs/interactive-app.md)
 - [Research Workspace](./docs/research-workspace.md)
-- [Limitations / 局限性](./docs/limitations.md)
-- [Portfolio case study / 项目介绍与真实结果](./docs/portfolio-case-study.md)
-- [Equations, parameters and papers / 方程、参数与论文证据](./docs/research-method-evidence.md)
-- [Deployment / 部署](./docs/deployment.md)
-- [Maintenance, versioning, data updates / 维护、版本与数据更新](./docs/maintenance.md)
-- [Release checklist / 发布检查表](./docs/release-checklist.md)
-- [Data admission review / 数据准入审查](./docs/data-candidate-review.md)
-- [Technical blueprints / 技术蓝图](./blueprints/README.md)
+- [局限性](./docs/limitations.md)
+- [项目介绍与真实结果](./docs/portfolio-case-study.md)
+- [方程、参数与论文证据](./docs/research-method-evidence.md)
+- [部署](./docs/deployment.md)
+- [维护、版本与数据更新](./docs/maintenance.md)
+- [发布检查表](./docs/release-checklist.md)
+- [数据准入审查](./docs/data-candidate-review.md)
+- [技术蓝图](./blueprints/README.md)
 
-## License and data attribution / 许可证与数据归属
+## 许可证与数据归属
 
 Ecolab 自有代码以 [MIT License](./LICENSE) 发布，版权所有 © 2026 Kengo Kubota。仓库中的第三方数据、论文和来源材料不因代码许可证而重新授权；内置 Figshare BW25113 数据继续遵守原始 `CC BY 4.0` 许可及其数据卡中的署名和来源要求。
 
-Original Ecolab code is released under the [MIT License](./LICENSE), copyright © 2026 Kengo Kubota. Third-party datasets, papers, and source materials are not relicensed by the software license. The bundled Figshare BW25113 data remain subject to their original `CC BY 4.0` license and the attribution/provenance requirements documented in the dataset card.
-
-Versioned generated examples:
+版本化生成示例：
 
 - [Current 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
 - [Current 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
@@ -520,7 +513,6 @@ Versioned generated examples:
 
 研究数据解析、分析和复算在本地 Worker 执行，教学解析模拟在浏览器主线程执行；合格数据源文本与研究结果存入 IndexedDB。初始化不可用时使用易失性内存，运行时配额失败明确报错。研究包包含数据与完整输入，但需要精确匹配的内置软件，不是独立可执行文件。旧包可校验查看，缺少完整输入或版本不兼容时拒绝复算。静态资源初次加载仍需要访问部署站点；用户数据不上传到分析服务器。
 
-## 相关阅读 / Related reading
+## 相关阅读
 
-**中文**　更多项目与文章在我的个人站：[keng0nion.github.io](https://keng0nion.github.io/)。
-**English**　More projects and write-ups live on my personal site: [keng0nion.github.io](https://keng0nion.github.io/).
+更多项目与文章在我的个人站：[keng0nion.github.io](https://keng0nion.github.io/)。
