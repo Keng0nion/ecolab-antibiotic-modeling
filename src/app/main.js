@@ -315,6 +315,7 @@ function render() {
   const restoreViewState = replaceAppHtml(`
     <div class="app-shell">
       ${renderHeader()}
+      ${renderMobileNavigation()}
       <div class="evidence-banner" role="note">
         <strong>${escapeHtml(i18n.t("badge.validation"))}</strong>
         <span>${escapeHtml(i18n.t("warning.transfer"))}</span>
@@ -333,7 +334,6 @@ function render() {
           ${renderExplainPanel(science, currentDrug, zMic)}
         </aside>
       </main>
-      ${renderMobileNavigation()}
       <div class="status-bar status-${state.status.tone}" role="status" aria-live="polite">
         ${escapeHtml(i18n.t(state.status.key, state.status.params))}
       </div>

@@ -5,15 +5,15 @@ const PLOT_LEFT = 96;
 const PLOT_RIGHT = 814;
 const PLOT_HEIGHT = 142;
 const PLOT_TOPS = Object.freeze([66, 278, 490]);
-const AXIS_COLOR = "#475569";
-const GRID_COLOR = "#e2e8f0";
-const TEXT_COLOR = "#0f172a";
-const MUTED_COLOR = "#64748b";
-const POPULATION_COLOR = "#2563eb";
-const GROWTH_COLOR = "#7c3aed";
-const REFERENCE_COLOR = "#92400e";
-const SELECTION_COLOR = "#111827";
-const DEFAULT_DRUG_COLOR = "#c2410c";
+const AXIS_COLOR = "#6c6355";
+const GRID_COLOR = "#e3dbc9";
+const TEXT_COLOR = "#24201a";
+const MUTED_COLOR = "#8a7f6d";
+const POPULATION_COLOR = "#2f4b6e";
+const GROWTH_COLOR = "#5a6b3f";
+const REFERENCE_COLOR = "#8a6a2f";
+const SELECTION_COLOR = "#191713";
+const DEFAULT_DRUG_COLOR = "#a4552f";
 const renderedDashboards = new WeakMap();
 let dashboardSequence = 0;
 
@@ -405,7 +405,7 @@ function drawAxes(svg, specification, xDomain, yDomain, strings, locale, isLastP
     y: top,
     width: PLOT_RIGHT - PLOT_LEFT,
     height: PLOT_HEIGHT,
-    fill: "#ffffff",
+    fill: "#fffdf7",
     stroke: AXIS_COLOR,
     "stroke-width": 1,
   }));
@@ -605,7 +605,7 @@ function createDashboardSvg(document, options, idPrefix) {
     y: 0,
     width: DASHBOARD_WIDTH,
     height: DASHBOARD_HEIGHT,
-    fill: "#ffffff",
+    fill: "#fffdf7",
     "data-dashboard-background": "true",
   }));
   appendText(svg, strings.dashboardTitle, {
@@ -727,7 +727,7 @@ function createDashboardSvg(document, options, idPrefix) {
     const x = xScale(point.timeHours);
     const y = populationPanel.yScale(populationValue(point, options.populationScale));
     const markerAttributes = {
-      fill: point.belowDetectionLimit ? "#ffffff" : POPULATION_COLOR,
+      fill: point.belowDetectionLimit ? "#fffdf7" : POPULATION_COLOR,
       stroke: POPULATION_COLOR,
       "stroke-width": point.belowDetectionLimit ? 1.8 : 1,
       "data-sample-index": point.index,
@@ -797,7 +797,7 @@ function createDashboardSvg(document, options, idPrefix) {
       xScale(point.timeHours),
       concentrationPanel.yScale(concentrationValue(point, options.concentrationScale, options.zMic)),
       {
-        fill: "#ffffff",
+        fill: "#fffdf7",
         stroke: options.drugColor,
         "stroke-width": 1.8,
         "data-sample-index": point.index,
@@ -850,7 +850,7 @@ function createDashboardSvg(document, options, idPrefix) {
       xScale(point.timeHours),
       growthPanel.yScale(point.netGrowthLog10PerHour),
       {
-        fill: "#ffffff",
+        fill: "#fffdf7",
         stroke: GROWTH_COLOR,
         "stroke-width": 1.8,
         "data-sample-index": point.index,
@@ -877,21 +877,21 @@ function createDashboardSvg(document, options, idPrefix) {
   });
   const populationSelection = appendCircleMarker(selectionGroup, PLOT_LEFT, PLOT_TOPS[0], {
     r: 7,
-    fill: "#ffffff",
+    fill: "#fffdf7",
     stroke: POPULATION_COLOR,
     "stroke-width": 3,
     "data-selected-marker": "population",
   });
   const concentrationSelection = appendSquareMarker(selectionGroup, PLOT_LEFT, PLOT_TOPS[1], {
     size: 13,
-    fill: "#ffffff",
+    fill: "#fffdf7",
     stroke: options.drugColor,
     "stroke-width": 3,
     "data-selected-marker": "concentration",
   });
   const growthSelection = appendDiamondMarker(selectionGroup, PLOT_LEFT, PLOT_TOPS[2], {
     radius: 8,
-    fill: "#ffffff",
+    fill: "#fffdf7",
     stroke: GROWTH_COLOR,
     "stroke-width": 3,
     "data-selected-marker": "growth",
@@ -1322,7 +1322,7 @@ function appendExportInformation(svg, metadata, locale) {
     y: 0,
     width: dimensions.width,
     height: footerHeight,
-    fill: "#f8fafc",
+    fill: "#f6f1e4",
     stroke: GRID_COLOR,
     "stroke-width": 1,
   }));
