@@ -274,20 +274,50 @@
             "hillKappa": {
               "value": 1.1,
               "unit": "dimensionless",
-              "origin": "transferred",
+              "origin": "pooled_estimate",
               "uncertainty": {
-                "kind": "standard_error",
-                "value": 0.1,
+                "kind": "pooled_standard_error",
+                "value": 0.09,
                 "unit": "dimensionless"
               },
               "evidenceLevel": "E2",
               "conditionMatch": "transferred_calibration",
+              "pooling": {
+                "methodId": "inverse-variance-fixed-effect-v1",
+                "reason": "Hill steepness for ciprofloxacin agrees across two independent studies in different organisms (I2 = 0), so the fixed-effect pooled estimate replaces the single-source standard error. zMIC and psiMin stay single-source because they are condition-specific.",
+                "inputs": [
+                  {
+                    "sourceId": "regoes-2004",
+                    "label": "Escherichia coli O18:K1:H7, LB broth",
+                    "value": 1.1,
+                    "standardError": 0.1
+                  },
+                  {
+                    "sourceId": "foerster-2016",
+                    "label": "Neisseria gonorrhoeae DG666, GC medium; standard error converted from the 95% CI of Additional file 1 Table S1",
+                    "value": 1.11,
+                    "standardError": 0.181122
+                  }
+                ],
+                "pooledValue": 1.1023,
+                "pooledStandardError": 0.0875,
+                "cochranQ": 0.0023,
+                "degreesOfFreedom": 1,
+                "iSquaredPercent": 0
+              },
               "provenance": [
                 {
                   "sourceId": "regoes-2004",
                   "locator": {
                     "kind": "table",
                     "value": "Table 1, Ciprofloxacin row, kappa column"
+                  }
+                },
+                {
+                  "sourceId": "foerster-2016",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Ciprofloxacin row, kappa column; Additional file 1, Table S1"
                   }
                 }
               ]
@@ -326,6 +356,170 @@
                   "locator": {
                     "kind": "table",
                     "value": "Table 1, Ciprofloxacin row, MIC column; twofold dilution protocol"
+                  }
+                }
+              ]
+            }
+          },
+          "streptomycin": {
+            "zMic": {
+              "value": 18.5,
+              "unit": "mg/L",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 3.3,
+                "unit": "mg/L"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Streptomycin row, zMIC column"
+                  }
+                }
+              ]
+            },
+            "hillKappa": {
+              "value": 1.9,
+              "unit": "dimensionless",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.5,
+                "unit": "dimensionless"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Streptomycin row, kappa column"
+                  }
+                }
+              ]
+            },
+            "psiMin": {
+              "value": -8.8,
+              "unit": "log10-fold/h",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 1,
+                "unit": "log10-fold/h"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Streptomycin row, psiMin column"
+                  }
+                }
+              ]
+            },
+            "paperBrothDilutionMic": {
+              "value": 32,
+              "unit": "mg/L",
+              "origin": "literature",
+              "usedByModel": false,
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_context_only",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Streptomycin row, MIC column; twofold dilution protocol"
+                  }
+                }
+              ]
+            }
+          },
+          "rifampicin": {
+            "zMic": {
+              "value": 12,
+              "unit": "mg/L",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 1.9,
+                "unit": "mg/L"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Rifampin row, zMIC column"
+                  }
+                }
+              ]
+            },
+            "hillKappa": {
+              "value": 2.5,
+              "unit": "dimensionless",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.8,
+                "unit": "dimensionless"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Rifampin row, kappa column"
+                  }
+                }
+              ]
+            },
+            "psiMin": {
+              "value": -4.3,
+              "unit": "log10-fold/h",
+              "origin": "transferred",
+              "uncertainty": {
+                "kind": "standard_error",
+                "value": 0.5,
+                "unit": "log10-fold/h"
+              },
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_calibration",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Rifampin row, psiMin column"
+                  }
+                }
+              ]
+            },
+            "paperBrothDilutionMic": {
+              "value": 8,
+              "unit": "mg/L",
+              "origin": "literature",
+              "usedByModel": false,
+              "evidenceLevel": "E2",
+              "conditionMatch": "transferred_context_only",
+              "provenance": [
+                {
+                  "sourceId": "regoes-2004",
+                  "locator": {
+                    "kind": "table",
+                    "value": "Table 1, Rifampin row, MIC column; twofold dilution protocol"
                   }
                 }
               ]

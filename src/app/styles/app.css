@@ -282,7 +282,7 @@
   .course-copy > p:last-child { max-width: 75ch; margin-top: .25rem; color: var(--muted); font-size: .92rem; }
   .course-actions { display: flex; gap: .5rem; }
 
-  .comparison-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-top: .9rem; }
+  .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .6rem; margin-top: .9rem; }
   .comparison-grid article { border: 1px solid var(--line); border-top: 3px solid var(--drug-color); border-radius: var(--radius-sm); background: var(--surface); padding: .6rem .7rem; }
   .comparison-grid article > span { color: var(--muted); font-family: var(--font-serif); font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; }
   .comparison-grid article > strong { display: block; font-size: .95rem; }

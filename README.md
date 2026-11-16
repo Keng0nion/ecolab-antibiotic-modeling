@@ -44,7 +44,7 @@ Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种
 
 根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
 
-实际 `small` 示例中，训练交叉验证选中逐时间均值基线，开发集 macro RMSE 为 `0.00304756`；原潜在种群模型为 `0.00833386`，仍差于基线。参数模型未收敛、独立性与统计精度不足的警告均保留。未处理 OD600 数据不能验证三种抗生素药效，也不能识别绝对 CFU。
+实际 `small` 示例中，训练交叉验证选中逐时间均值基线，开发集 macro RMSE 为 `0.00304756`；原潜在种群模型为 `0.00833386`，仍差于基线。参数模型未收敛、独立性与统计精度不足的警告均保留。未处理 OD600 数据不能验证五种抗生素药效，也不能识别绝对 CFU。
 
 ## 命令
 
@@ -122,7 +122,7 @@ runEcolabResearchWorkflow()                  research-upgrade.js
 - 各药的 `zMicMgPerL`、`hillKappa`、`psiMinLog10PerHour` 对应下文的 `zMIC`、`κ`、`ψmin`。
 - 氨苄西林三参数为 `(3.4, 0.75, -4)`；四环素为 `(0.67, 0.61, -8.1)`；环丙沙星为 `(0.017, 1.1, -6.5)`，单位依次为 `mg/L`、无量纲、`log10-fold/h`。
 
-三药值引用 [Regoes et al. (2004), Table 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/) 的 **CAB1/LB** 条件。生长基线来自 [BioNumbers 111767](https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767) / [Campos et al. (2014)](https://doi.org/10.1016/j.cell.2014.11.022)。项目保留跨条件迁移标记，不能称为 BW25113/M9 下的药效参数估计。
+五药值引用 [Regoes et al. (2004), Table 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/) 的 **CAB1/LB** 条件（环丙沙星 `κ` 另并入 [Foerster et al. (2016)](https://doi.org/10.1186/s12866-016-0838-9) 的一致估计并收紧标准误，详见[方法证据](./docs/research-method-evidence.md)）。生长基线来自 [BioNumbers 111767](https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767) / [Campos et al. (2014)](https://doi.org/10.1016/j.cell.2014.11.022)。项目保留跨条件迁移标记，不能称为 BW25113/M9 下的药效参数估计。
 
 源码：[注册表解析](./src/registry/resolve.js)、[单位转换](./src/model/units.js)、[参数注册表](./data/registry/parameter-sets.json)、[来源索引](./data/registry/sources.json)。
 
@@ -258,7 +258,7 @@ OD(t) = b + s × N(t)/K
 
 #### 4.1 两种模型，两个目标函数
 
-**潜在种群校准**只搜索 `psiMaxLog10PerHour` 和 `initialStates.pooled.log10PopulationDensity`，范围分别为 `[0.05,0.8]` 和 `[3,min(8.5,Klog10−0.1)]`，其中 `Klog10` 为快照中的对数承载量，当前默认初态范围为 `[3,8.5]`；每次评价重新求解训练 OD 观测层，并最小化训练观测 SSE。它不拟合三药的 `zMIC`、`κ` 或 `ψmin`。
+**潜在种群校准**只搜索 `psiMaxLog10PerHour` 和 `initialStates.pooled.log10PopulationDensity`，范围分别为 `[0.05,0.8]` 和 `[3,min(8.5,Klog10−0.1)]`，其中 `Klog10` 为快照中的对数承载量，当前默认初态范围为 `[3,8.5]`；每次评价重新求解训练 OD 观测层，并最小化训练观测 SSE。它不拟合五种药物的 `zMIC`、`κ` 或 `ψmin`。
 
 **直接 OD 比较**使用三个候选：精确观测时间的训练均值基线、Logistic、Gompertz。参数化曲线是：
 
@@ -314,7 +314,7 @@ MAE         = ΣuΣj |euj| / Σu nu
 
 ### 5. 参数扫描与敏感性分析
 
-分析算法通过 evaluator 接收“参数 → 有限数值输出”的映射，而不是直接操作图表。**当前组合工作流的参数扫描、MC 和局部/Morris/Sobol 敏感性分析统一考察潜在模型在 10 h 的预测 OD600，并冻结训练得到的 OD 观测层**；不是给新增 Logistic/Gompertz 的四参数或三种药物做统一排名。
+分析算法通过 evaluator 接收“参数 → 有限数值输出”的映射，而不是直接操作图表。**当前组合工作流的参数扫描、MC 和局部/Morris/Sobol 敏感性分析统一考察潜在模型在 10 h 的预测 OD600，并冻结训练得到的 OD 观测层**；不是给新增 Logistic/Gompertz 的四参数或五种药物做统一排名。
 
 - **参数扫描**：`parameter-scan.js` 枚举声明网格的 Cartesian 组合，逐点覆盖模型副本并记录输出；它是响应面探索，不是自动优化或置信区间。
 - **局部有限差分**：`localSensitivity()` 在指定变换坐标中选择步长，优先中心差分，边界附近改用单侧差分；记录实际步长及差分方向。得到的是局部导数，不是自动标准化的弹性或全局重要性。

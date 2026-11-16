@@ -22,9 +22,14 @@ test("browser catalog loader fetches registries and resolves the scientific mode
   });
 
   assert.equal(requested.length, 5);
-  assert.equal(catalog.drugRegistry.records.length, 4);
+  assert.deepEqual(
+    catalog.drugRegistry.records.map((drug) => drug.id),
+    ["none", "ampicillin", "tetracycline", "ciprofloxacin", "streptomycin", "rifampicin"],
+  );
   assert.equal(catalog.resolvedModel.ref.parameterSetId, "ecolab.bw25113-m9-regoes-transferred");
   assert.equal(catalog.resolvedModel.parameters.drugs.ciprofloxacin.zMicMgPerL, 0.017);
+  assert.equal(catalog.resolvedModel.parameters.drugs.streptomycin.zMicMgPerL, 18.5);
+  assert.equal(catalog.resolvedModel.parameters.drugs.rifampicin.zMicMgPerL, 12);
 });
 
 test("browser catalog loader rejects an invalid registry envelope", async () => {

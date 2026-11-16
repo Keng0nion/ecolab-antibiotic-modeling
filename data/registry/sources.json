@@ -34,6 +34,48 @@
       }
     },
     {
+      "id": "foerster-2016",
+      "version": "1.0.0",
+      "sourceType": "peer_reviewed_primary_research",
+      "organization": "BMC Microbiology / PubMed Central",
+      "title": "Time-kill curve analysis and pharmacodynamic modelling for in vitro evaluation of antimicrobials against Neisseria gonorrhoeae",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5027106/",
+      "doi": "10.1186/s12866-016-0838-9",
+      "pmid": "27639378",
+      "pmcid": "PMC5027106",
+      "accessed": "2026-11-16",
+      "license": {
+        "status": "open_access_cc_by_4_0",
+        "note": "Open access under CC BY 4.0. Only manually transcribed published parameter values with precise citation are stored."
+      }
+    },
+    {
+      "id": "dailymed-streptomycin",
+      "version": "1.0.0",
+      "sourceType": "government_drug_label",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Streptomycin injection drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=abd1f64e-4283-4370-aae8-3666316aa36e",
+      "accessed": "2026-11-16",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Used as an external mechanism reference, not as a kinetic dataset."
+      }
+    },
+    {
+      "id": "dailymed-rifampicin",
+      "version": "1.0.0",
+      "sourceType": "government_drug_label",
+      "organization": "U.S. National Library of Medicine DailyMed",
+      "title": "Rifampin capsule drug label",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=b56004f0-f23d-47f6-80c7-39884fccbccc",
+      "accessed": "2026-11-16",
+      "license": {
+        "status": "not_assessed_for_redistribution",
+        "note": "Used as an external mechanism reference, not as a kinetic dataset."
+      }
+    },
+    {
       "id": "dailymed-ampicillin",
       "version": "1.0.0",
       "sourceType": "government_drug_label",

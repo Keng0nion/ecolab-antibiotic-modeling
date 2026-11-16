@@ -44,7 +44,7 @@ Ecolab is a local-first, auditable, and reproducible *E. coli*–antibiotic popu
 
 The root `package.json` is the authoritative source for the app release version. The new release keeps the teaching Regoes/Logistic model and adds direct OD-scale Logistic/Gompertz, whole-curve cross-validation on training data, joint whole-curve bootstrap, and checksum-verified same-version replay of research packages. The previously held-out data has been viewed; new results are explicitly labeled as development-set comparisons, not an untouched test set or external validation.
 
-In the actual `small` example, training cross-validation selected the mean-per-time baseline, with a development macro RMSE of `0.00304756`; the original latent population model scored `0.00833386`, still worse than the baseline. Warnings that the parameter model did not converge, and that identifiability and statistical precision are insufficient, are all preserved. Unprocessed OD600 data cannot validate the efficacy of the three antibiotics, nor identify absolute CFU.
+In the actual `small` example, training cross-validation selected the mean-per-time baseline, with a development macro RMSE of `0.00304756`; the original latent population model scored `0.00833386`, still worse than the baseline. Warnings that the parameter model did not converge, and that identifiability and statistical precision are insufficient, are all preserved. Unprocessed OD600 data cannot validate the efficacy of the five antibiotics, nor identify absolute CFU.
 
 ## Commands
 
@@ -122,7 +122,7 @@ Internal units are unified to time `h`, concentration `mg/L`, population `log10(
 - Each drug's `zMicMgPerL`, `hillKappa`, and `psiMinLog10PerHour` correspond to the `zMIC`, `κ`, and `ψmin` below.
 - Ampicillin's three parameters are `(3.4, 0.75, -4)`; tetracycline `(0.67, 0.61, -8.1)`; ciprofloxacin `(0.017, 1.1, -6.5)`, in units of `mg/L`, dimensionless, and `log10-fold/h` respectively.
 
-The three-drug values reference the **CAB1/LB** conditions of [Regoes et al. (2004), Table 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/). The growth baseline comes from [BioNumbers 111767](https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767) / [Campos et al. (2014)](https://doi.org/10.1016/j.cell.2014.11.022). The project keeps cross-condition migration markers and cannot be called an efficacy parameter estimate under BW25113/M9.
+The five-drug values reference the **CAB1/LB** conditions of [Regoes et al. (2004), Table 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC521919/) (the ciprofloxacin `κ` additionally pools the agreeing estimate of [Foerster et al. (2016)](https://doi.org/10.1186/s12866-016-0838-9) to tighten its standard error; see the method-evidence document). The growth baseline comes from [BioNumbers 111767](https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767) / [Campos et al. (2014)](https://doi.org/10.1016/j.cell.2014.11.022). The project keeps cross-condition migration markers and cannot be called an efficacy parameter estimate under BW25113/M9.
 
 Source: [registry resolution](./src/registry/resolve.js), [unit conversion](./src/model/units.js), [parameter registry](./data/registry/parameter-sets.json), [source index](./data/registry/sources.json).
 
@@ -258,7 +258,7 @@ Source: [OD observation mapping and analytic nuisance solving](./src/analysis/od
 
 #### 4.1 Two models, two objective functions
 
-**Latent population calibration** searches only `psiMaxLog10PerHour` and `initialStates.pooled.log10PopulationDensity`, with ranges `[0.05,0.8]` and `[3,min(8.5,Klog10−0.1)]` where `Klog10` is the log carrying capacity in the snapshot; the current default initial-state range is `[3,8.5]`. Each evaluation re-solves the training OD observation layer and minimizes the training-observation SSE. It does not fit the three drugs' `zMIC`, `κ`, or `ψmin`.
+**Latent population calibration** searches only `psiMaxLog10PerHour` and `initialStates.pooled.log10PopulationDensity`, with ranges `[0.05,0.8]` and `[3,min(8.5,Klog10−0.1)]` where `Klog10` is the log carrying capacity in the snapshot; the current default initial-state range is `[3,8.5]`. Each evaluation re-solves the training OD observation layer and minimizes the training-observation SSE. It does not fit the five drugs' `zMIC`, `κ`, or `ψmin`.
 
 **Direct OD comparison** uses three candidates: the training mean baseline at exact observation times, Logistic, and Gompertz. The parameterized curves are:
 
@@ -314,7 +314,7 @@ Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric
 
 ### 5. Parameter sweeps and sensitivity analysis
 
-The analysis algorithms receive a "parameters → finite numeric output" mapping through an evaluator, rather than operating on charts directly. **The current combination workflow's parameter sweeps, MC, and local/Morris/Sobol sensitivity analyses all examine the latent model's predicted OD600 at 10 h, with the training-derived OD observation layer frozen**; they are not a unified ranking of the new Logistic/Gompertz's four parameters or of the three drugs.
+The analysis algorithms receive a "parameters → finite numeric output" mapping through an evaluator, rather than operating on charts directly. **The current combination workflow's parameter sweeps, MC, and local/Morris/Sobol sensitivity analyses all examine the latent model's predicted OD600 at 10 h, with the training-derived OD observation layer frozen**; they are not a unified ranking of the new Logistic/Gompertz's four parameters or of the five drugs.
 
 - **Parameter sweep**: `parameter-scan.js` enumerates the Cartesian combinations of a declared grid, covering a model copy point by point and recording outputs; it is response-surface exploration, not automatic optimization or confidence intervals.
 - **Local finite differences**: `localSensitivity()` picks step sizes in the specified transformed coordinates, preferring central differences, switching to one-sided differences near boundaries; the actual step size and difference direction are recorded. The result is a local derivative, not an automatically normalized elasticity or global importance.

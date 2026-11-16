@@ -9,9 +9,11 @@ test("registered model resolves with version, evidence and exact source links", 
   assert.equal(resolved.ref.parameterSetVersion, "1.0.0");
   assert.equal(resolved.conditionMatch, "transferred_calibration");
   assert.equal(resolved.capabilityLevel, "L1");
-  assert.deepEqual(resolved.sourceIds, ["bionumbers-111767", "regoes-2004"]);
+  assert.deepEqual(resolved.sourceIds, ["bionumbers-111767", "foerster-2016", "regoes-2004"]);
   assert.ok(Object.isFrozen(resolved));
   assert.ok(Object.isFrozen(resolved.parameters.drugs.ciprofloxacin));
+  assert.ok(Object.isFrozen(resolved.parameters.drugs.streptomycin));
+  assert.ok(Object.isFrozen(resolved.parameters.drugs.rifampicin));
 });
 
 test("unknown versions never fall back to the latest record", async () => {

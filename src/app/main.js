@@ -453,7 +453,7 @@ function renderCourse(step) {
 
 function renderComparison() {
   return `
-    <div class="comparison-grid" aria-label="${escapeAttribute(localText("三种抗生素比较", "Three-antibiotic comparison"))}">
+    <div class="comparison-grid" aria-label="${escapeAttribute(localText("五种抗生素比较", "Five-antibiotic comparison"))}">
       ${state.compareRows.map((row) => `
         <article style="--drug-color:${escapeAttribute(row.color)}">
           <span>${escapeHtml(row.short)}</span>

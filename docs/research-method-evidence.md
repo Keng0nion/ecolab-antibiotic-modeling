@@ -35,8 +35,11 @@ q(C) = (C / zMIC)^κ
 
 - **氨苄西林**：`zMIC=3.4 mg/L`，`κ=0.75`，`ψmin=-4 log10-fold/h`。
 - **四环素**：`zMIC=0.67 mg/L`，`κ=0.61`，`ψmin=-8.1 log10-fold/h`。
-- **环丙沙星**：`zMIC=0.017 mg/L`，`κ=1.1`，`ψmin=-6.5 log10-fold/h`。
-- 上述三药参数来自 **Regoes Table 1，E. coli O18:K1:H7 CAB1 / LB**，迁移到项目 BW25113 目标，必须标记 `transferred_calibration`；不是 BW25113/M9 条件匹配估计。原文 broth-dilution MIC 分别为 `8`、`1`、`0.03 mg/L`，仅作来源上下文，未作为模型 zMIC 使用。
+- **环丙沙星**：`zMIC=0.017 mg/L`，`κ=1.1`（见下方合并说明），`ψmin=-6.5 log10-fold/h`。
+- **链霉素**：`zMIC=18.5 mg/L`，`κ=1.9`，`ψmin=-8.8 log10-fold/h`。
+- **利福平**：`zMIC=12 mg/L`，`κ=2.5`，`ψmin=-4.3 log10-fold/h`。
+- 上述五药参数来自 **Regoes Table 1，E. coli O18:K1:H7 CAB1 / LB**，迁移到项目 BW25113 目标，必须标记 `transferred_calibration`；不是 BW25113/M9 条件匹配估计。原文 broth-dilution MIC 分别为 `8`、`1`、`0.03`、`32`、`8 mg/L`，仅作来源上下文，未作为模型 zMIC 使用。链霉素与利福平两行在核对该文表 1 后补录，标准误齐全（`zMIC ±3.3 / ±1.9`，`κ ±0.5 / ±0.8`，`ψmin ±1.0 / ±0.5`）。
+- **环丙沙星 `κ` 的合并**：该值是 Regoes 2004（大肠杆菌，`κ=1.1±0.1`）与 [Foerster 2016](https://doi.org/10.1186/s12866-016-0838-9)（淋病奈瑟菌 DG666，`κ=1.11±0.181`）的逆方差固定效应合并（Cochran Q=0.0023，1 自由度，I²=0），合并值 `1.1023`，标准误由 `0.100` 收紧至 `0.088`。合并前提是「κ 近似为药物固有陡度、跨物种可比」，且两项独立研究结果一致；同表的 zMIC 与 `ψmin` 因物种特异性明显（I² 分别为 89% 与 97%）**不予合并**，仍为单源。
 - 教学生长基线：倍增时间 `42 min`，`ψmax=log10(2)/0.7 ≈ 0.43004 log10-fold/h`，来自 BioNumbers 111767 / Campos et al. (2014)。注册表保留原报道的 `±12 min` 及其统计含义未核实的警告，不把它自动变成标准差或先验分布。
 - `K=10^9 CFU/mL` 是明确声明的教学假设，不是测量或当前 OD 拟合的估计值。初始种群、时间和暴露协议是用户输入，进入运行清单。
 
@@ -55,7 +58,7 @@ q(C) = (C / zMIC)^κ
 
 原始 XLSX、提取步骤、许可与哈希见 [准入审查](./data-candidate-review.md) 和 [数据卡](../data/datasets/figshare-bw25113-growth-v1/README.md)。规范 JSON 字节 SHA-256 为 `67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817`；规范对象 canonical fingerprint 为 `2c30ce8d5dcf43c35aeafff0b495da0e012aef6d6ed3c021acab69eaf2dfbbcc`。二者哈希对象不同，不能混用。
 
-**这组数据不能估计/验证三药 zMIC、κ、ψmin，不能标定绝对 CFU，也不是外部验证集。**
+**这组数据不能估计/验证五药 zMIC、κ、ψmin，不能标定绝对 CFU，也不是外部验证集。**
 
 ## 3. 两类 OD 模型，不能混淆参数含义
 
