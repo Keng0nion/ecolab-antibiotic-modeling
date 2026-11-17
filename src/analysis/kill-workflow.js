@@ -164,7 +164,7 @@ export function assertKillDataset(dataset) {
   const times = new Set();
   const units = new Map();
   const strains = new Map();
-  const treatments = new Set();
+  const strainTimes = new Map();
   const exposures = new Set();
   let sawExposure = false;
 
@@ -205,13 +205,14 @@ export function assertKillDataset(dataset) {
           `Observation ${key} must match the dataset-level condition.`, `${path}.conditions.${key}`, conditions[key]);
       }
     }
-    treatments.add(String(conditions.treatment));
     exposures.add(String(conditions.antibioticExposure));
     if (conditions.antibioticExposure === true && drugId !== "none" && concentration > 0) sawExposure = true;
 
     const unitId = nonEmptyString(observation.independentUnitId, `${path}.independentUnitId`);
     const timeKey = String(timeHours);
     times.add(timeKey);
+    if (!strainTimes.has(String(conditions.strain))) strainTimes.set(String(conditions.strain), new Set());
+    strainTimes.get(String(conditions.strain)).add(timeKey);
     let unit = units.get(unitId);
     if (!unit) {
       unit = { independentUnitId: unitId, role: observation.role, timeKeys: new Set(), drugId, concentration, strain: String(conditions.strain) };
@@ -233,19 +234,38 @@ export function assertKillDataset(dataset) {
     unit.timeKeys.add(timeKey);
   });
 
-  if (treatments.size > 1) fail("DATASET_TREATMENT_MISMATCH", "All observations must share one treatment.", "dataset.observations", [...treatments]);
   if (exposures.size > 1) fail("DATASET_EXPOSURE_MISMATCH", "antibioticExposure must be consistent across the dataset.", "dataset.observations", [...exposures]);
   if (exposures.has("true") && !sawExposure) {
     fail("ANTIBIOTIC_EXPOSURE_MISSING", "antibioticExposure=true requires at least one unit with a non-zero drug concentration.", "dataset.observations");
   }
 
   const sourceTimes = [...times].map(Number).sort((a, b) => a - b);
-  const expectedTimes = sourceTimes.map(String);
+  // Trajectory completeness is judged per strain: real experiments can miss a single
+  // interior time point in one unit while its siblings observed it. A unit passes when
+  // its times are a subset of its strain's grid, it starts at t=0, it reaches the
+  // strain's last observed time, and it misses at most one interior point; the gap is
+  // reported on the unit (and surfaced in the results) instead of failing the dataset.
   for (const unit of units.values()) {
-    const actualTimes = [...unit.timeKeys].map(Number).sort((a, b) => a - b).map(String);
-    if (JSON.stringify(actualTimes) !== JSON.stringify(expectedTimes)) {
-      fail("INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY", `${unit.independentUnitId} does not contain the complete exact source-time trajectory.`, "dataset.observations", unit.independentUnitId);
+    const strainSorted = [...(strainTimes.get(unit.strain) ?? [])].map(Number).sort((a, b) => a - b);
+    const unknownTimes = [...unit.timeKeys].filter((t) => !strainSorted.includes(Number(t)));
+    if (unknownTimes.length > 0) {
+      fail("UNIT_TIME_NOT_IN_STRAIN_GRID", `${unit.independentUnitId} contains time points absent from its strain: ${unknownTimes.join(", ")}.`, "dataset.observations", unit.independentUnitId);
     }
+    if (strainSorted[0] !== 0) {
+      fail("INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY", `Strain ${unit.strain} has no t=0 observation; the kill workflow needs the pre-exposure baseline.`, "dataset.observations", unit.strain);
+    }
+    if (!unit.timeKeys.has("0")) {
+      fail("INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY", `${unit.independentUnitId} is missing the t=0 baseline observation.`, "dataset.observations", unit.independentUnitId);
+    }
+    const strainLast = strainSorted.at(-1);
+    if (!unit.timeKeys.has(String(strainLast))) {
+      fail("INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY", `${unit.independentUnitId} is missing the final observation at ${strainLast} h.`, "dataset.observations", unit.independentUnitId);
+    }
+    const missing = strainSorted.filter((t) => t !== 0 && t !== strainLast && !unit.timeKeys.has(String(t)));
+    if (missing.length > 1) {
+      fail("INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY", `${unit.independentUnitId} is missing ${missing.length} interior observations (${missing.join(", ")} h); at most one interior gap is allowed.`, "dataset.observations", unit.independentUnitId);
+    }
+    if (missing.length === 1) unit.missingTimes = missing;
   }
   let trainingUnitCount = 0;
   let validationUnitCount = 0;
@@ -271,6 +291,9 @@ export function assertKillDataset(dataset) {
     maximumTimeHours: sourceTimes.at(-1),
     units,
     strains,
+    incompleteUnits: [...units.values()]
+      .filter((unit) => unit.missingTimes?.length)
+      .map((unit) => ({ independentUnitId: unit.independentUnitId, strain: unit.strain, missingTimes: unit.missingTimes })),
     trainingUnitCount,
     validationUnitCount,
   };
@@ -552,6 +575,9 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     validationObservationCount: validation.length,
     trainingMetrics: validationMetrics(training, trainingPredictions),
     validationMetrics: validationMetrics(validation, validationPredictions),
+    incompleteUnits: strainUnits
+      .filter((unit) => unit.missingTimes?.length)
+      .map((unit) => ({ independentUnitId: unit.independentUnitId, missingTimes: unit.missingTimes })),
   };
 }
 

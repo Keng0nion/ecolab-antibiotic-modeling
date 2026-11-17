@@ -214,7 +214,8 @@ function renderKillResult(result, t) {
     <h3>${escapeHtml(t("research.kill.fullCi"))}</h3>
     <div class="research-table-scroll"><table class="research-table"><thead><tr>
       <th scope="col">${escapeHtml(t("research.kill.strain"))}</th>${ciKeys.map(([, label]) => `<th scope="col">${escapeHtml(label)}</th>`).join("")}
-    </tr></thead><tbody>${ciRows}</tbody></table></div></article>`;
+    </tr></thead><tbody>${ciRows}</tbody></table></div>
+    ${strains.flatMap(([, entry]) => (entry.incompleteUnits ?? []).map((unit) => `<p class="research-note">${escapeHtml(t("research.kill.incompleteUnit", { unit: unit.independentUnitId, times: unit.missingTimes.join(", ") }))}</p>`)).join("")}</article>`;
 }
 
 function renderAnalysis(context) {

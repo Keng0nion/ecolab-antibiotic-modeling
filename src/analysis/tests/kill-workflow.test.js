@@ -114,6 +114,42 @@ test("kill gates accept a valid kill-curve dataset and report per-strain units",
   assert.ok(facts.sourceTimes.includes(0), "t=0 must be allowed");
 });
 
+test("kill gates allow one interior gap per unit and report it as incomplete", () => {
+  const gapped = clone(syntheticDataset());
+  const dropIndex = gapped.observations.findIndex((o) => o.independentUnitId === "StrainB|C=0.2" && o.timeHours === 3);
+  gapped.observations.splice(dropIndex, 1);
+  const facts = assertKillDataset(gapped);
+  assert.equal(facts.units.size, CONCENTRATIONS.length * 2);
+  assert.deepEqual(facts.incompleteUnits, [{ independentUnitId: "StrainB|C=0.2", strain: "StrainB", missingTimes: [3] }]);
+});
+
+test("kill gates reject units missing t=0 or the strain's last observation", () => {
+  const base = syntheticDataset();
+
+  const noBaseline = clone(base);
+  const baselineIndex = noBaseline.observations.findIndex((o) => o.independentUnitId === "StrainA|C=0.01" && o.timeHours === 0);
+  noBaseline.observations.splice(baselineIndex, 1);
+  assert.throws(() => assertKillDataset(noBaseline), (error) => error.code === "INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY");
+
+  const noTail = clone(base);
+  const tailIndex = noTail.observations.findIndex((o) => o.independentUnitId === "StrainA|C=0.01" && o.timeHours === 6);
+  noTail.observations.splice(tailIndex, 1);
+  assert.throws(() => assertKillDataset(noTail), (error) => error.code === "INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY");
+});
+
+test("kill gates allow separate treatments across separately labeled strains", () => {
+  const mixed = clone(syntheticDataset());
+  for (const observation of mixed.observations) {
+    if (observation.conditions.strain === "StrainB") {
+      observation.drugId = "tetracycline";
+      observation.conditions.treatment = "tetracycline time-kill";
+    }
+  }
+  const facts = assertKillDataset(mixed);
+  assert.equal(facts.strains.size, 2);
+  assert.equal(new Set([...facts.units.values()].map((unit) => unit.drugId)).size, 2);
+});
+
 test("kill gates still reject role leakage, duplicate times, incomplete trajectories and inconstant units", () => {
   const base = syntheticDataset();
 
@@ -127,8 +163,10 @@ test("kill gates still reject role leakage, duplicate times, incomplete trajecto
   assert.throws(() => assertKillDataset(duplicated), (error) => error.code === "DUPLICATE_UNIT_TIME");
 
   const incomplete = clone(base);
-  const dropIndex = incomplete.observations.findIndex((o) => o.independentUnitId === "StrainB|C=0.2" && o.timeHours === 3);
-  incomplete.observations.splice(dropIndex, 1);
+  for (const hour of [3, 4]) {
+    const dropIndex = incomplete.observations.findIndex((o) => o.independentUnitId === "StrainB|C=0.2" && o.timeHours === hour);
+    incomplete.observations.splice(dropIndex, 1);
+  }
   assert.throws(() => assertKillDataset(incomplete), (error) => error.code === "INCOMPLETE_INDEPENDENT_UNIT_TRAJECTORY");
 
   const inconstant = clone(base);
