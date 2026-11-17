@@ -100,6 +100,32 @@ export function assessWorkflowEligibility(record, { trustedBundledArtifact = fal
   };
 }
 
+// Kill-curve (log10 CFU/mL, possibly left-censored, with t=0) datasets are handled by
+// the separate kill workflow (analysis/kill-workflow.js). This is an additional,
+// independent eligibility flag; the OD600 Stage 4 eligibility above is untouched.
+export const KILL_MEASUREMENT_TYPE = "log10_cfu_per_ml";
+
+export function assessKillEligibility(record) {
+  const dataset = record.normalizedDataset;
+  const reasons = [];
+  if (!dataset?.observations?.length) {
+    reasons.push("Dataset has no observations.");
+  } else {
+    if (dataset.observations.some((observation) => observation.measurementType !== KILL_MEASUREMENT_TYPE)) {
+      reasons.push(`Every observation must be ${KILL_MEASUREMENT_TYPE} for the kill workflow.`);
+    }
+    const units = new Set(dataset.observations.map((observation) => observation.independentUnitId));
+    const trainingUnits = new Set(dataset.observations.filter((o) => o.role === "training").map((o) => o.independentUnitId));
+    const validationUnits = new Set(dataset.observations.filter((o) => o.role === "validation").map((o) => o.independentUnitId));
+    if (trainingUnits.size === 0 || validationUnits.size === 0) {
+      reasons.push("Kill workflow needs at least one training and one validation independent unit.");
+    }
+    if (units.size < 2) reasons.push("Kill workflow needs at least two independent units (dose levels).");
+    if (record.qualityReport?.valid !== true) reasons.push("Dataset QC must be valid.");
+  }
+  return { eligible: reasons.length === 0, reasons };
+}
+
 export function buildDatasetRecord({
   imported,
   sourceText,
@@ -136,6 +162,9 @@ export function buildDatasetRecord({
   const eligibility = assessWorkflowEligibility(record, { trustedBundledArtifact });
   record.workflowEligible = eligibility.eligible;
   record.workflowIneligibilityReasons = eligibility.reasons;
+  const killEligibility = assessKillEligibility(record);
+  record.killEligible = killEligibility.eligible;
+  record.killIneligibilityReasons = killEligibility.reasons;
   return record;
 }
 

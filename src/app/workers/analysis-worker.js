@@ -357,6 +357,26 @@ async function researchWorkflow(payload, reportProgress, analysisApi, runtime) {
   return result;
 }
 
+async function killWorkflowTask(payload, reportProgress, analysisApi, runtime) {
+  const workflow = analysisApi.runKillWorkflow ?? analysisApi.runEcolabKillWorkflow ?? analysisApi.runKillCurveWorkflow;
+  if (typeof workflow !== "function") {
+    fail(
+      "KILL_WORKFLOW_UNAVAILABLE",
+      "The public analysis API does not currently export runKillWorkflow.",
+      "analysis.runKillWorkflow",
+    );
+  }
+  const options = normalizeTaskOptions(payload, "analysis.kill-workflow");
+  reportProgress("kill-workflow", 0, 1);
+  const result = await workflow({
+    ...options,
+    runtime,
+    onProgress: analysisProgress(reportProgress, "kill-workflow"),
+  });
+  reportProgress("kill-workflow", 1, 1);
+  return result;
+}
+
 async function packageTask(payload, replay, reportProgress, analysisApi, runtime) {
   record(payload, "research.package.payload");
   if (Object.keys(payload).length !== 1 || typeof payload.input !== "string") {
@@ -433,6 +453,8 @@ export async function dispatchTask(task, context = {}) {
       return evaluateTask(task.payload, reportProgress, analysisApi);
     case "analysis.research-workflow":
       return researchWorkflow(task.payload, reportProgress, analysisApi, context.runtime);
+    case "analysis.kill-workflow":
+      return killWorkflowTask(task.payload, reportProgress, analysisApi, context.runtime);
     case "research.package-inspect":
       return packageTask(task.payload, false, reportProgress, analysisApi, context.runtime);
     case "research.package-replay":

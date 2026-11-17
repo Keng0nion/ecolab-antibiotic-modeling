@@ -172,18 +172,46 @@ function packagePanel(state, t) {
   </article>`;
 }
 
+function renderKillResult(result, t) {
+  const strains = Object.entries(result.strains ?? {});
+  const rows = strains.map(([strain, entry]) => {
+    const p = entry.fittedParameters ?? {};
+    const e = entry.standardErrors ?? {};
+    const cell = (v, s) => `${format(v, 4)}${s === null || s === undefined ? "" : ` ± ${format(s, 3)}`}`;
+    const val = (m) => (m === null || m === undefined ? "—" : format(m, 4));
+    return `<tr><th scope="row">${escapeHtml(strain)}</th><td>${escapeHtml(entry.drugId)}</td>
+      <td>${cell(p.psiMaxLog10PerHour, e.psiMaxLog10PerHour)}</td><td>${cell(p.psiMinLog10PerHour, e.psiMinLog10PerHour)}</td>
+      <td>${cell(p.zMicMgPerL, e.zMicMgPerL)}</td><td>${cell(p.hillKappa, e.hillKappa)}</td>
+      <td>${cell(p.initialLog10PopulationDensity, e.initialLog10PopulationDensity)}</td><td>${cell(p.sigmaLog10Residual, e.sigmaLog10Residual)}</td>
+      <td>${val(entry.trainingMetrics?.rmseLog10)}</td><td>${val(entry.validationMetrics?.rmseLog10)}</td>
+      <td>${entry.validationMetrics?.censoredPredictionHitRate === null || entry.validationMetrics?.censoredPredictionHitRate === undefined ? "—" : `${Math.round(entry.validationMetrics.censoredPredictionHitRate * 100)}%`}</td></tr>`;
+  }).join("");
+  return `<article class="research-card" aria-labelledby="research-kill-result-title"><div class="research-card-heading"><div><p class="eyebrow">kill workflow</p><h2 id="research-kill-result-title">${escapeHtml(t("research.kill.resultHeading"))}</h2></div><span class="research-chip research-chip-info">${escapeHtml(result.kind)}</span></div>
+    <p class="research-note">${escapeHtml(t("research.kill.resultNote"))}</p>
+    <div class="research-table-scroll"><table class="research-table"><thead><tr>
+      <th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.kill.drug"))}</th>
+      <th scope="col">ψmax log10/h</th><th scope="col">ψmin log10/h</th><th scope="col">zMIC mg/L</th><th scope="col">κ</th>
+      <th scope="col">N0 log10</th><th scope="col">σ</th>
+      <th scope="col">${escapeHtml(t("research.kill.trainRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.valRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.censoredHit"))}</th>
+    </tr></thead><tbody>${rows}</tbody></table></div></article>`;
+}
+
 function renderAnalysis(context) {
   const { state, t } = context;
-  const ready = state.selectedDataset?.workflowEligible && state.selectedDataset?.qualityReport?.valid;
+  const dataset = state.selectedDataset;
+  const killMode = Boolean(dataset?.killEligible && !dataset?.workflowEligible);
+  const ready = (dataset?.workflowEligible || dataset?.killEligible) && dataset?.qualityReport?.valid;
   const progress = state.progress;
   return `<section class="research-section" id="research-analysis-section" aria-labelledby="research-analysis-heading"><div class="research-section-heading"><p class="eyebrow">03 · ${escapeHtml(t("research.section.analysis"))}</p><h2 id="research-analysis-heading" tabindex="-1" data-focus-key="research-section-heading-analysis">${escapeHtml(t("research.analysis.heading"))}</h2><p>${escapeHtml(t("research.analysis.lead"))}</p></div>
     <article class="research-card research-run-card"><div class="research-card-heading"><div><h2>${escapeHtml(t("research.analysis.runLocked"))}</h2><p>${escapeHtml(state.selectedDataset?.title ?? t("research.data.noneSelected"))}</p></div>${datasetStatus(state.selectedDataset, t)}</div>
       <div class="research-progress" role="status" aria-live="polite" aria-atomic="true" aria-busy="${state.running}"><div class="research-progress-row"><label id="research-progress-phase" for="research-progress-bar">${escapeHtml(t(`research.progress.${state.cancelling ? "cancelling" : progress.phase}`))}</label><span id="research-progress-value">${Math.round(progress.fraction * 100)}%</span></div><progress id="research-progress-bar" max="1" value="${attr(progress.fraction)}" aria-labelledby="research-progress-phase research-progress-value">${Math.round(progress.fraction * 100)}%</progress></div>
       ${state.analysisError ? `<div class="research-callout research-callout-danger" role="alert">${escapeHtml(state.analysisError)}</div>` : ""}
       ${!ready ? `<p class="research-callout research-callout-warning">${escapeHtml(t("research.analysis.disabledReason"))}</p>` : ""}
-      <div class="research-actions"><button class="primary-button" type="button" data-action="research-run" ${!ready || state.running || state.busy || state.packageOperation ? "disabled" : ""}>${escapeHtml(t("research.analysis.run"))}</button><button class="danger-button" type="button" data-action="research-cancel" ${state.running && !state.cancelling ? "" : "disabled"}>${escapeHtml(t(state.cancelling ? "research.analysis.cancelling" : "research.analysis.cancel"))}</button></div>
+      ${killMode ? `<p class="research-note">${escapeHtml(t("research.kill.engineNote"))}</p>` : ""}
+      <div class="research-actions"><button class="primary-button" type="button" data-action="research-run" ${!ready || state.running || state.busy || state.packageOperation ? "disabled" : ""}>${escapeHtml(t(killMode ? "research.kill.run" : "research.analysis.run"))}</button><button class="danger-button" type="button" data-action="research-cancel" ${state.running && !state.cancelling ? "" : "disabled"}>${escapeHtml(t(state.cancelling ? "research.analysis.cancelling" : "research.analysis.cancel"))}</button></div>
       <p class="research-note">${escapeHtml(t("research.analysis.workerNote"))}</p>
     </article>
+    ${state.killResult ? renderKillResult(state.killResult, t) : ""}
     ${packagePanel(state, t)}
     <article class="research-card"><h2>${escapeHtml(t("research.analysis.saved"))}</h2><p>${escapeHtml(t("research.analysis.savedNote"))}</p>${priorAnalyses(state, t)}</article>
   </section>`;

@@ -9,6 +9,7 @@ export * from "./fingerprint.js";
 export * from "./fitting.js";
 export * from "./growth-comparison.js";
 export * from "./identifiability.js";
+export * from "./kill-workflow.js";
 export * from "./likelihood.js";
 export * from "./metrics.js";
 export * from "./model-evaluator.js";

@@ -86,6 +86,7 @@ export function createResearchState() {
     selectedDataset: null,
     selectedAnalysis: null,
     result: null,
+    killResult: null,
     replayPreview: null,
     packageOperation: null,
     packageCancelling: false,

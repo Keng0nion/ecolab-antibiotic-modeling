@@ -1,6 +1,9 @@
 const GLOBAL_PARAMETERS = new Set([
   "psiMaxLog10PerHour",
   "carryingCapacityLog10CfuPerMl",
+  // Additive: free error-scale parameter used by the kill-curve workflow
+  // (censored Gaussian likelihood). The OD600 Stage 4 workflow never names it.
+  "errorSigmaLog10",
 ]);
 const DRUG_FIELDS = new Set([
   "zMicMgPerL",
@@ -12,6 +15,7 @@ const UNSAFE_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 export const PARAMETER_WHITELIST = Object.freeze([
   "psiMaxLog10PerHour",
   "carryingCapacityLog10CfuPerMl",
+  "errorSigmaLog10",
   "drugs.<drugId>.zMicMgPerL",
   "drugs.<drugId>.hillKappa",
   "drugs.<drugId>.psiMinLog10PerHour",

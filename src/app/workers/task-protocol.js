@@ -11,6 +11,7 @@ export const TASK_KINDS = Object.freeze([
   "analysis.fit",
   "analysis.evaluate",
   "analysis.research-workflow",
+  "analysis.kill-workflow",
   "research.package-inspect",
   "research.package-replay",
 ]);

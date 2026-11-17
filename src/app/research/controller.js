@@ -439,6 +439,12 @@ export function createResearchController(options) {
   async function runAnalysis() {
     if (runtime.disposed || state.running || state.busy || state.packageOperation) return;
     const datasetRecord = state.selectedDataset;
+    // Kill-curve datasets (log10 CFU/mL) go to the separate kill workflow; the OD600
+    // Stage 4 workflow above is untouched and remains the only path for OD data.
+    if (datasetRecord?.killEligible && !datasetRecord.workflowEligible) {
+      void runKillAnalysis();
+      return;
+    }
     if (!datasetRecord?.workflowEligible || !datasetRecord.qualityReport?.valid) {
       state.analysisError = t("research.analysis.disabledReason");
       requestRender();
@@ -513,6 +519,78 @@ export function createResearchController(options) {
           state.running = false;
           state.cancelling = false;
           state.currentRun = null;
+          state.progress = { phase: "cancelled", completed: 0, total: 1, fraction: 0 };
+          if (!runtime.disposed) {
+            notify("research.status.cancelled", "warning");
+            requestRender();
+          }
+        }
+      }
+    }
+  }
+
+  async function runKillAnalysis() {
+    if (runtime.disposed || state.running || state.busy || state.packageOperation) return;
+    const datasetRecord = state.selectedDataset;
+    if (!datasetRecord?.killEligible || !datasetRecord.qualityReport?.valid) {
+      state.analysisError = t("research.kill.disabledReason");
+      requestRender();
+      return;
+    }
+    const run = captureResearchRun({
+      dataset: datasetRecord,
+      seed: state.seed,
+      preset: state.preset,
+      applicationVersion,
+      now,
+    });
+    state.running = true;
+    state.cancelling = false;
+    state.analysisError = null;
+    state.killResult = null;
+    state.progress = { phase: "kill_workflow", completed: 0, total: 1, fraction: 0 };
+    notify("research.status.running", "info");
+    requestRender();
+    runtime.runTask = { handle: null, run, datasetRecord };
+    try {
+      const handle = client().run("analysis.kill-workflow", {
+        options: {
+          datasetInput: datasetRecord.sourceText ?? datasetRecord.normalizedDataset,
+          seed: run.seed,
+          applicationVersion: run.applicationVersion,
+          restarts: 6,
+        },
+      }, { taskId: run.runId, onProgress: updateProgress });
+      runtime.runTask.handle = handle;
+      const result = await handle.promise;
+      if (runtime.runTask?.run.runId !== run.runId || runtime.disposed || state.cancelling) return;
+      state.killResult = result;
+      state.result = null;
+      state.running = false;
+      state.cancelling = false;
+      state.progress = { phase: "complete", completed: 1, total: 1, fraction: 1 };
+      notify("research.status.completed", "success");
+      requestRender();
+    } catch (error) {
+      if (runtime.runTask?.run.runId !== run.runId || runtime.disposed) return;
+      const cancelled = state.cancelling || ["TASK_CANCELLED", "ANALYSIS_CANCELLED"].includes(error?.code);
+      state.running = false;
+      state.cancelling = false;
+      if (cancelled) {
+        state.progress = { phase: "cancelled", completed: 0, total: 1, fraction: 0 };
+        notify("research.status.cancelled", "warning");
+      } else {
+        state.analysisError = errorMessage(error);
+        state.progress = { phase: "failed", completed: 0, total: 1, fraction: 0 };
+        notify("research.status.analysisError", "danger", { message: state.analysisError });
+      }
+      requestRender();
+    } finally {
+      if (runtime.runTask?.run.runId === run.runId) {
+        runtime.runTask = null;
+        if (state.running) {
+          state.running = false;
+          state.cancelling = false;
           state.progress = { phase: "cancelled", completed: 0, total: 1, fraction: 0 };
           if (!runtime.disposed) {
             notify("research.status.cancelled", "warning");

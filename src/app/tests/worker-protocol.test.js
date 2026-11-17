@@ -24,6 +24,7 @@ const expectedKinds = [
   "analysis.fit",
   "analysis.evaluate",
   "analysis.research-workflow",
+  "analysis.kill-workflow",
   "research.package-inspect",
   "research.package-replay",
 ];
