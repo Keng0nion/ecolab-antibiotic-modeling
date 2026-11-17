@@ -555,10 +555,13 @@ export function createResearchController(options) {
     try {
       const handle = client().run("analysis.kill-workflow", {
         options: {
-          datasetInput: datasetRecord.sourceText ?? datasetRecord.normalizedDataset,
+          // CSV 数据集没有 source 级元数据，直接传已归一化的数据集对象
+          datasetInput: datasetRecord.normalizedDataset ?? datasetRecord.sourceText,
           seed: run.seed,
           applicationVersion: run.applicationVersion,
           restarts: 6,
+          // 大数据集（如重复基准）自动减少 bootstrap 重采样次数，控制界面等待时间
+          bootstrapReplicates: (datasetRecord.normalizedDataset?.observations?.length ?? 0) > 800 ? 40 : 100,
         },
       }, { taskId: run.runId, onProgress: updateProgress });
       runtime.runTask.handle = handle;

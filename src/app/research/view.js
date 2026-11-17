@@ -179,9 +179,10 @@ function renderKillResult(result, t) {
     const e = entry.standardErrors ?? {};
     const cell = (v, s) => `${format(v, 4)}${s === null || s === undefined ? "" : ` ± ${format(s, 3)}`}`;
     const val = (m) => (m === null || m === undefined ? "—" : format(m, 4));
+    const ci = entry.confidenceIntervals95?.zMicMgPerL;
     return `<tr><th scope="row">${escapeHtml(strain)}</th><td>${escapeHtml(entry.drugId)}</td>
       <td>${cell(p.psiMaxLog10PerHour, e.psiMaxLog10PerHour)}</td><td>${cell(p.psiMinLog10PerHour, e.psiMinLog10PerHour)}</td>
-      <td>${cell(p.zMicMgPerL, e.zMicMgPerL)}</td><td>${cell(p.hillKappa, e.hillKappa)}</td>
+      <td>${cell(p.zMicMgPerL, e.zMicMgPerL)}</td><td>${ci ? `[${format(ci[0], 4)}, ${format(ci[1], 4)}]` : "—"}</td><td>${cell(p.hillKappa, e.hillKappa)}</td>
       <td>${cell(p.initialLog10PopulationDensity, e.initialLog10PopulationDensity)}</td><td>${cell(p.sigmaLog10Residual, e.sigmaLog10Residual)}</td>
       <td>${val(entry.trainingMetrics?.rmseLog10)}</td><td>${val(entry.validationMetrics?.rmseLog10)}</td>
       <td>${entry.validationMetrics?.censoredPredictionHitRate === null || entry.validationMetrics?.censoredPredictionHitRate === undefined ? "—" : `${Math.round(entry.validationMetrics.censoredPredictionHitRate * 100)}%`}</td></tr>`;
@@ -190,7 +191,7 @@ function renderKillResult(result, t) {
     <p class="research-note">${escapeHtml(t("research.kill.resultNote"))}</p>
     <div class="research-table-scroll"><table class="research-table"><thead><tr>
       <th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.kill.drug"))}</th>
-      <th scope="col">ψmax log10/h</th><th scope="col">ψmin log10/h</th><th scope="col">zMIC mg/L</th><th scope="col">κ</th>
+      <th scope="col">ψmax log10/h</th><th scope="col">ψmin log10/h</th><th scope="col">zMIC mg/L</th><th scope="col">zMIC 95% CI</th><th scope="col">κ</th>
       <th scope="col">N0 log10</th><th scope="col">σ</th>
       <th scope="col">${escapeHtml(t("research.kill.trainRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.valRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.censoredHit"))}</th>
     </tr></thead><tbody>${rows}</tbody></table></div></article>`;

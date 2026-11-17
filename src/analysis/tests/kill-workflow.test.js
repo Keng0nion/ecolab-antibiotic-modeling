@@ -158,11 +158,12 @@ test("kill gates reject non-CFU measurements, non-left censoring, single dose le
   assert.throws(() => assertKillDataset(noValidation), (error) => error.code === "INCOMPLETE_TRAINING_VALIDATION_ROLES");
 });
 
-test("end-to-end kill workflow recovers the generating parameters per strain", async () => {
+test("end-to-end kill workflow recovers the generating parameters per strain and reports bootstrap CIs", async () => {
   const result = await runKillWorkflow({
     datasetInput: syntheticDataset(),
     seed: 123456789,
     applicationVersion: "test",
+    bootstrapReplicates: 24,
   });
   assert.equal(result.kind, KILL_WORKFLOW_KIND);
   assert.equal(result.measurementType, KILL_MEASUREMENT_TYPE);
@@ -182,6 +183,11 @@ test("end-to-end kill workflow recovers the generating parameters per strain", a
     assert.ok(p.sigmaLog10Residual > 0.005 && p.sigmaLog10Residual < 0.5, `${strain} sigma: ${p.sigmaLog10Residual}`);
     assert.ok(entry.validationMetrics.rmseLog10 < 0.15, `${strain} validation RMSE: ${entry.validationMetrics.rmseLog10}`);
     assert.ok(entry.standardErrors.psiMaxLog10PerHour > 0, `${strain} psiMax SE present`);
+    const ci = entry.confidenceIntervals95;
+    assert.ok(ci && entry.bootstrapReplicates === 24, `${strain} bootstrap CIs present`);
+    assert.ok(ci.zMicMgPerL[0] < p.zMicMgPerL && p.zMicMgPerL < ci.zMicMgPerL[1],
+      `${strain} zMIC point estimate inside its 95% CI: ${p.zMicMgPerL} in [${ci.zMicMgPerL}]`);
+    assert.ok(ci.psiMaxLog10PerHour[0] < ci.psiMaxLog10PerHour[1], `${strain} psiMax CI ordered`);
     assert.ok(entry.validationMetrics.rmseLog10 !== null, `${strain} validation RMSE computed on locked units`);
     assert.ok(entry.trainingObservationCount > 0 && entry.validationObservationCount > 0);
   }

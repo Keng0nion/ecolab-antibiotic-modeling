@@ -24,6 +24,7 @@ import { fingerprintJson } from "./fingerprint.js";
 import { createDatasetSplit } from "./split.js";
 import { fitParameters } from "./fitting.js";
 import { censoredGaussianLogLikelihood } from "./likelihood.js";
+import { createRandom } from "./random.js";
 
 export const KILL_WORKFLOW_KIND = "ecolab-kill-workflow";
 export const KILL_MEASUREMENT_TYPE = "log10_cfu_per_ml";
@@ -153,7 +154,9 @@ export function assertKillDataset(dataset) {
   if (!Array.isArray(dataset.observations) || dataset.observations.length === 0) {
     fail("EMPTY_DATASET", "The dataset must contain observations.", "dataset.observations");
   }
-  const metadataConditions = record(dataset.metadata.conditions ?? {}, "dataset.metadata.conditions");
+  // CSV 导入的条件写在每条观测上；数据集级缺失时用首条观测的条件补齐
+  const firstConditions = dataset.observations[0]?.conditions ?? {};
+  const metadataConditions = record({ ...firstConditions, ...(dataset.metadata.conditions ?? {}) }, "dataset.metadata.conditions");
   for (const key of ["organism", "medium", "temperatureC"]) {
     requireCondition(metadataConditions, key, "dataset.metadata.conditions");
   }
@@ -421,6 +424,49 @@ function validationMetrics(observations, predictions) {
   };
 }
 
+function percentile(sorted, q) {
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))));
+  return sorted[index];
+}
+
+/**
+ * Bootstrap 95% confidence intervals over training units (resample whole
+ * independent units with replacement, refit warm-started from the main fit).
+ * Deterministic via the app's seeded RNG.
+ */
+function bootstrapIntervals(fit, names, training, fitOptions, context, strain) {
+  const replicates = context.bootstrapReplicates;
+  if (!Number.isInteger(replicates) || replicates < 2) return null;
+  const rng = createRandom(deriveSeed(context.seed, "bootstrap", strain));
+  const byUnit = new Map();
+  for (const observation of training) {
+    if (!byUnit.has(observation.independentUnitId)) byUnit.set(observation.independentUnitId, []);
+    byUnit.get(observation.independentUnitId).push(observation);
+  }
+  const unitIds = [...byUnit.keys()];
+  const samples = [];
+  for (let b = 0; b < replicates; b += 1) {
+    const picked = unitIds.map(() => unitIds[Math.floor(rng.next() * unitIds.length)]);
+    const obs = picked.flatMap((id) => byUnit.get(id));
+    const refit = fitParameters({
+      ...fitOptions,
+      observations: obs,
+      initialParameters: fit.resolvedParameters,
+      restarts: 1,
+      differentialEvolution: { populationSize: 16, maxEvaluations: 250, tolerance: 1e-3, objectiveTolerance: 1e-4 },
+      nelderMead: { maxEvaluations: 200 },
+      seed: deriveSeed(context.seed, "bootstrap", strain, b),
+    });
+    samples.push(refit.resolvedParameters);
+  }
+  const intervals = {};
+  for (const name of names) {
+    const values = samples.map((s) => s[name]).sort((a, b) => a - b);
+    intervals[name] = [percentile(values, 0.025), percentile(values, 0.975)];
+  }
+  return { replicates, intervals };
+}
+
 function fitStrain(strain, strainUnits, observations, facts, context) {
   const training = observations.filter((o) => facts.units.get(o.independentUnitId).strain === strain && o.role === "training");
   const validation = observations.filter((o) => facts.units.get(o.independentUnitId).strain === strain && o.role === "validation");
@@ -457,7 +503,7 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     maximumTimeHours: facts.maximumTimeHours,
   };
   const evaluator = (params, obs) => killPredictions(params, obs, fitContext);
-  const fit = fitParameters({
+  const fitOptions = {
     observations: training,
     parameterPolicy: "scientific",
     parameterWhitelist: names,
@@ -471,9 +517,22 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     restarts: context.restarts,
     differentialEvolution: { populationSize: 32, maxEvaluations: 4000, tolerance: 1e-3, objectiveTolerance: 1e-4 },
     nelderMead: { maxEvaluations: 800 },
-  });
+  };
+  const fit = fitParameters(fitOptions);
   const errors = standardErrors(fit, names, training, fitContext);
+  const bootstrap = bootstrapIntervals(fit, names, training, fitOptions, context, strain);
   const { fittedParameters, standardErrors: reportedErrors } = reportParams(fit.resolvedParameters, errors, drugId);
+  const intervalNameMap = {
+    psiMaxLog10PerHour: "psiMaxLog10PerHour",
+    [`drugs.${drugId}.psiMinLog10PerHour`]: "psiMinLog10PerHour",
+    [`drugs.${drugId}.zMicMgPerL`]: "zMicMgPerL",
+    [`drugs.${drugId}.hillKappa`]: "hillKappa",
+    [`initialStates.${KILL_INITIAL_STATE_SERIES}.log10PopulationDensity`]: "initialLog10PopulationDensity",
+    errorSigmaLog10: "sigmaLog10Residual",
+  };
+  const reportedIntervals = bootstrap
+    ? Object.fromEntries(Object.entries(bootstrap.intervals).map(([name, [lo, hi]]) => [intervalNameMap[name] ?? name, [lo, hi]]))
+    : null;
   const validationPredictions = killPredictions(fit.resolvedParameters, validation, fitContext);
   const trainingPredictions = killPredictions(fit.resolvedParameters, training, fitContext);
   return {
@@ -482,6 +541,8 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     concentrationsMgPerL: concentrations,
     fittedParameters,
     standardErrors: reportedErrors,
+    confidenceIntervals95: reportedIntervals,
+    bootstrapReplicates: bootstrap?.replicates ?? 0,
     converged: fit.converged,
     terminationReason: fit.optimization?.terminationReason ?? null,
     objectiveValue: fit.objectiveValue,
@@ -537,7 +598,14 @@ export async function runKillWorkflow(options = {}) {
   });
   emit("dataset_split", 1, 1);
 
-  const context = { seed, restarts, carryingCapacityLog10 };
+  const context = {
+    seed,
+    restarts,
+    carryingCapacityLog10,
+    bootstrapReplicates: Number.isInteger(options.bootstrapReplicates) && options.bootstrapReplicates >= 0
+      ? options.bootstrapReplicates
+      : 100,
+  };
   const strains = {};
   for (const [strain, strainUnits] of facts.strains) {
     await check();
