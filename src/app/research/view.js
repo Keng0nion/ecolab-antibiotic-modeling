@@ -57,6 +57,7 @@ function datasetStatus(record, t) {
   if (!record) return `<span class="research-chip research-chip-info">${escapeHtml(t("research.data.noneSelected"))}</span>`;
   if (!record.qualityReport?.valid) return `<span class="research-chip research-chip-danger">${escapeHtml(t("research.data.qcFailed"))}</span>`;
   if (record.workflowEligible) return `<span class="research-chip research-chip-success">${escapeHtml(t("research.data.workflowReady"))}</span>`;
+  if (record.killEligible) return `<span class="research-chip research-chip-success">${escapeHtml(t("research.data.killReady"))}</span>`;
   return `<span class="research-chip research-chip-warning">${escapeHtml(t("research.data.qcOnly"))}</span>`;
 }
 
