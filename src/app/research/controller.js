@@ -221,6 +221,8 @@ export function createResearchController(options) {
       && matchesAnalysisDataset(record, analysis));
     state.selectedAnalysis = matching ?? null;
     state.result = matching?.result ?? null;
+    // A previous run's error belongs to the previous dataset; clear it on switch/import.
+    state.analysisError = null;
     setDefaultValidationUnit();
   }
 
