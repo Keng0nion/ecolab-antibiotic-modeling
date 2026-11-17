@@ -188,6 +188,21 @@ function renderKillResult(result, t) {
       <td>${val(entry.trainingMetrics?.rmseLog10)}</td><td>${val(entry.validationMetrics?.rmseLog10)}</td>
       <td>${entry.validationMetrics?.censoredPredictionHitRate === null || entry.validationMetrics?.censoredPredictionHitRate === undefined ? "—" : `${Math.round(entry.validationMetrics.censoredPredictionHitRate * 100)}%`}</td></tr>`;
   }).join("");
+  const ciKeys = [
+    ["psiMaxLog10PerHour", "ψmax log10/h"],
+    ["psiMinLog10PerHour", "ψmin log10/h"],
+    ["zMicMgPerL", "zMIC mg/L"],
+    ["hillKappa", "κ"],
+    ["initialLog10PopulationDensity", "N0 log10"],
+    ["sigmaLog10Residual", "σ"],
+  ];
+  const ciRows = strains.map(([strain, entry]) => {
+    const ci = entry.confidenceIntervals95 ?? {};
+    return `<tr><th scope="row">${escapeHtml(strain)}</th>${ciKeys.map(([key]) => {
+      const v = ci[key];
+      return `<td>${Array.isArray(v) ? `[${format(v[0], 4)}, ${format(v[1], 4)}]` : "—"}</td>`;
+    }).join("")}</tr>`;
+  }).join("");
   return `<article class="research-card" aria-labelledby="research-kill-result-title"><div class="research-card-heading"><div><p class="eyebrow">kill workflow</p><h2 id="research-kill-result-title">${escapeHtml(t("research.kill.resultHeading"))}</h2></div><span class="research-chip research-chip-info">${escapeHtml(result.kind)}</span></div>
     <p class="research-note">${escapeHtml(t("research.kill.resultNote"))}</p>
     <div class="research-table-scroll"><table class="research-table"><thead><tr>
@@ -195,7 +210,11 @@ function renderKillResult(result, t) {
       <th scope="col">ψmax log10/h</th><th scope="col">ψmin log10/h</th><th scope="col">zMIC mg/L</th><th scope="col">zMIC 95% CI</th><th scope="col">κ</th>
       <th scope="col">N0 log10</th><th scope="col">σ</th>
       <th scope="col">${escapeHtml(t("research.kill.trainRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.valRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.censoredHit"))}</th>
-    </tr></thead><tbody>${rows}</tbody></table></div></article>`;
+    </tr></thead><tbody>${rows}</tbody></table></div>
+    <h3>${escapeHtml(t("research.kill.fullCi"))}</h3>
+    <div class="research-table-scroll"><table class="research-table"><thead><tr>
+      <th scope="col">${escapeHtml(t("research.kill.strain"))}</th>${ciKeys.map(([, label]) => `<th scope="col">${escapeHtml(label)}</th>`).join("")}
+    </tr></thead><tbody>${ciRows}</tbody></table></div></article>`;
 }
 
 function renderAnalysis(context) {
