@@ -232,3 +232,26 @@ test("end-to-end kill workflow recovers the generating parameters per strain and
   assert.ok(result.datasetFingerprint.length === 64);
   assert.equal(result.lockedPlan.lockedValidation, true);
 });
+
+test("kill workflow leaves SE null at a psiMax boundary without probing invalid values", async () => {
+  const dataset = syntheticDataset();
+  dataset.observations = dataset.observations
+    .filter((observation) => observation.conditions.strain === "StrainA")
+    .map((observation) => ({
+      ...observation,
+      value: 6,
+      censoring: "none",
+      censoringBounds: null,
+    }));
+
+  const result = await runKillWorkflow({
+    dataset,
+    seed: 123,
+    restarts: 1,
+    bootstrapReplicates: 0,
+  });
+
+  assert.equal(Object.keys(result.strains).length, 1);
+  assert.ok(Number.isFinite(result.strains.StrainA.fittedParameters.psiMaxLog10PerHour));
+  assert.equal(result.strains.StrainA.standardErrors.psiMaxLog10PerHour, null);
+});

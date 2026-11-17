@@ -397,27 +397,36 @@ function invertMatrix(matrix) {
 
 function standardErrors(fit, names, observations, context) {
   const center = fit.resolvedParameters;
-  const h = names.map((name) => 1e-4 * Math.max(1, Math.abs(center[name] ?? 0)));
-  const hessian = names.map((_, i) => names.map((_, j) => {
-    const pp = { ...center }; pp[names[i]] += h[i]; pp[names[j]] += h[j];
-    const pm = { ...center }; pm[names[i]] += h[i]; pm[names[j]] -= h[j];
-    const mp = { ...center }; mp[names[i]] -= h[i]; mp[names[j]] += h[j];
-    const mm = { ...center }; mm[names[i]] -= h[i]; mm[names[j]] -= h[j];
+  const errors = Object.fromEntries(names.map((name) => [name, null]));
+  const interior = names.flatMap((name) => {
+    const value = center[name];
+    const [lower, upper] = fit.bounds[name];
+    const margin = Math.min(value - lower, upper - value);
+    const step = Math.min(1e-4 * Math.max(1, Math.abs(value)), margin * 0.24);
+    if (!Number.isFinite(step) || step <= 1e-8 * Math.max(1, Math.abs(value))) return [];
+    return [{ name, step }];
+  });
+  if (interior.length === 0) return errors;
+
+  const hessian = interior.map(({ name: nameI, step: hI }) => interior.map(({ name: nameJ, step: hJ }) => {
+    const pp = { ...center }; pp[nameI] += hI; pp[nameJ] += hJ;
+    const pm = { ...center }; pm[nameI] += hI; pm[nameJ] -= hJ;
+    const mp = { ...center }; mp[nameI] -= hI; mp[nameJ] += hJ;
+    const mm = { ...center }; mm[nameI] -= hI; mm[nameJ] -= hJ;
     return (
       negativeLogLikelihood(pp, observations, context)
       - negativeLogLikelihood(pm, observations, context)
       - negativeLogLikelihood(mp, observations, context)
       + negativeLogLikelihood(mm, observations, context)
-    ) / (4 * h[i] * h[j]);
+    ) / (4 * hI * hJ);
   }));
   const inverse = invertMatrix(hessian);
-  if (!inverse) return Object.fromEntries(names.map((name) => [name, null]));
-  const out = {};
-  names.forEach((name, index) => {
+  if (!inverse) return errors;
+  interior.forEach(({ name }, index) => {
     const variance = inverse[index][index];
-    out[name] = Number.isFinite(variance) && variance > 0 ? Math.sqrt(variance) : null;
+    errors[name] = Number.isFinite(variance) && variance > 0 ? Math.sqrt(variance) : null;
   });
-  return out;
+  return errors;
 }
 
 function validationMetrics(observations, predictions) {
