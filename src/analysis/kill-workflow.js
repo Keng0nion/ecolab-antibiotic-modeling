@@ -278,6 +278,8 @@ export function assertKillDataset(dataset) {
 
 function syntheticModel(params, drugId, carryingCapacityLog10) {
   const p = readParams(params, drugId);
+  // NM 精修可能提出边界外的试探值（如负 zMIC）；钳到极小正值，让似然给出罚而不是抛错
+  const zMic = Math.max(p.zMic, 1e-12);
   return {
     ref: {
       modelId: "ecolab.single-population.regoes-logistic",
@@ -291,7 +293,7 @@ function syntheticModel(params, drugId, carryingCapacityLog10) {
       carryingCapacityLog10CfuPerMl: carryingCapacityLog10,
       drugs: {
         [drugId]: {
-          zMicMgPerL: p.zMic,
+          zMicMgPerL: zMic,
           hillKappa: p.kappa,
           psiMinLog10PerHour: p.psiMin,
         },
