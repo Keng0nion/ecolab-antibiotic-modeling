@@ -479,26 +479,46 @@ function bootstrapIntervals(fit, names, training, fitOptions, context, strain) {
   }
   const unitIds = [...byUnit.keys()];
   const samples = [];
-  for (let b = 0; b < replicates; b += 1) {
+  let convergedReplicates = 0;
+  let attemptedReplicates = 0;
+  const terminationReasons = {};
+  const maximumAttempts = replicates * 3;
+  for (let b = 0; b < maximumAttempts && samples.length < replicates; b += 1) {
+    attemptedReplicates += 1;
     const picked = unitIds.map(() => unitIds[Math.floor(rng.next() * unitIds.length)]);
     const obs = picked.flatMap((id) => byUnit.get(id));
     const refit = fitParameters({
       ...fitOptions,
       observations: obs,
-      initialParameters: fit.resolvedParameters,
+      initialParameters: context.bootstrapStartingParametersByStrain?.[strain] ?? fit.resolvedParameters,
       restarts: 1,
-      differentialEvolution: { populationSize: 16, maxEvaluations: 250, tolerance: 1e-3, objectiveTolerance: 1e-4 },
-      nelderMead: { maxEvaluations: 200 },
+      differentialEvolution: { populationSize: 16, maxEvaluations: 1000, tolerance: 1e-3, objectiveTolerance: 1e-4 },
+      nelderMead: { maxEvaluations: 1600 },
       seed: deriveSeed(context.seed, "bootstrap", strain, b),
     });
-    samples.push(refit.resolvedParameters);
+    if (refit.converged) {
+      convergedReplicates += 1;
+      samples.push(refit.resolvedParameters);
+    }
+    const reason = refit.optimization?.terminationReason ?? "unknown";
+    terminationReasons[reason] = (terminationReasons[reason] ?? 0) + 1;
   }
   const intervals = {};
-  for (const name of names) {
-    const values = samples.map((s) => s[name]).sort((a, b) => a - b);
-    intervals[name] = [percentile(values, 0.025), percentile(values, 0.975)];
+  if (samples.length >= replicates) {
+    for (const name of names) {
+      const values = samples.map((s) => s[name]).sort((a, b) => a - b);
+      intervals[name] = [percentile(values, 0.025), percentile(values, 0.975)];
+    }
   }
-  return { replicates, intervals };
+  return {
+    requestedReplicates: replicates,
+    replicates: samples.length,
+    attemptedReplicates,
+    convergedReplicates,
+    nonConvergedReplicates: attemptedReplicates - convergedReplicates,
+    terminationReasons,
+    intervals: samples.length >= replicates ? intervals : null,
+  };
 }
 
 function fitStrain(strain, strainUnits, observations, facts, context) {
@@ -550,7 +570,7 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     seed: deriveSeed(context.seed, "kill", strain),
     restarts: context.restarts,
     differentialEvolution: { populationSize: 32, maxEvaluations: 4000, tolerance: 1e-3, objectiveTolerance: 1e-4 },
-    nelderMead: { maxEvaluations: 800 },
+    nelderMead: { maxEvaluations: 3000 },
   };
   const fit = fitParameters(fitOptions);
   const errors = standardErrors(fit, names, training, fitContext);
@@ -564,7 +584,7 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     [`initialStates.${KILL_INITIAL_STATE_SERIES}.log10PopulationDensity`]: "initialLog10PopulationDensity",
     errorSigmaLog10: "sigmaLog10Residual",
   };
-  const reportedIntervals = bootstrap
+  const reportedIntervals = bootstrap?.intervals
     ? Object.fromEntries(Object.entries(bootstrap.intervals).map(([name, [lo, hi]]) => [intervalNameMap[name] ?? name, [lo, hi]]))
     : null;
   const validationPredictions = killPredictions(fit.resolvedParameters, validation, fitContext);
@@ -577,6 +597,15 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     standardErrors: reportedErrors,
     confidenceIntervals95: reportedIntervals,
     bootstrapReplicates: bootstrap?.replicates ?? 0,
+    bootstrapConvergence: bootstrap
+      ? {
+        requestedReplicates: bootstrap.requestedReplicates,
+        attemptedReplicates: bootstrap.attemptedReplicates,
+        convergedReplicates: bootstrap.convergedReplicates,
+        nonConvergedReplicates: bootstrap.nonConvergedReplicates,
+        terminationReasons: bootstrap.terminationReasons,
+      }
+      : null,
     converged: fit.converged,
     terminationReason: fit.optimization?.terminationReason ?? null,
     objectiveValue: fit.objectiveValue,
@@ -639,6 +668,7 @@ export async function runKillWorkflow(options = {}) {
     seed,
     restarts,
     carryingCapacityLog10,
+    bootstrapStartingParametersByStrain: options.bootstrapStartingParametersByStrain ?? {},
     bootstrapReplicates: Number.isInteger(options.bootstrapReplicates) && options.bootstrapReplicates >= 0
       ? options.bootstrapReplicates
       : 100,

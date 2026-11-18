@@ -562,8 +562,8 @@ export function createResearchController(options) {
           seed: run.seed,
           applicationVersion: run.applicationVersion,
           restarts: 6,
-          // 大数据集（如重复基准）自动减少 bootstrap 重采样次数，控制界面等待时间
-          bootstrapReplicates: (datasetRecord.normalizedDataset?.observations?.length ?? 0) > 800 ? 40 : 100,
+          // 保持足够的重抽样数；数据量不应静默改变置信区间精度
+          bootstrapReplicates: 500,
         },
       }, { taskId: run.runId, onProgress: updateProgress });
       runtime.runTask.handle = handle;
