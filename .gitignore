@@ -1,6 +1,7 @@
 # macOS and editor-local state
 .DS_Store
 .zed/
+.mimosa/
 
 # Dependencies and generated products
 node_modules/

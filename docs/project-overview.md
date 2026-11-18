@@ -1,6 +1,6 @@
 # Ecolab project overview / 项目概览
 
-Ecolab 6.0.0 是本地优先的大肠杆菌种群建模项目，包含教学与研究两个用途，使用原生 JavaScript ES Modules、SVG、Web Worker 和 IndexedDB，无第三方运行时依赖。
+Ecolab 6.0.0 是本地优先的大肠杆菌种群建模项目，包含教学与研究两个用途，使用原生 JavaScript ES Modules、SVG、Web Worker 和 IndexedDB，无第三方运行时依赖。除浏览器界面外，还提供终端前端 `ecolab`（`node bin/ecolab.js`），可在终端运行全部功能并输出 JSON，方便 agent 调用，见 [终端 CLI](./cli.md)。
 
 ## 两个工作区
 

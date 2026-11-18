@@ -60,11 +60,14 @@ npm run audit:release
 npm run check:reproducible
 npm run example:research
 npm run preview
+npm run ecolab -- help
 ```
 
 **When running from the public GitHub repository for the first time, prefer `npm run build:public`, then `npm run preview`**; `npm run dev` serves the source directory directly, without a build or full checks. `npm start` runs the full `build`, then starts the server and opens the default browser, but its data audit requires local raw data materials — do not assume that cloning the public repository alone provides them. See [Data candidate review](./docs/data-candidate-review.md) for the concrete acquisition and audit steps.
 
 Press `Ctrl+C` in the terminal to stop the server. Default outputs are `dist/core/` and `dist/web/`; both build scripts accept `--out-dir` to specify an isolated output directory. `npm run example:research` generates versioned example files — after changing the algorithms, do not regenerate examples to mask historical regression differences.
+
+**Terminal front end**: `node bin/ecolab.js` (or `npm run ecolab --`) runs the whole application in the terminal, which suits agents and scripts; the `info`, `simulate`, `qc`, `research`, `replay`, `task`, and `serve` subcommands each print a single JSON document, and failures print a structured error on stderr with exit code 1. See [Terminal CLI](./docs/cli.md) for the full reference; agents should read [AGENTS.md](./AGENTS.md) for a terminal quick start.
 
 ## How the code works
 

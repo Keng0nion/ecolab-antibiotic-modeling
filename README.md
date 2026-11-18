@@ -60,11 +60,14 @@ npm run audit:release
 npm run check:reproducible
 npm run example:research
 npm run preview
+npm run ecolab -- help
 ```
 
 **从公开 GitHub 仓库首次运行，推荐 `npm run build:public`，再执行 `npm run preview`**；`npm run dev` 则直接提供源码目录，不执行构建或完整检查。`npm start` 会执行完整 `build`，随后启动服务并打开默认浏览器，但其数据审计需要本地原始数据材料，不能假定只克隆公开仓库就具备这些材料。具体获取与审计步骤见 [数据准入审查](./docs/data-candidate-review.md)。
 
 在终端按 `Ctrl+C` 停止服务。默认产物为 `dist/core/` 和 `dist/web/`，两个构建脚本均接受 `--out-dir` 指定隔离输出目录。`npm run example:research` 会生成版本化示例文件，修改算法后不要用重新生成示例来掩盖历史回归差异。
+
+**终端前端**：`node bin/ecolab.js`（或 `npm run ecolab --`）让整个应用在终端运行，适合 agent 与脚本调用；`info`、`simulate`、`qc`、`research`、`replay`、`task`、`serve` 各子命令都输出单个 JSON 文档，失败时在 stderr 输出结构化错误并以退出码 1 结束。完整用法见 [终端 CLI](./docs/cli.md)；agent 读完 [AGENTS.md](./AGENTS.md) 即可掌握终端操作。
 
 ## 代码原理
 

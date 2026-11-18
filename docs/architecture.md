@@ -37,6 +37,8 @@ flowchart TD
 - 数据与 schema `data/`、`schemas/`：版本化数据、许可、校验和与严格交换契约。
 - 发布线 `scripts/`：构建、数据/发布审计、复现检查和实际案例生成。
 
+终端前端 `bin/ecolab.js` 与 `src/cli/` 提供 `ecolab` 命令行入口：`info`、`simulate`、`qc`、`research`、`replay`、`task`、`serve` 子命令复用上列科学核心、分析层、任务协议与导出函数，只在终端以 JSON 文档和文件工作，不进入 `dist/` 构建；用法与边界见 [终端 CLI](./cli.md)。
+
 ### 研究与回放信任边界
 
 `runEcolabResearchWorkflow()` 接收显式源文本和解析模型；`growth-comparison.js` 只在训练轨迹上选模与重采样，`research-upgrade.js` 封装开发标签和完整输入工件。教学参数与原始数据不因升级而重写。
@@ -80,6 +82,8 @@ dist/web/    deployable static application
 The browser UI delegates analysis and exact-version replay to same-origin module Workers. Training-only direct-OD comparison is separate from the unchanged teaching core. Imported packages cannot supply executable code or fetch dependencies. Replay compares both scientific output and the full manifest; a memory-only preview never replaces saved analyses. IndexedDB restoration checks dataset ID, revision and content hash. Initialization fallback is volatile; runtime storage failures remain explicit.
 
 `build-core.js` and `build-web.js` preserve the default `dist/core/` and `dist/web/` outputs while accepting `--out-dir`. Tests and reproducibility checks build into temporary directories and run the same import and relative-URL validation there.
+
+The terminal front end (`bin/ecolab.js`, `src/cli/`) exposes the same core, analysis engine, task protocol, and export formats from the command line as JSON documents and files; it is not part of the `dist/` builds. See [Terminal CLI](./cli.md).
 
 The Web build carries `_headers` into the release. Its CSP avoids `unsafe-inline`, permits same-origin module Workers and `blob:` downloads, and uses exact style hashes only for the four controlled inline CSS custom-property values already emitted by the application.
 

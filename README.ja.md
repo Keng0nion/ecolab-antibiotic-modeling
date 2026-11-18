@@ -60,11 +60,14 @@ npm run audit:release
 npm run check:reproducible
 npm run example:research
 npm run preview
+npm run ecolab -- help
 ```
 
 **公開 GitHub リポジトリから初めて実行する場合は、`npm run build:public` を推奨し、その後 `npm run preview` を実行**。`npm run dev` はソースディレクトリを直接提供し、ビルドや完全検査を実行しません。`npm start` は完全な `build` を実行した後、サービスを起動してデフォルトブラウザを開きますが、そのデータ監査にはローカルの生データ材料が必要で、公開リポジトリの clone だけではこれらの材料が揃うと想定できません。具体的な取得と監査の手順は[データ准入審査](./docs/data-candidate-review.md)を参照。
 
 ターミナルで `Ctrl+C` を押すとサービスを停止します。デフォルトの成果物は `dist/core/` と `dist/web/`。両ビルドスクリプトは `--out-dir` を受け、隔離出力ディレクトリを指定できます。`npm run example:research` はバージョン化されたサンプルファイルを生成します。アルゴリズム変更後は、履歴の回帰差異を隠すためにサンプルを再生成しないでください。
+
+**ターミナルフロントエンド**：`node bin/ecolab.js`（または `npm run ecolab --`）を使うと、アプリ全体をブラウザなしのターミナルで実行できます。agent やスクリプトからの呼び出しに適しています。`info`、`simulate`、`qc`、`research`、`replay`、`task`、`serve` の各サブコマンドは単一の JSON ドキュメントを出力し、失敗時は stderr に構造化エラーを出して終了コード 1 になります。詳細は[ターミナル CLI](./docs/cli.md)を参照してください。agent は [AGENTS.md](./AGENTS.md) を読めばターミナル操作を把握できます。
 
 ## コードの仕組み
 
