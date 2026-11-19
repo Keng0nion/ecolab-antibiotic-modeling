@@ -1,0 +1,118 @@
+{
+  "note": "Reference K and r as deposited by the dataset authors (figshare 28342064, BW25113_GrowthDataEvaluation.xlsx, CC BY 4.0). K is the background-subtracted plateau OD600; r is the maximum consecutive log-slope triplet average.",
+  "inputs": {
+    "BW25113_GrowthDataEvaluation.xlsx": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1",
+    "BW25113_Growth_Round01.xlsx": "d81c738fdf7885195203de9b8b28bc221cf81992dffe1288c42b81aa6876d921",
+    "BW25113_Medium_composition.xlsx": "e3d82236c0f9a65cff55bebf1d5478b15a0972111422c32a3395deb5c5509cdd"
+  },
+  "curves": [
+    {
+      "label": "Curve00025",
+      "assayId": "Round01_0025",
+      "conditionId": "Cond00003",
+      "K": 0.2557666666666666,
+      "r": 1.097515482498505,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00026",
+      "assayId": "Round01_0026",
+      "conditionId": "Cond00003",
+      "K": 0.2537666666666666,
+      "r": 1.402218163377593,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00027",
+      "assayId": "Round01_0027",
+      "conditionId": "Cond00003",
+      "K": 0.2464333333333333,
+      "r": 1.344012987455387,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00028",
+      "assayId": "Round01_0028",
+      "conditionId": "Cond00003",
+      "K": 0.2564333333333333,
+      "r": 1.332730973023436,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00029",
+      "assayId": "Round01_0029",
+      "conditionId": "Cond00003",
+      "K": 0.2491,
+      "r": 1.156703413499944,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00030",
+      "assayId": "Round01_0030",
+      "conditionId": "Cond00003",
+      "K": 0.2521,
+      "r": 1.070700287348322,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00031",
+      "assayId": "Round01_0031",
+      "conditionId": "Cond00003",
+      "K": 0.2521,
+      "r": 1.226665515246117,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00032",
+      "assayId": "Round01_0032",
+      "conditionId": "Cond00003",
+      "K": 0.2567666666666666,
+      "r": 1.168670237583626,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00033",
+      "assayId": "Round01_0033",
+      "conditionId": "Cond00003",
+      "K": 0.2541,
+      "r": 1.183952835681689,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00034",
+      "assayId": "Round01_0034",
+      "conditionId": "Cond00003",
+      "K": 0.2564333333333333,
+      "r": 1.316630583387685,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00035",
+      "assayId": "Round01_0035",
+      "conditionId": "Cond00003",
+      "K": 0.2514333333333333,
+      "r": 1.316630583387681,
+      "kInfo": 0,
+      "rInfo": 0
+    },
+    {
+      "label": "Curve00036",
+      "assayId": "Round01_0036",
+      "conditionId": "Cond00003",
+      "K": 0.2587666666666666,
+      "r": 1.316630583387681,
+      "kInfo": 0,
+      "rInfo": 0
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BW25113 Cond00003 replication report</title>
+<style>
+  @page { size: A4; margin: 20mm 17mm 18mm 17mm; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Times New Roman", "Songti SC", serif; font-size: 10.5pt; line-height: 1.42; color: #111; margin: 0; }
+  h1 { font-size: 16pt; line-height: 1.35; margin: 0 0 6px 0; }
+  h1.sub { font-size: 11.5pt; font-weight: normal; margin-bottom: 14px; }
+  h2 { font-size: 12.5pt; margin: 16px 0 6px 0; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12px 0 4px 0; page-break-after: avoid; font-style: italic; }
+  p { margin: 0 0 7px 0; text-align: justify; }
+  .meta { font-size: 10pt; margin: 10px 0 2px 0; }
+  .rq { border: 0.8pt solid #333; padding: 8px 10px; margin: 10px 0 12px 0; }
+  .rq b { display: block; margin-bottom: 3px; }
+  .note { font-size: 9pt; color: #444; font-style: italic; }
+  .pagebreak { break-before: page; }
+  .toc { font-size: 10.5pt; }
+  .toc .entry { display: flex; align-items: baseline; margin: 2.4px 0; }
+  .toc .entry.sub { margin-left: 16px; font-size: 10pt; }
+  .toc .dots { flex: 1; border-bottom: 0.8pt dotted #888; margin: 0 5px 2.5px 5px; min-width: 20px; }
+  .toc h2 { margin-top: 0; }
+  figure { margin: 10px 0 12px 0; page-break-inside: avoid; }
+  figure img { width: 100%; }
+  figcaption { font-size: 8.8pt; color: #222; margin-top: 3px; text-align: justify; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin: 6px 0 4px 0; page-break-inside: avoid; }
+  caption { caption-side: top; text-align: left; font-size: 8.8pt; color: #222; margin-bottom: 3px; }
+  th { background: #eceff1; font-weight: bold; }
+  th, td { border-top: 0.7pt solid #333; border-bottom: 0.7pt solid #333; padding: 2.6px 4px; text-align: left; }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .eq { text-align: center; margin: 8px 0; }
+  .refs p { padding-left: 18px; text-indent: -18px; margin-bottom: 5px; }
+  code, .mono { font-family: "Menlo", "Courier New", monospace; font-size: 8.8pt; }
+  .small { font-size: 9.2pt; }
+</style>
+</head>
+<body>
+
+<h1>How reproducibly can the published maximum growth rate of <i>Escherichia coli</i> BW25113 in the chemically defined medium Cond00003 be recovered from its released growth curves, and how does the implied doubling time compare with the literature value for BW25113?</h1>
+<h1 class="sub">Internal Assessment &middot; Biology</h1>
+
+<div class="meta">Student code: 【student code】</div>
+<div class="meta">Word count: <span id="wordcount">{{wordcount}}</span> (excluding tables, figures, captions, equations and references)</div>
+<p class="note">Experiment report prepared inside the Ecolab scientific workspace (repository <span class="mono">ecolab-antibiotic-modeling</span>), following the IA report format. All computations and figures are reproducible from the scripts in <span class="mono">experiments/bw25113-replication/</span>.</p>
+
+<div class="rq">
+<b>Research question</b>
+How well can the maximum growth rate <i>r</i> and the carrying capacity <i>K</i> of <i>Escherichia coli</i> BW25113 in the chemically defined medium Cond00003, as published in the growth curve dataset of Aida and Ying (2025), be reproduced by an independent reanalysis of the same released data, and how does the implied doubling time compare with the literature value of 42 &plusmn; 12 min for BW25113 in supplemented M9 medium (BioNumbers 111767; Campos et&nbsp;al., 2014)?
+</div>
+
+<div class="pagebreak toc" id="toc">
+<h2>Contents</h2>
+{{toc}}
+</div>
+
+<div class="pagebreak"></div>
+
+<h2 id="s1">1&nbsp;&nbsp;Introduction</h2>
+<p>Bacterial growth rates are among the most reused numbers in microbiology. They set the timescale for laboratory experiments, they feed into models of infection and of industrial fermentation, and they are increasingly taken not from new measurements but from published digital datasets. Reusing such data is only as safe as the reproducibility of the quantities extracted from them. A published growth rate usually comes from a processing pipeline applied to optical density (OD) records, and every step of that pipeline &mdash; blank correction, choice of the exponential window, treatment of instrument rounding &mdash; leaves a fingerprint on the final number.</p>
+<p>This investigation therefore performs a replication study on a small, fully documented corner of a large modern dataset. Aida and Ying (2025) released 13,608 OD<sub>600</sub> growth curves of <i>E. coli</i> BW25113 across 1,029 chemically defined media, together with their own calculated values of the maximum growth rate <i>r</i> and the carrying capacity <i>K</i> for every curve. The present experiment recomputes <i>r</i> and <i>K</i> for one condition, Cond00003, from the twelve released curves of that condition, using the authors' published formulas but an independently estimated optical background, and compares the outcome with the authors' own numbers. It then converts the resulting rates into doubling times and compares them with a well documented literature value for the same strain.</p>
+<p>The research question is stated in full above. In brief: which of the two published parameters survives an independent reanalysis, which does not, and what does the surviving quantity imply about the growth of this strain in this medium?</p>
+
+<h2 id="s2">2&nbsp;&nbsp;Background Information</h2>
+
+<h3 id="s2-1">2.1&nbsp;&nbsp;Growth rate and doubling time in batch culture</h3>
+<p>In balanced exponential growth the population <i>X</i> increases as d<i>X</i>/d<i>t</i>&nbsp;=&nbsp;&mu;<i>X</i>, so the specific growth rate &mu; (h<sup>&minus;1</sup>) is the slope of ln&nbsp;<i>X</i> against time, and the doubling time is <i>T</i><sub>d</sub>&nbsp;=&nbsp;ln&nbsp;2/&mu;. A batch culture passes from a lag phase through exponential growth into stationary phase, so &mu; is only constant in the middle part of the rising phase; any number called &ldquo;the growth rate&rdquo; of a batch curve is therefore a statistic defined by a procedure, not a direct measurement.</p>
+
+<h3 id="s2-2">2.2&nbsp;&nbsp;Why OD<sub>600</sub> data need a background treatment</h3>
+<p>OD<sub>600</sub> measures light scattering by cells plus the optical background of the medium and the plastic well. The released Cond00003 curves are unblanked: every reading contains a medium background near 0.08 OD (Section&nbsp;4). A background error &delta; changes a net signal <i>C</i> into <i>C</i>&nbsp;+&nbsp;&delta;, and the logarithmic slope between two readings becomes ln((<i>C</i><sub>2</sub>+&delta;)/(<i>C</i><sub>1</sub>+&delta;))/&Delta;<i>t</i>. When <i>C</i> is comparable to &delta;, the slope is dominated by the choice of &delta; rather than by growth. The released values are also rounded to three decimals (0.001 OD), so when the net signal is only a few thousandths of an OD unit, one rounding step is a large fraction of the signal.</p>
+
+<h3 id="s2-3">2.3&nbsp;&nbsp;The dataset and its published parameters</h3>
+<p>The source dataset (figshare 28342064, CC BY 4.0; Aida &amp; Ying, 2025) contains raw OD<sub>600</sub> records for BW25113 grown at 37&nbsp;&deg;C in 96 well plates (200&nbsp;&micro;L, 567&nbsp;rpm, 1:1000 inoculation from an overnight culture, Epoch2 reader, one reading every 30&nbsp;min). The condition studied here, Cond00003, is a chemically defined medium built from 44 pure compounds; its carbon source is glucose at only 2&nbsp;mM (about 0.036&nbsp;%&nbsp;w/v), with 125.8&nbsp;mM phosphate buffer, 2&nbsp;mM ammonium salts and twenty amino acids at 0.01&ndash;0.02&nbsp;mM (Table&nbsp;2). Twelve wells of this condition (Curve00025&ndash;Curve00036) were released as complete curves and are used in this report.</p>
+{{table2}}
+<p>The authors calculated, for every one of the 13,608 curves, a maximum growth rate <i>r</i> and a carrying capacity <i>K</i>. Their published procedure (Aida &amp; Ying, 2025, Methods; see also Section&nbsp;3.3) first subtracts the optical background measured in wells loaded with medium only, then computes <i>K</i> as the mean of three consecutive readings after background correction around the curve maximum, and <i>r</i> as the mean of three consecutive logarithmic slopes around the maximum slope of the curve. The calculated values for all curves are deposited in a separate workbook, so the exact reference numbers used in this report come from the same release as the raw curves.</p>
+
+<h3 id="s2-4">2.4&nbsp;&nbsp;The literature value for BW25113</h3>
+<p>BioNumbers entry 111767 reports a doubling time of 42&nbsp;&plusmn;&nbsp;12&nbsp;min for <i>E.&nbsp;coli</i> BW25113 in M9 salts supplemented with 0.2&nbsp;% glucose and 0.1&nbsp;% casamino acids, measured by single cell time lapse microscopy in microfluidic chambers (original source: Campos et&nbsp;al., 2014). Two cautions are attached to this anchor. First, the statistical meaning of the &plusmn;&nbsp;12&nbsp;min is not documented in the entry and is treated here only as an approximate spread. Second, the measurement is single cell and steady state in a richer medium than Cond00003, whereas the present data are batch OD<sub>600</sub> in a medium with roughly five times less glucose and no casamino acids. The comparison is therefore expected to be directional rather than exact: a poorer medium should, if anything, grow more slowly.</p>
+
+<h2 id="s3">3&nbsp;&nbsp;Methodology</h2>
+
+<h3 id="s3-1">3.1&nbsp;&nbsp;Data and variables</h3>
+<p>This investigation is a computational reanalysis of archived data rather than a new laboratory experiment; the variables are defined accordingly in Table&nbsp;1. The twelve curves are the eight wells that the original release labels as training units (Curve00025&ndash;Curve00032) plus the four wells labeled as validation units (Curve00033&ndash;Curve00036); the split is used only as an internal consistency check.</p>
+
+{{table1}}
+
+<h3 id="s3-2">3.2&nbsp;&nbsp;Software, data integrity and reproducibility</h3>
+<p>All computations were performed with the scientific core of the Ecolab workspace (Node.js 26.4.0). The bundled dataset file was validated and ingested through the project's observation dataset importer, and its SHA-256 was checked against the hash recorded by the project (67b5fc27&hellip;f03817) before use. The three figshare workbooks used as reference sources were stored in the experiment folder with their SHA-256 hashes recorded and rechecked by the extraction script. The bootstrap resampling used the project's seeded xoshiro128** generator with a seed derived from the fixed string <span class="mono">ecolab-bw25113-replication-v1</span>, so every number in this report is exactly reproducible. Figures were produced with Python 3.14 and Matplotlib 3.11.</p>
+
+<h3 id="s3-3">3.3&nbsp;&nbsp;The published definitions</h3>
+<p>With the background <i>B</i> subtracted, the net signal is <i>C<sub>i</sub></i>&nbsp;=&nbsp;OD<sub>i</sub>&nbsp;&minus;&nbsp;<i>B</i>. The published definitions are, in the authors' notation,</p>
+<div class="eq"><i>K</i> = (<i>C</i><sub>i&minus;1</sub> + <i>C<sub>i</sub></i> + <i>C</i><sub>i+1</sub>)/3&nbsp;&nbsp;(1)</div>
+<p>where <i>i</i> is the time of the maximum in the curve, and</p>
+<div class="eq">&mu;<sub>j</sub> = log(<i>C<sub>j</sub></i>/<i>C</i><sub>j&minus;1</sub>) / (<i>t<sub>j</sub></i> &minus; <i>t</i><sub>j&minus;1</sub>)&nbsp;&nbsp;(2.1)</div>
+<div class="eq"><i>r</i> = (&mu;<sub>i&minus;1</sub> + &mu;<sub>i</sub> + &mu;<sub>i+1</sub>)/3&nbsp;&nbsp;(2.2)</div>
+<p>where <i>i</i> now marks the maximum consecutive slope. The authors allow any logarithmic base. Comparing both conventions against the deposited <i>r</i> values identifies the natural logarithm as the base they used (Section&nbsp;4.5). Because Equations&nbsp;2.1&ndash;2.2 select an extreme value of noisy data, this report also evaluates a minimally stabilized reading of the same sentence: the maximum of the averages of three consecutive slopes,</p>
+<div class="eq"><i>r</i><sub>stab</sub> = max<sub>j</sub> [(&mu;<sub>j&minus;1</sub> + &mu;<sub>j</sub> + &mu;<sub>j+1</sub>)/3]&nbsp;&nbsp;(3)</div>
+
+<h3 id="s3-4">3.4&nbsp;&nbsp;Background scenarios</h3>
+<p>The authors' own blank wells were not deposited with the data, so <i>B</i> must be estimated. The plateau before growth in each well (readings at 0.5&ndash;5.0&nbsp;h, before growth is detectable) sets an upper bound <i>B</i><sub>high</sub>; it contains the medium background plus the small contribution of the initial cells. A 1:1000 inoculation from an overnight culture contributes at most about 0.004&nbsp;OD<sub>600</sub>, so three scenarios were preset: <i>B</i><sub>high</sub>, <i>B</i><sub>mid</sub>&nbsp;=&nbsp;<i>B</i><sub>high</sub>&nbsp;&minus;&nbsp;0.002 and <i>B</i><sub>low</sub>&nbsp;=&nbsp;<i>B</i><sub>high</sub>&nbsp;&minus;&nbsp;0.004. An independent constraint comes from the release itself: 36 wells of other conditions show no growth at all over the full 22&nbsp;h (Section&nbsp;4.2), and their readings span 0.0796&ndash;0.0832&nbsp;OD, which brackets the scenario range used here.</p>
+
+<h3 id="s3-5">3.5&nbsp;&nbsp;Companion estimate and uncertainty analysis</h3>
+<p>Because Equations&nbsp;2.1&ndash;2.2 are sensitive at low net signal, a companion estimate was preset that uses only the middle of the rise, where the signal is far above the rounding step: the ordinary least squares slope of ln&nbsp;<i>C</i> against time over all points with <i>C</i> between 0.02 and 0.12&nbsp;OD (five points per well, all with <i>C</i> at least twenty rounding steps above zero). This yields an average specific rate through the middle of the rising phase. Uncertainty was characterized by (i) the spread across the twelve wells, (ii) a percentile bootstrap over wells (10,000 resamples, seeded), and (iii) recomputation of all statistics under the three background scenarios.</p>
+
+<h2 id="s4">4&nbsp;&nbsp;Data Analysis</h2>
+
+<h3 id="s4-1">4.1&nbsp;&nbsp;Raw data</h3>
+<p>Figure&nbsp;1 shows all twelve curves. Every well follows the same sequence: a flat plateau at 0.080&ndash;0.084&nbsp;OD through 5&nbsp;h, a rise that begins near 5.5&ndash;6&nbsp;h, a peak of 0.329&ndash;0.340&nbsp;OD at 13&ndash;13.5&nbsp;h, and a slow decline to 0.311&ndash;0.327&nbsp;OD by 22&nbsp;h. The wells agree closely with one another (about &plusmn;0.01&nbsp;OD at the peak), so the condition can be treated as one population of twelve replicates: 528 observations in total.</p>
+
+{{fig1}}
+
+<h3 id="s4-2">4.2&nbsp;&nbsp;The 0.001 OD staircase</h3>
+<p>Figure&nbsp;2 examines one well (Curve00032) in detail. The original readings are rounded to 0.001&nbsp;OD, and the plateaus are so flat that the released values form a visible staircase. During the first hours the net signal above the mid scenario background is only 1&ndash;3 rounding steps. This matters because a single step change between two consecutive readings corresponds to a pair slope of ln(2)/0.5&nbsp;h<sup>&minus;1</sup>&nbsp;&asymp;&nbsp;1.39&nbsp;h<sup>&minus;1</sup>, which is larger than the fastest genuine growth in the rise. The independent background evidence agrees with the scenario range: the 36 wells that show no growth stay between 0.0796 and 0.0832&nbsp;OD for the full 22&nbsp;h.</p>
+
+{{fig2}}
+
+<h3 id="s4-3">4.3&nbsp;&nbsp;The carrying capacity K replicates</h3>
+<p>Recomputed <i>K</i> values (mid scenario) agree with the published values almost exactly: the mean signed deviation is +0.00007&nbsp;OD over the twelve wells, the mean absolute relative deviation is 0.77&nbsp;%, and the largest single deviation is 2.5&nbsp;%. The result is stable across the background scenarios (mean absolute relative deviation 0.76&nbsp;% at <i>B</i><sub>high</sub> and 1.26&nbsp;% at <i>B</i><sub>low</sub>). This is expected from Equation&nbsp;1: the plateau top is flat, so subtracting a background that is wrong by one or two rounding steps shifts all three readings in the plateau equally and almost cancels in the mean. Values for each well appear in Table&nbsp;3 and Figure&nbsp;3(b).</p>
+
+<h3 id="s4-4">4.4&nbsp;&nbsp;The maximum rate r does not replicate under the literal reading</h3>
+<p>Recomputing <i>r</i> with the literal procedure of Equations&nbsp;2.1&ndash;2.2 (mid scenario) fails to reproduce the published values: the mean absolute relative deviation is 38.6&nbsp;%, the deviations across wells range from &minus;100&nbsp;% to &minus;11.8&nbsp;%, and the correlation with the published values is only 0.41. In two wells (Curve00030 and Curve00036) the maximum pair slope lands on a single step flicker inside the flat plateau, and the mean of the three slopes around that flicker is &asymp; 0, so the replicated <i>r</i> collapses to zero. Across the three background scenarios, individual deviations span &minus;100&nbsp;% to +90&nbsp;%, and 4 of 12 wells take their maximum from a pair that moves by three rounding steps or fewer (median increment of the peak pair: 10 steps).</p>
+<p>The stabilized reading of the same procedure (Equation&nbsp;3) behaves far better: mean absolute relative deviation 13.8&nbsp;% (maximum 20.2&nbsp;%), mean <i>r</i><sub>stab</sub>&nbsp;=&nbsp;1.069&nbsp;h<sup>&minus;1</sup> against a published mean of 1.244&nbsp;h<sup>&minus;1</sup>. The residual gap is not random: the published <i>r</i> values fall on a discrete lattice, in which three wells share the value 1.3166&hellip; (fifteen significant digits) and four wells share 1.3327&hellip;, which is the signature of slopes built from quantized readings and a fixed background; without the authors' original blank wells, the exact lattice cannot be restored, which caps the achievable agreement.</p>
+
+{{fig3}}
+
+<h3 id="s4-5">4.5&nbsp;&nbsp;Which logarithm did the authors use?</h3>
+<p>Recomputing <i>r</i> with the base 10 convention shifts every value by a factor ln(10) and raises the mean absolute relative deviation from 38.6&nbsp;% to 73.4&nbsp;%. The natural logarithm is therefore the convention behind the deposited values, and all rates in this report are quoted in natural logarithmic units per hour.</p>
+
+<h3 id="s4-6">4.6&nbsp;&nbsp;The resolved middle of the rise</h3>
+<p>Restricting the analysis to the middle of the rise (net signal 0.02&ndash;0.12&nbsp;OD, five points per well) gives tightly linear semilogarithmic fits (<i>R</i><sup>2</sup>&nbsp;=&nbsp;0.95&ndash;0.99 in every well) with a mean specific rate corresponding to a doubling time of 70.5&nbsp;min (SD across wells 3.6&nbsp;min; seeded bootstrap 95&nbsp;% CI 68.6&ndash;72.4&nbsp;min; range over background scenarios 62.9&ndash;77.0&nbsp;min). This is the most defensible single number the curves support: it uses only readings far above the rounding step, and its value hardly moves with the background scenario.</p>
+
+{{table3}}
+
+<h3 id="s4-7">4.7&nbsp;&nbsp;Validation wells and internal consistency</h3>
+<p>Statistics computed on the eight training wells and on the four wells that the release reserves as validation units agree: mean doubling time through the middle of the rise 69.3&nbsp;min versus 72.8&nbsp;min, mean <i>K</i> 0.2528 versus 0.2555&nbsp;OD. The experiment therefore does not depend on which wells were used to develop the pipeline, and no overfitting to a subset can explain the results.</p>
+
+<h2 id="s5">5&nbsp;&nbsp;Discussion</h2>
+
+<h3 id="s5-1">5.1&nbsp;&nbsp;What replicated, and why</h3>
+<p>The carrying capacity replicated essentially exactly (0.77&nbsp;% mean absolute relative deviation) even though the analysis did not have the authors' background wells. This is a real, if modest, replication result: <i>K</i> is a robust statistic because it reads the same plateau top, and it is nearly invariant to background errors of one or two rounding steps. By contrast, the maximum rate <i>r</i> as literally defined did not replicate (38.6&nbsp;% mean deviation, two collapses to zero). The mechanism is fully visible in the data: with net signals of one to three rounding steps in the early rise, a single step flicker produces a pair slope of up to 1.39&nbsp;h<sup>&minus;1</sup>, and Equations&nbsp;2.1&ndash;2.2 select precisely the largest of such noisy slopes. The statistic is an extreme value functional of quantized data that depend on the exact background, so its value is set by rounding and by the subtraction, not by growth alone. The published values themselves show this fingerprint: repeated values to fifteen significant digits across wells (Section&nbsp;4.4), which independent measurement noise could not produce.</p>
+
+<h3 id="s5-2">5.2&nbsp;&nbsp;What do the curves actually support?</h3>
+<p>Two clearly defined quantities survive scrutiny. First, there is a transient maximum specific rate of about 1.0&ndash;1.2&nbsp;h<sup>&minus;1</sup> in the early rise (around 7&ndash;8&nbsp;h), supported by increments of roughly five to twelve rounding steps rather than by single step flicker; averaging three consecutive slopes dampens what remains of the rounding noise, and this is the quantity the stabilized procedure (Equation&nbsp;3) estimates (mean 1.069&nbsp;h<sup>&minus;1</sup>). Second, the average rate through the middle of the rise is 0.59&nbsp;h<sup>&minus;1</sup> (doubling time 70.5&nbsp;min); the semilogarithmic plots are linear there, but the local slope declines steadily as the rise proceeds (roughly 1.2&nbsp;h<sup>&minus;1</sup> near 0.02&nbsp;OD falling to about 0.45&nbsp;h<sup>&minus;1</sup> near 0.1&nbsp;OD), so the culture never holds a constant exponential rate for long. The two readings are not contradictory: they describe the transient and the phase average of a culture that accelerates briefly and then decelerates, plausibly as the 2&nbsp;mM glucose supply is consumed.</p>
+
+<h3 id="s5-3">5.3&nbsp;&nbsp;Comparison with the literature value</h3>
+<p>Converting all statistics to doubling times places them on the scale of the literature anchor of 42&nbsp;&plusmn;&nbsp;12&nbsp;min (30&ndash;54&nbsp;min band; Figure&nbsp;4 and Table&nbsp;4). The published <i>r</i> implies 33.7&nbsp;&plusmn;&nbsp;3.0&nbsp;min (range 29.7&ndash;38.8&nbsp;min); the stabilized transient reading implies 39.0&nbsp;&plusmn;&nbsp;1.8&nbsp;min; and the average through the middle of the rise implies 70.5&nbsp;min with a 95&nbsp;% CI of 68.6&ndash;72.4&nbsp;min. Both estimates based on the transient sit inside, or at the lower edge of, the anchor band, while the sustained average is clearly slower.</p>
+{{table4}}
+<p>The comparison must respect the conditions. The anchor was measured single cell in supplemented M9, a richer medium than Cond00003 (about five times less glucose, no casamino acids); a slower sustained rate in the poorer medium is the expected direction, and the 70.5&nbsp;min average is consistent with it. The transient agreement is more delicate to interpret: it may reflect a genuine early phase in which cells grow near their intrinsic capacity before the small carbon supply constrains them, or it may retain a residue of the same background sensitivity that destabilizes the published <i>r</i>. What can be said without overclaiming is that the doubling time scale of this condition is bracketed by 35&ndash;70&nbsp;min depending on which defensible statistic is used, that the literature value falls inside this bracket, and that neither the published <i>r</i> nor any single alternative statistic can be treated as &ldquo;the&rdquo; growth rate of this culture without stating the processing definition. The agreement of the published value with the single cell anchor is therefore better read as consistency of scale than as validation of either number.</p>
+
+{{fig4}}
+
+<h3 id="s5-4">5.4&nbsp;&nbsp;Implications for data reuse</h3>
+<p>For datasets of this kind, the practical lesson is asymmetric: parameters read from the plateau travel well, extreme value slope statistics do not. A reuser of the published <i>K</i> values inherits a robust number; a reuser of <i>r</i> inherits a statistic whose value is tied to the unreleased blank readings and to the rounding at the 0.001&nbsp;OD level. This is exactly the kind of dependence that replication studies exist to expose, and it required no new measurements to detect &mdash; only an explicit treatment of the background and a comparison against the authors' own numbers.</p>
+
+<h2 id="s6">6&nbsp;&nbsp;Evaluation</h2>
+
+<h3 id="s6-1">6.1&nbsp;&nbsp;Strengths</h3>
+<p>The comparison uses the strongest available reference: the dataset authors' own calculated values for the same wells, so differences cannot come from different data. The data are fully published under CC BY 4.0 with a citable DOI, the analysis is deterministic and seeded, background uncertainty is handled by preset scenarios rather than by a single guess, and the entire pipeline &mdash; extraction, computation, figures, report &mdash; is contained in the project with recorded hashes. The quantization mechanism behind the unstable statistic was not merely inferred but isolated and quantified.</p>
+
+<h3 id="s6-2">6.2&nbsp;&nbsp;Limitations and improvements</h3>
+<p>The most important limitation is that the authors' blank wells were not released, so the exact published <i>r</i> values cannot be regenerated; a stronger version of this study would obtain those blanks (or more precise readings) directly from the authors. The OD<sub>600</sub> signal is not a cell count, and the project's dataset documentation explicitly forbids interpreting these curves as CFU data; a CFU calibration for a subset of wells would anchor the optical observation layer. Only one condition of the 1,029 was analysed, and only one plate round, so variability between plates is not characterized; the 0.02&ndash;0.12&nbsp;OD window of the companion estimator is a design choice whose bounds shift the average by about 10&nbsp;% across scenarios. Finally, the literature anchor itself is single cell in a different medium, and the meaning of its &plusmn;&nbsp;12&nbsp;min is undocumented; it can support scale comparisons but not exact agreement claims.</p>
+
+<h3 id="s6-3">6.3&nbsp;&nbsp;Extensions</h3>
+<p>The same pipeline applies unchanged to all 13,608 curves and, joined to the released workbook of medium compositions, could map growth rate against glucose concentration across the 1,029 media, turning this replication into a systematic study of how the fragility of <i>r</i> depends on signal amplitude. Repeating the analysis on Rounds&nbsp;2&ndash;7 would test whether the quantization signature is a property of this plate or of the whole release. In the Ecolab workspace, the rate estimated here through the middle of the rise can serve as an independently obtained, clearly defined target for the project's own OD observation model, whose equation OD&nbsp;=&nbsp;baseline&nbsp;+&nbsp;scale&nbsp;&times;&nbsp;(N/K) contains exactly the background term that this study shows to be decisive.</p>
+
+<h2 id="s7">7&nbsp;&nbsp;Conclusion</h2>
+<p>An independent reanalysis of the twelve released Cond00003 growth curves reproduced the published carrying capacity of <i>E. coli</i> BW25113 to within 0.8&nbsp;% but failed under a literal reading to reproduce the published maximum growth rate, whose values are set at the 0.001&nbsp;OD rounding scale and depend on blank readings that were not released. A minimally stabilized reading of the same definition recovers the published rate to within about 14&nbsp;%, and the resolved middle of the rise gives a doubling time of 70.5&nbsp;min (95&nbsp;% CI 68.6&ndash;72.4&nbsp;min). The literature anchor for this strain, 42&nbsp;&plusmn;&nbsp;12&nbsp;min in a richer single cell medium, falls between the transient estimates (34&ndash;39&nbsp;min) and the average based estimate, so the data are consistent with it in scale while showing that no single processing statistic deserves to be called the growth rate of this culture without its definition attached.</p>
+
+<div class="pagebreak"></div>
+<h2 id="refs-h">References</h2>
+<div class="refs" id="refs">
+<p>Aida, H., &amp; Ying, B.-W. (2025). Population Dynamics of <i>Escherichia coli</i> Growing under Chemically Defined Media. <i>Scientific Data</i>. https://doi.org/10.1038/s41597-025-05356-3</p>
+<p>Aida, H., &amp; Ying, B.-W. (2025). Bacterial growth profiles across one-thousand chemical-defined media [Dataset, CC BY 4.0]. figshare. https://doi.org/10.6084/m9.figshare.28342064.v1</p>
+<p>BioNumbers. (n.d.). Doubling time in M9-supplemented medium, BNID 111767. Harvard Medical School. https://bionumbers.hms.harvard.edu/bionumber.aspx?id=111767</p>
+<p>Campos, M., Surovtsev, I.&nbsp;V., Kato, S., Paintdakhi, A., Beltran, B., Ebmeier, S.&nbsp;E., &amp; Jacobs-Wagner, C. (2014). A constant size extension drives bacterial cell size homeostasis. <i>Cell, 159</i>(6), 1433&ndash;1446. https://doi.org/10.1016/j.cell.2014.11.022</p>
+<p>Keng0nion. (2026). Ecolab: an auditable <i>E.&nbsp;coli</i>&#8211;antibiotic modeling workspace [Computer software]. GitHub. https://github.com/Keng0nion/ecolab-antibiotic-modeling</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1839 @@
+{
+  "meta": {
+    "description": "Independent replication of Aida & Ying (2025) Cond00003 K and r for BW25113",
+    "rng": "xoshiro128ss-splitmix32-v1",
+    "bootstrapSeed": 519647544
+  },
+  "config": {
+    "plateauWindowHours": [
+      0.5,
+      5
+    ],
+    "initialCellUncertaintyOd": 0.004,
+    "scenarios": [
+      {
+        "id": "high",
+        "offset": 0
+      },
+      {
+        "id": "mid",
+        "offset": -0.002
+      },
+      {
+        "id": "low",
+        "offset": -0.004
+      }
+    ],
+    "robustNetWindowOd": [
+      0.02,
+      0.12
+    ],
+    "bootstrapSamples": 10000,
+    "odQuantum": 0.001
+  },
+  "dataset": {
+    "sha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+    "curves": 12
+  },
+  "reference": {
+    "sha256": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1"
+  },
+  "perCurve": [
+    {
+      "label": "Curve00025",
+      "seriesId": "Curve00025|Round01_0025",
+      "role": "training",
+      "baselinePlateauMean": 0.08389999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08389999999999999,
+          "rate": {
+            "rLn": 2.0296816251488385,
+            "rLog10": 0.8814795298225649,
+            "rCenteredWindowMax": {
+              "rLn": 2.4757147111360944,
+              "centerPairHours": [
+                5.5,
+                6
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 4.7957905455964385,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25310000000000005,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6609017774701009,
+            "standardError": 0.04133340527246676,
+            "r2": 0.9884019921164261,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.026100000000000012,
+              0.10010000000000001
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.08189999999999999,
+          "rate": {
+            "rLn": 0.4310847766166968,
+            "rLog10": 0.18721773971712738,
+            "rCenteredWindowMax": {
+              "rLn": 1.0183205367736223,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              0.5,
+              1
+            ],
+            "peakSlopeLn": 1.2932543298500905,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25510000000000005,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6349666714795553,
+            "standardError": 0.03676759406497856,
+            "r2": 0.990041289094173,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.028100000000000014,
+              0.10210000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07989999999999998,
+          "rate": {
+            "rLn": 0.8771178626039577,
+            "rLog10": 0.3809274477076734,
+            "rCenteredWindowMax": {
+              "rLn": 0.8771178626039577,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.017226466966099,
+            "peakPairIncrementQuanta": 11.999999999999996
+          },
+          "carryingCapacity": {
+            "k": 0.25710000000000005,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6112094430595733,
+            "standardError": 0.03280558919193749,
+            "r2": 0.9914316028791993,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.030100000000000016,
+              0.10410000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2557666666666666,
+        "r": 1.097515482498505,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00026",
+      "seriesId": "Curve00026|Round01_0026",
+      "role": "training",
+      "baselinePlateauMean": 0.08299999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08299999999999999,
+          "rate": {
+            "rLn": 1.3862943611198861,
+            "rLog10": 0.6020599913279604,
+            "rCenteredWindowMax": {
+              "rLn": 1.4648163848908038,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              6.5,
+              7
+            ],
+            "peakSlopeLn": 1.6218604324326575,
+            "peakPairIncrementQuanta": 5.000000000000004
+          },
+          "carryingCapacity": {
+            "k": 0.25366666666666665,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5591106839706924,
+            "standardError": 0.07491080044350684,
+            "r2": 0.948898426375806,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.032000000000000015,
+              0.10700000000000001
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.08099999999999999,
+          "rate": {
+            "rLn": 1.1083651584986989,
+            "rLog10": 0.481356872269808,
+            "rCenteredWindowMax": {
+              "rLn": 1.1564007035920705,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.2719775334399925,
+            "peakPairIncrementQuanta": 16
+          },
+          "carryingCapacity": {
+            "k": 0.25566666666666665,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5400697007045715,
+            "standardError": 0.07052976531751076,
+            "r2": 0.9513261242221157,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.034000000000000016,
+              0.10900000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07899999999999999,
+          "rate": {
+            "rLn": 1.019596803173709,
+            "rLog10": 0.44280526538453774,
+            "rCenteredWindowMax": {
+              "rLn": 1.019596803173709,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.1755733298042372,
+            "peakPairIncrementQuanta": 16
+          },
+          "carryingCapacity": {
+            "k": 0.25766666666666665,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6469278088319464,
+            "standardError": 0.0840822099387863,
+            "r2": 0.9367063623132176,
+            "points": 6,
+            "timeRangeHours": [
+              7.5,
+              10
+            ],
+            "netRangeOd": [
+              0.020000000000000018,
+              0.11100000000000002
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2537666666666666,
+        "r": 1.402218163377593,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00027",
+      "seriesId": "Curve00027|Round01_0027",
+      "role": "training",
+      "baselinePlateauMean": 0.08199999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08199999999999999,
+          "rate": {
+            "rLn": 1.3432686803615053,
+            "rLog10": 0.5833741755944647,
+            "rCenteredWindowMax": {
+              "rLn": 1.3862943611198812,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              6.5,
+              7
+            ],
+            "peakSlopeLn": 1.3862943611198906,
+            "peakPairIncrementQuanta": 4.0000000000000036
+          },
+          "carryingCapacity": {
+            "k": 0.2456666666666667,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6248150234911122,
+            "standardError": 0.07666079678942138,
+            "r2": 0.9567902525736682,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.02700000000000001,
+              0.101
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07999999999999999,
+          "rate": {
+            "rLn": 0.8837798262023032,
+            "rLog10": 0.38382070173707517,
+            "rCenteredWindowMax": {
+              "rLn": 1.0729586082893998,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              8,
+              8.5
+            ],
+            "peakSlopeLn": 1.0894543508833439,
+            "peakPairIncrementQuanta": 21.000000000000004
+          },
+          "carryingCapacity": {
+            "k": 0.2476666666666667,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6009739891464116,
+            "standardError": 0.07099481537996412,
+            "r2": 0.9598161783382559,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.029000000000000012,
+              0.10300000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07799999999999999,
+          "rate": {
+            "rLn": 0.8301438419066561,
+            "rLog10": 0.3605268897260262,
+            "rCenteredWindowMax": {
+              "rLn": 0.9775580458622843,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              8,
+              8.5
+            ],
+            "peakSlopeLn": 1.034513028192562,
+            "peakPairIncrementQuanta": 21.000000000000004
+          },
+          "carryingCapacity": {
+            "k": 0.24966666666666668,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5790843640055158,
+            "standardError": 0.06599583253356793,
+            "r2": 0.9624966695474709,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.031000000000000014,
+              0.10500000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2464333333333333,
+        "r": 1.344012987455387,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00028",
+      "seriesId": "Curve00028|Round01_0028",
+      "role": "training",
+      "baselinePlateauMean": 0.08109999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08109999999999999,
+          "rate": {
+            "rLn": 0.9775580458622785,
+            "rLog10": 0.4245480650581135,
+            "rCenteredWindowMax": {
+              "rLn": 1.448148850087193,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5.5,
+              6
+            ],
+            "peakSlopeLn": 1.4944288036604292,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.2549,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6348010682257974,
+            "standardError": 0.05284277066586628,
+            "r2": 0.9796351379636056,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.027900000000000008,
+              0.1029
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07909999999999999,
+          "rate": {
+            "rLn": 1.0369886122077927,
+            "rLog10": 0.4503584320783554,
+            "rCenteredWindowMax": {
+              "rLn": 1.081937419656643,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.141089716935225,
+            "peakPairIncrementQuanta": 12.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.2569,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6110988437246865,
+            "standardError": 0.048247625789359,
+            "r2": 0.9816429132387241,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.02990000000000001,
+              0.10490000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07709999999999999,
+          "rate": {
+            "rLn": 0.9421593309088948,
+            "rLog10": 0.40917459848739285,
+            "rCenteredWindowMax": {
+              "rLn": 0.9421593309088948,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.0468881754504036,
+            "peakPairIncrementQuanta": 12.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.2589,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5892866564281647,
+            "standardError": 0.04420867408307284,
+            "r2": 0.9833960476617098,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03190000000000001,
+              0.10690000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2564333333333333,
+        "r": 1.332730973023436,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00029",
+      "seriesId": "Curve00029|Round01_0029",
+      "role": "training",
+      "baselinePlateauMean": 0.08109999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08109999999999999,
+          "rate": {
+            "rLn": 1.5276078615972721,
+            "rLog10": 0.6634316648037216,
+            "rCenteredWindowMax": {
+              "rLn": 1.5276078615972721,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              6,
+              6.5
+            ],
+            "peakSlopeLn": 1.8947626378883595,
+            "peakPairIncrementQuanta": 2.999999999999989
+          },
+          "carryingCapacity": {
+            "k": 0.24856666666666669,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6187624646032324,
+            "standardError": 0.03629902316541352,
+            "r2": 0.9897811415290213,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.02890000000000001,
+              0.1019
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07909999999999999,
+          "rate": {
+            "rLn": 0.882701368161777,
+            "rLog10": 0.38335233336111046,
+            "rCenteredWindowMax": {
+              "rLn": 1.015882773140737,
+              "centerPairHours": [
+                6.5,
+                7
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              6,
+              6.5
+            ],
+            "peakSlopeLn": 1.1410897169352192,
+            "peakPairIncrementQuanta": 2.999999999999989
+          },
+          "carryingCapacity": {
+            "k": 0.25056666666666666,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5959312328217384,
+            "standardError": 0.03254342234762965,
+            "r2": 0.9911327848348245,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03090000000000001,
+              0.1039
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07709999999999999,
+          "rate": {
+            "rLn": 0.8745921286994952,
+            "rLog10": 0.3798305354102094,
+            "rCenteredWindowMax": {
+              "rLn": 0.8745921286994952,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.0055058520817584,
+            "peakPairIncrementQuanta": 12.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.25256666666666666,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5748857352228446,
+            "standardError": 0.029256915869145993,
+            "r2": 0.9922900085963823,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03290000000000001,
+              0.10590000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2491,
+        "r": 1.156703413499944,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00030",
+      "seriesId": "Curve00030|Round01_0030",
+      "role": "training",
+      "baselinePlateauMean": 0.0809,
+      "byScenario": {
+        "high": {
+          "background": 0.0809,
+          "rate": {
+            "rLn": 2.0296816251489314,
+            "rLog10": 0.8814795298226052,
+            "rCenteredWindowMax": {
+              "rLn": 2.4757147111361872,
+              "centerPairHours": [
+                5.5,
+                6
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 4.795790545596691,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.24376666666666666,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6429466159482246,
+            "standardError": 0.04917437110929778,
+            "r2": 0.9827537856567452,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.0271,
+              0.1011
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.0789,
+          "rate": {
+            "rLn": -7.401486830834377e-17,
+            "rLog10": -3.2144248885109565e-17,
+            "rCenteredWindowMax": {
+              "rLn": 1.04163293533212,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              3,
+              3.5
+            ],
+            "peakSlopeLn": 1.2932543298501025,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.24576666666666666,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.618350612391182,
+            "standardError": 0.04457637575138495,
+            "r2": 0.9846487929849238,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.0291,
+              0.1031
+            ]
+          }
+        },
+        "low": {
+          "background": 0.0769,
+          "rate": {
+            "rLn": 0.9060450322797844,
+            "rLog10": 0.393490357874964,
+            "rCenteredWindowMax": {
+              "rLn": 0.9060450322797844,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.0825917618268164,
+            "peakPairIncrementQuanta": 12.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.24776666666666666,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5957637754988857,
+            "standardError": 0.04055525791663986,
+            "r2": 0.9862889233185774,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.031100000000000003,
+              0.1051
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2521,
+        "r": 1.070700287348322,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00031",
+      "seriesId": "Curve00031|Round01_0031",
+      "role": "training",
+      "baselinePlateauMean": 0.0831,
+      "byScenario": {
+        "high": {
+          "background": 0.0831,
+          "rate": {
+            "rLn": 0.9775580458622759,
+            "rLog10": 0.4245480650581124,
+            "rCenteredWindowMax": {
+              "rLn": 1.4481488500871926,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5.5,
+              6
+            ],
+            "peakSlopeLn": 1.4944288036604292,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25156666666666666,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.650245466217409,
+            "standardError": 0.039427015882883304,
+            "r2": 0.98909085805694,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.026900000000000007,
+              0.1009
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.08109999999999999,
+          "rate": {
+            "rLn": 0.9929197086270537,
+            "rLog10": 0.431219550429714,
+            "rCenteredWindowMax": {
+              "rLn": 1.0592594961378083,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.0730559463787164,
+            "peakPairIncrementQuanta": 11.999999999999996
+          },
+          "carryingCapacity": {
+            "k": 0.25356666666666666,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6252198006427874,
+            "standardError": 0.03511658979488688,
+            "r2": 0.9906246047223599,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.02890000000000001,
+              0.1029
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07909999999999999,
+          "rate": {
+            "rLn": 0.8999511446326768,
+            "rLog10": 0.3908438160964868,
+            "rCenteredWindowMax": {
+              "rLn": 0.9092622829538158,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 0.9831885236762052,
+            "peakPairIncrementQuanta": 11.999999999999996
+          },
+          "carryingCapacity": {
+            "k": 0.25556666666666666,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6022502739990098,
+            "standardError": 0.031366262842597865,
+            "r2": 0.9919281512976308,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03090000000000001,
+              0.10490000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2521,
+        "r": 1.226665515246117,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00032",
+      "seriesId": "Curve00032|Round01_0032",
+      "role": "training",
+      "baselinePlateauMean": 0.0827,
+      "byScenario": {
+        "high": {
+          "background": 0.0827,
+          "rate": {
+            "rLn": 1.3579212848406772,
+            "rLog10": 0.5897377208652799,
+            "rCenteredWindowMax": {
+              "rLn": 1.7750585513502823,
+              "centerPairHours": [
+                5.5,
+                6
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 2.9326741375868113,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25496666666666673,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6052099911547374,
+            "standardError": 0.0494759836971703,
+            "r2": 0.980344829527762,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.029300000000000007,
+              0.1023
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.0807,
+          "rate": {
+            "rLn": 1.0301917769486246,
+            "rLog10": 0.4474066040308933,
+            "rCenteredWindowMax": {
+              "rLn": 1.0687123094324138,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.1858231920847477,
+            "peakPairIncrementQuanta": 13.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.25696666666666673,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5831289178430855,
+            "standardError": 0.04534801021806531,
+            "r2": 0.9821803242129428,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03130000000000001,
+              0.1043
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07869999999999999,
+          "rate": {
+            "rLn": 0.9389372098182144,
+            "rLog10": 0.40777524907768625,
+            "rCenteredWindowMax": {
+              "rLn": 0.9389372098182144,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.090904602151116,
+            "peakPairIncrementQuanta": 13.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.25896666666666673,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5627563614600677,
+            "standardError": 0.04171057515246218,
+            "r2": 0.9837866150190061,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03330000000000001,
+              0.1063
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2567666666666666,
+        "r": 1.168670237583626,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00033",
+      "seriesId": "Curve00033|Round01_0033",
+      "role": "validation",
+      "baselinePlateauMean": 0.08009999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08009999999999999,
+          "rate": {
+            "rLn": 1.1297304805162647,
+            "rLog10": 0.49063571372612286,
+            "rCenteredWindowMax": {
+              "rLn": 1.1830709266678683,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 1.4944288036604292,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.2539,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6207151057093708,
+            "standardError": 0.042021293028978654,
+            "r2": 0.9864373375896635,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.02890000000000001,
+              0.1029
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07809999999999999,
+          "rate": {
+            "rLn": 0.9994898482003225,
+            "rLog10": 0.43407292579171886,
+            "rCenteredWindowMax": {
+              "rLn": 0.9994898482003225,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7,
+              7.5
+            ],
+            "peakSlopeLn": 1.1007982656609976,
+            "peakPairIncrementQuanta": 8.000000000000007
+          },
+          "carryingCapacity": {
+            "k": 0.2559,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.597939762321863,
+            "standardError": 0.03802862992031469,
+            "r2": 0.9880108209777309,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03090000000000001,
+              0.10490000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07609999999999999,
+          "rate": {
+            "rLn": 0.8716142540221536,
+            "rLog10": 0.3785372608700405,
+            "rCenteredWindowMax": {
+              "rLn": 0.8883667234087996,
+              "centerPairHours": [
+                7.5,
+                8
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7,
+              7.5
+            ],
+            "peakSlopeLn": 0.965043695206278,
+            "peakPairIncrementQuanta": 8.000000000000007
+          },
+          "carryingCapacity": {
+            "k": 0.2579,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6409303277508658,
+            "standardError": 0.0433099144494188,
+            "r2": 0.9820628969934705,
+            "points": 6,
+            "timeRangeHours": [
+              7.5,
+              10
+            ],
+            "netRangeOd": [
+              0.020900000000000016,
+              0.10690000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2541,
+        "r": 1.183952835681689,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00034",
+      "seriesId": "Curve00034|Round01_0034",
+      "role": "validation",
+      "baselinePlateauMean": 0.08109999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08109999999999999,
+          "rate": {
+            "rLn": 1.129730480516263,
+            "rLog10": 0.4906357137261221,
+            "rCenteredWindowMax": {
+              "rLn": 1.2694916351031635,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 1.4944288036604292,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25623333333333337,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5927786208225948,
+            "standardError": 0.03353662991048095,
+            "r2": 0.9904890324835861,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03290000000000001,
+              0.10990000000000001
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07909999999999999,
+          "rate": {
+            "rLn": 0.9688830156259952,
+            "rLog10": 0.4207805472961518,
+            "rCenteredWindowMax": {
+              "rLn": 1.0806436117367786,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.123534194955869,
+            "peakPairIncrementQuanta": 15
+          },
+          "carryingCapacity": {
+            "k": 0.25823333333333337,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.573026536186773,
+            "standardError": 0.03041264360706925,
+            "r2": 0.9916203560624449,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.034900000000000014,
+              0.11190000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07709999999999999,
+          "rate": {
+            "rLn": 0.8910096658184048,
+            "rLog10": 0.3869605811873936,
+            "rCenteredWindowMax": {
+              "rLn": 0.948106849538925,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.043449828448052,
+            "peakPairIncrementQuanta": 15
+          },
+          "carryingCapacity": {
+            "k": 0.26023333333333337,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.637756300168517,
+            "standardError": 0.05127184052047622,
+            "r2": 0.9747986836680095,
+            "points": 6,
+            "timeRangeHours": [
+              7.5,
+              10
+            ],
+            "netRangeOd": [
+              0.021900000000000017,
+              0.11390000000000002
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2564333333333333,
+        "r": 1.316630583387685,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00035",
+      "seriesId": "Curve00035|Round01_0035",
+      "role": "validation",
+      "baselinePlateauMean": 0.08009999999999999,
+      "byScenario": {
+        "high": {
+          "background": 0.08009999999999999,
+          "rate": {
+            "rLn": 1.1297304805162647,
+            "rLog10": 0.49063571372612286,
+            "rCenteredWindowMax": {
+              "rLn": 1.5985968485322386,
+              "centerPairHours": [
+                6,
+                6.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5.5,
+              6
+            ],
+            "peakSlopeLn": 2.3401425053004923,
+            "peakPairIncrementQuanta": 2.0000000000000018
+          },
+          "carryingCapacity": {
+            "k": 0.25123333333333336,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5851998319670233,
+            "standardError": 0.03084651699703996,
+            "r2": 0.991733529274487,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03190000000000001,
+              0.10490000000000001
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.07809999999999999,
+          "rate": {
+            "rLn": 0.9343230177425755,
+            "rLog10": 0.4057713309207946,
+            "rCenteredWindowMax": {
+              "rLn": 1.0612624018554593,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              6.5,
+              7
+            ],
+            "peakSlopeLn": 1.0900339770285363,
+            "peakPairIncrementQuanta": 4.99999999999999
+          },
+          "carryingCapacity": {
+            "k": 0.25323333333333337,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5649630545899222,
+            "standardError": 0.02776596322827525,
+            "r2": 0.9928059900329013,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.03390000000000001,
+              0.10690000000000001
+            ]
+          }
+        },
+        "low": {
+          "background": 0.07609999999999999,
+          "rate": {
+            "rLn": 0.8653160556132203,
+            "rLog10": 0.37580198805510895,
+            "rCenteredWindowMax": {
+              "rLn": 0.9297906791707584,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 0.9885013173435555,
+            "peakPairIncrementQuanta": 13.999999999999998
+          },
+          "carryingCapacity": {
+            "k": 0.25523333333333337,
+            "peakIndex": 26,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6214436230073831,
+            "standardError": 0.04643445234983041,
+            "r2": 0.9781553539746347,
+            "points": 6,
+            "timeRangeHours": [
+              7.5,
+              10
+            ],
+            "netRangeOd": [
+              0.021900000000000017,
+              0.10890000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2514333333333333,
+        "r": 1.316630583387681,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    },
+    {
+      "label": "Curve00036",
+      "seriesId": "Curve00036|Round01_0036",
+      "role": "validation",
+      "baselinePlateauMean": 0.0809,
+      "byScenario": {
+        "high": {
+          "background": 0.0809,
+          "rate": {
+            "rLn": 2.0296816251489314,
+            "rLog10": 0.8814795298226052,
+            "rCenteredWindowMax": {
+              "rLn": 2.4757147111361872,
+              "centerPairHours": [
+                5.5,
+                6
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              5,
+              5.5
+            ],
+            "peakSlopeLn": 4.795790545596691,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25243333333333334,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5712944295891187,
+            "standardError": 0.06081429324617356,
+            "r2": 0.9671228437815704,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.033100000000000004,
+              0.1111
+            ]
+          }
+        },
+        "mid": {
+          "background": 0.0789,
+          "rate": {
+            "rLn": -7.401486830834377e-17,
+            "rLog10": -3.2144248885109565e-17,
+            "rCenteredWindowMax": {
+              "rLn": 1.166608239528369,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              1.5,
+              2
+            ],
+            "peakSlopeLn": 1.2932543298501025,
+            "peakPairIncrementQuanta": 1.0000000000000009
+          },
+          "carryingCapacity": {
+            "k": 0.25443333333333334,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.5524790544994003,
+            "standardError": 0.056961179369321144,
+            "r2": 0.9690960227257421,
+            "points": 5,
+            "timeRangeHours": [
+              8,
+              10
+            ],
+            "netRangeOd": [
+              0.035100000000000006,
+              0.1131
+            ]
+          }
+        },
+        "low": {
+          "background": 0.0769,
+          "rate": {
+            "rLn": 1.004412462803298,
+            "rLog10": 0.43621079015032743,
+            "rCenteredWindowMax": {
+              "rLn": 1.0145019386233303,
+              "centerPairHours": [
+                7,
+                7.5
+              ]
+            },
+            "slopesUsed": 3,
+            "peakPairHours": [
+              7.5,
+              8
+            ],
+            "peakSlopeLn": 1.128687858262737,
+            "peakPairIncrementQuanta": 16
+          },
+          "carryingCapacity": {
+            "k": 0.25643333333333335,
+            "peakIndex": 25,
+            "windowLength": 3
+          },
+          "robust": {
+            "slopePerHour": 0.6454814218980768,
+            "standardError": 0.07278446371347481,
+            "r2": 0.9516022331946861,
+            "points": 6,
+            "timeRangeHours": [
+              7.5,
+              10
+            ],
+            "netRangeOd": [
+              0.021100000000000008,
+              0.11510000000000001
+            ]
+          }
+        }
+      },
+      "reference": {
+        "k": 0.2587666666666666,
+        "r": 1.316630583387681,
+        "kInfo": 0,
+        "rInfo": 0
+      }
+    }
+  ],
+  "comparisons": {
+    "r": {
+      "high": {
+        "pairedCount": 12,
+        "meanDelta": 0.17628191256347683,
+        "sdDelta": 0.4630690945617765,
+        "meanAbsoluteRelativePercent": 29.83631436079067,
+        "maxAbsoluteRelativePercent": 89.56580558837862,
+        "minRelativePercent": -26.650009217945282,
+        "maxRelativePercent": 89.56580558837862
+      },
+      "mid": {
+        "pairedCount": 12,
+        "meanDelta": -0.47202787808715213,
+        "sdDelta": 0.36754140316727874,
+        "meanAbsoluteRelativePercent": 38.64448138521476,
+        "maxAbsoluteRelativePercent": 100,
+        "minRelativePercent": -100,
+        "maxRelativePercent": -11.849233101146064
+      },
+      "low": {
+        "pairedCount": 12,
+        "meanDelta": -0.3343471544664334,
+        "sdDelta": 0.1027870141360503,
+        "meanAbsoluteRelativePercent": 26.472239686427688,
+        "maxAbsoluteRelativePercent": 38.23394195926906,
+        "minRelativePercent": -38.23394195926906,
+        "maxRelativePercent": -15.378276910368635
+      }
+    },
+    "k": {
+      "high": {
+        "pairedCount": 12,
+        "meanDelta": -0.0019333333333332707,
+        "sdDelta": 0.0026746471493895026,
+        "meanAbsoluteRelativePercent": 0.7589233795188276,
+        "maxAbsoluteRelativePercent": 3.3055665741108022,
+        "minRelativePercent": -3.3055665741108022,
+        "maxRelativePercent": -0.03940627873371871
+      },
+      "mid": {
+        "pairedCount": 12,
+        "meanDelta": 0.00006666666666672871,
+        "sdDelta": 0.0026746471493895013,
+        "meanAbsoluteRelativePercent": 0.7711120114296,
+        "maxAbsoluteRelativePercent": 2.512230596324209,
+        "minRelativePercent": -2.512230596324209,
+        "maxRelativePercent": 0.7487192959411805
+      },
+      "low": {
+        "pairedCount": 12,
+        "meanDelta": 0.0020666666666667283,
+        "sdDelta": 0.0026746471493895004,
+        "meanAbsoluteRelativePercent": 1.2554169914886006,
+        "maxAbsoluteRelativePercent": 1.7188946185376153,
+        "minRelativePercent": -1.7188946185376153,
+        "maxRelativePercent": 1.5368448706160796
+      }
+    }
+  },
+  "correlations": {
+    "rMidVsReference": 0.4132120438682416,
+    "kMidVsReference": 0.7404863023844662
+  },
+  "doublingTimes": {
+    "paperImpliedMinutes": {
+      "mean": 33.65659773158316,
+      "sd": 2.98886513668012,
+      "min": 29.659315447333544,
+      "max": 38.842644692470294
+    },
+    "robustMidMinutes": {
+      "mean": 70.47232946691744,
+      "sd": 3.5709732952913935,
+      "min": 65.49765948611021,
+      "max": 77.00641376352014
+    },
+    "robustScenarioRangeMinutes": [
+      62.927400487250445,
+      77.00641376352014
+    ],
+    "centeredWindowMaxMinutes": {
+      "mean": 38.99831131101192,
+      "sd": 1.809290825164414
+    },
+    "literatureAnchor": {
+      "value": 42,
+      "uncertainty": 12
+    }
+  },
+  "diagnostics": {
+    "distinctReplicatedR": 11,
+    "distinctReferenceR": 10,
+    "curvesWithSmallPeakIncrement": 4,
+    "medianPeakIncrementQuanta": 10.000000000000002,
+    "peakPairHoursMid": [
+      [
+        0.5,
+        1
+      ],
+      [
+        7.5,
+        8
+      ],
+      [
+        8,
+        8.5
+      ],
+      [
+        7.5,
+        8
+      ],
+      [
+        6,
+        6.5
+      ],
+      [
+        3,
+        3.5
+      ],
+      [
+        7.5,
+        8
+      ],
+      [
+        7.5,
+        8
+      ],
+      [
+        7,
+        7.5
+      ],
+      [
+        7.5,
+        8
+      ],
+      [
+        6.5,
+        7
+      ],
+      [
+        1.5,
+        2
+      ]
+    ],
+    "logBaseCheck": {
+      "meanAbsoluteRelativePercentLn": 38.64448138521476,
+      "meanAbsoluteRelativePercentLog10": 73.35363683128651
+    }
+  },
+  "bootstrap": {
+    "samples": 10000,
+    "rMid": {
+      "mean": 0.7730486084953214,
+      "ci95": [
+        0.5419451801508176,
+        0.9722499238740343
+      ]
+    },
+    "tdRobustMidMinutes": {
+      "mean": 70.47268085188638,
+      "ci95": [
+        68.59340461380901,
+        72.4292939151224
+      ]
+    },
+    "kMid": {
+      "mean": 0.25367029777777644,
+      "ci95": [
+        0.2514472222222222,
+        0.25558055555555553
+      ]
+    }
+  },
+  "roles": {
+    "training": {
+      "curves": 8,
+      "meanRmid": 0.7957539034078683,
+      "meanTdRobustMidMinutes": 69.33084906877144,
+      "meanKmid": 0.252775
+    },
+    "validation": {
+      "curves": 4,
+      "meanRmid": 0.7256739703922233,
+      "meanTdRobustMidMinutes": 72.75529026320943,
+      "meanKmid": 0.25545
+    }
+  }
+}

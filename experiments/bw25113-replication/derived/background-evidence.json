@@ -1,0 +1,344 @@
+{
+  "note": "Flat wells observed in Round 01 (range <= 0.002 OD over at least 30 points). They bound the optical background of the plate series; the authors' own media-only blank wells were not deposited.",
+  "inputs": {
+    "BW25113_GrowthDataEvaluation.xlsx": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1",
+    "BW25113_Growth_Round01.xlsx": "d81c738fdf7885195203de9b8b28bc221cf81992dffe1288c42b81aa6876d921",
+    "BW25113_Medium_composition.xlsx": "e3d82236c0f9a65cff55bebf1d5478b15a0972111422c32a3395deb5c5509cdd"
+  },
+  "flatWells": [
+    {
+      "label": "Curve00001",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081383,
+      "minOd": 0.081,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00002",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081085,
+      "minOd": 0.081,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00003",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.082,
+      "minOd": 0.082,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00004",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00005",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.082,
+      "minOd": 0.082,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00006",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.080979,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00007",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081766,
+      "minOd": 0.081,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00008",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00009",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00010",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.080851,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00011",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.08,
+      "minOd": 0.08,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00012",
+      "conditionId": "Cond00001",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00853",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.082,
+      "minOd": 0.082,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00854",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.082,
+      "minOd": 0.082,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00855",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.081721,
+      "minOd": 0.081,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00856",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.08214,
+      "minOd": 0.082,
+      "maxOd": 0.083
+    },
+    {
+      "label": "Curve00857",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.083186,
+      "minOd": 0.083,
+      "maxOd": 0.084
+    },
+    {
+      "label": "Curve00858",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00859",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00860",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.079605,
+      "minOd": 0.079,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00861",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.08,
+      "minOd": 0.08,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00862",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.08,
+      "minOd": 0.08,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00863",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.08,
+      "minOd": 0.08,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00864",
+      "conditionId": "Cond00062",
+      "points": 43,
+      "meanOd": 0.080023,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00865",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00866",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.080489,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00867",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00868",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.081043,
+      "minOd": 0.081,
+      "maxOd": 0.082
+    },
+    {
+      "label": "Curve00869",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.082574,
+      "minOd": 0.082,
+      "maxOd": 0.083
+    },
+    {
+      "label": "Curve00870",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00871",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.080106,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00872",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.08,
+      "minOd": 0.08,
+      "maxOd": 0.08
+    },
+    {
+      "label": "Curve00873",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.081,
+      "minOd": 0.081,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00874",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.080021,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    },
+    {
+      "label": "Curve00875",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.082277,
+      "minOd": 0.082,
+      "maxOd": 0.083
+    },
+    {
+      "label": "Curve00876",
+      "conditionId": "Cond00062",
+      "points": 47,
+      "meanOd": 0.080021,
+      "minOd": 0.08,
+      "maxOd": 0.081
+    }
+  ],
+  "cond00003Composition": {
+    "K2HPO4 (mM)": 61.5,
+    "KH2PO4 (mM)": 22,
+    "Na2HPO4 (mM)": 42.3,
+    "Glucose (mM)": 2,
+    "(NH4)2SO4 (mM)": 1,
+    "NH4Cl (mM)": 1,
+    "Alanine (mM)": 0.02,
+    "Arginine/HCl (mM)": 0.02,
+    "Asparagine/H2O (mM)": 0.02,
+    "AsparticAcid (mM)": 0.02,
+    "Cystine/HCl/H2O (mM)": 0.02,
+    "GlutamicAcid/HCl (mM)": 0.02,
+    "Glutamine (mM)": 0.02,
+    "Glycine (mM)": 0.02,
+    "Histidine/HCl/H2O (mM)": 0.02,
+    "Isoleucine (mM)": 0.02,
+    "Leucine (mM)": 0.02,
+    "Lysine/HCl (mM)": 0.02,
+    "Methionine (mM)": 0.02,
+    "Phenylalanine (mM)": 0.02,
+    "Proline (mM)": 0.02,
+    "Serine (mM)": 0.02,
+    "Threonine (mM)": 0.02,
+    "Tryptophan (mM)": 0.02,
+    "Tyrosine (mM)": 0.01,
+    "Valine (mM)": 0.02,
+    "KCl (mM)": 0.2,
+    "NaCl (mM)": 0.1,
+    "MgSO4/7H2O (mM)": 0.1,
+    "MgCl2/6H2O (mM)": 0.1,
+    "CaCl2/2H2O (mM)": 0.01,
+    "CaSO4/2H2O (mM)": 0.005,
+    "Na3C6H5O7/2H2O (mM)": 0.02,
+    "Na2S2O3/5H2O (mM)": 0.5,
+    "FeSO4/7H2O (mM)": 0.0005,
+    "CuSO4/5H2O (mM)": 1e-05,
+    "Na2MoO4/2H2O (mM)": 0.001,
+    "ZuSO4/7H2O (mM)": 0.0001,
+    "Thiamine/HCl (mM)": 0.001,
+    "Pyridoxine (mM)": 0.002,
+    "FolicAcid (mM)": 5e-05,
+    "Riboflavin (mM)": 0.0005,
+    "H3BO3 (mM)": 0.008,
+    "AminobenzoicAcid (mM)": 0.001
+  }
+}
