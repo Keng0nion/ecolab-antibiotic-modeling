@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ecolab.prediction-band-coverage",
+  "generatedFrom": {
+    "runId": "ecolab-prediction-band-coverage",
+    "createdAt": "2026-11-26T00:00:00.000Z"
+  },
+  "applicationVersion": "6.1.0",
+  "analysisImplementationId": "ecolab-research-development-v2",
+  "dataset": {
+    "id": "figshare-bw25113-growth-v1",
+    "version": "1.0.0",
+    "normalizedJsonArtifactSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+    "path": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json"
+  },
+  "preset": "small",
+  "rootSeed": 123456789,
+  "band": {
+    "level": 0.8,
+    "radius": 0.013000000000000012,
+    "predictionTimeCount": 44,
+    "method": "split_conformal_max_absolute_trajectory_residual",
+    "model": "training_mean",
+    "calibrationUnitCount": 4
+  },
+  "residualScales": {
+    "trainingPooledRmse": 0.002647629728987456,
+    "calibrationPooledRmse": 0.004831096007777495,
+    "betweenCurveMeanResidualSd": 0.002447758222701829
+  },
+  "calibrationUnits": {
+    "available": 4,
+    "required": {
+      "0.8": 4,
+      "0.9": 9,
+      "0.95": 19
+    }
+  },
+  "scenarios": [
+    {
+      "name": "iid_training_sigma",
+      "description": "IID Gaussian residuals at the fit-split pooled RMSE.",
+      "replicates": 20000,
+      "covered": 20000,
+      "coverage": 1,
+      "coverageInterval95": {
+        "lower": 0.9998079639438954,
+        "upper": 0.9999999999999999
+      },
+      "meanMaximumAbsoluteResidual": 0.006525371771026498,
+      "pointCoverage": 1
+    },
+    {
+      "name": "iid_calibration_sigma",
+      "description": "IID Gaussian residuals at the calibration-split pooled RMSE.",
+      "replicates": 20000,
+      "covered": 14616,
+      "coverage": 0.7308,
+      "coverageInterval95": {
+        "lower": 0.724609014030229,
+        "upper": 0.736902342126273
+      },
+      "meanMaximumAbsoluteResidual": 0.01190079805137488,
+      "pointCoverage": 0.9928545454545454
+    },
+    {
+      "name": "ar1_phi_0_8_calibration_sigma",
+      "description": "AR(1) within-trajectory residuals, phi=0.8, calibration-split sigma.",
+      "replicates": 20000,
+      "covered": 16425,
+      "coverage": 0.82125,
+      "coverageInterval95": {
+        "lower": 0.8158784686047752,
+        "upper": 0.8264981482291777
+      },
+      "meanMaximumAbsoluteResidual": 0.010819794496363838,
+      "pointCoverage": 0.9928386363636363
+    },
+    {
+      "name": "curve_offset_1x_plus_iid",
+      "description": "Observed between-curve offset sd plus IID fit-split residuals.",
+      "replicates": 20000,
+      "covered": 19790,
+      "coverage": 0.9895,
+      "coverageInterval95": {
+        "lower": 0.9879903561203053,
+        "upper": 0.9908216405807683
+      },
+      "meanMaximumAbsoluteResidual": 0.007910510932123376,
+      "pointCoverage": 0.9997102272727273
+    },
+    {
+      "name": "curve_offset_2x_plus_iid",
+      "description": "Twice the observed between-curve offset sd plus IID fit-split residuals.",
+      "replicates": 20000,
+      "covered": 16885,
+      "coverage": 0.84425,
+      "coverageInterval95": {
+        "lower": 0.8391584002277058,
+        "upper": 0.849209382947666
+      },
+      "meanMaximumAbsoluteResidual": 0.009810169551139237,
+      "pointCoverage": 0.9800193181818182
+    },
+    {
+      "name": "curve_offset_4x_plus_iid",
+      "description": "Four times the observed between-curve offset sd plus IID fit-split residuals.",
+      "replicates": 20000,
+      "covered": 10658,
+      "coverage": 0.5329,
+      "coverageInterval95": {
+        "lower": 0.5259798413881961,
+        "upper": 0.5398075226393123
+      },
+      "meanMaximumAbsoluteResidual": 0.013618092030093282,
+      "pointCoverage": 0.802575
+    }
+  ],
+  "interpretation": [
+    "Coverage here is a parametric self-consistency check: future trajectories are simulated around the calibration-branch mean curve with the stated residual model, so it does not prove coverage for real future experiments.",
+    "IID scenarios should approach the nominal 0.8 level; AR(1) and between-curve offsets violate the exchangeability assumptions and quantify how much coverage degrades.",
+    "The band is simultaneous over the whole trajectory, so pointwise coverage is expected to be higher than trajectory coverage."
+  ]
+}

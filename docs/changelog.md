@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added a deterministic prediction-band coverage study (`npm run benchmark:coverage`) with a documented report at [docs/prediction-band-coverage.md](./prediction-band-coverage.md). It is evidence tooling only: no analysis contract, version, or existing result changes.
+
 ## 6.1.0 — 2026-11-26
 
 - Added a shared fit eligibility check: a fit needs at least one more exact, uncensored training observation than its free parameter count. OD least-squares fits also stop when the local prediction Jacobian is rank deficient. These cases return `NOT_IDENTIFIABLE` without estimates, predictions, residuals, or validation metrics.

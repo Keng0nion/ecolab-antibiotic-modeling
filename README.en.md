@@ -501,6 +501,7 @@ Suggested reading order for first-time readers:
 - [Detailed update notes for this release](./docs/release-notes-6.1.0.md)
 - [6.0.0 historical release notes](./docs/release-notes-6.0.0.md)
 - [Changelog](./docs/changelog.md)
+- [Prediction-band coverage study](./docs/prediction-band-coverage.md)
 - [Project overview](./docs/project-overview.md)
 - [System architecture](./docs/architecture.md)
 - [Scientific core](./docs/scientific-core.md)

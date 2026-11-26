@@ -501,6 +501,7 @@ UI インポートは inspect のみ行い、ユーザーが明示的にリプ�
 - [今回の詳細更新説明](./docs/release-notes-6.1.0.md)
 - [6.0.0 の履歴リリースノート](./docs/release-notes-6.0.0.md)
 - [変更履歴](./docs/changelog.md)
+- [予測バンドのカバレッジ研究](./docs/prediction-band-coverage.md)
 - [プロジェクト概要](./docs/project-overview.md)
 - [システムアーキテクチャ](./docs/architecture.md)
 - [科学コア](./docs/scientific-core.md)

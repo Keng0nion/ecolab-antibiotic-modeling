@@ -508,6 +508,7 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 - [本次详细更新说明](./docs/release-notes-6.1.0.md)
 - [6.0.0 历史更新说明](./docs/release-notes-6.0.0.md)
 - [变更日志](./docs/changelog.md)
+- [预测带覆盖率研究](./docs/prediction-band-coverage.md)
 - [项目概览](./docs/project-overview.md)
 - [系统架构](./docs/architecture.md)
 - [科学核心](./docs/scientific-core.md)
