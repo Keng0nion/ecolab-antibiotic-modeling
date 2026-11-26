@@ -53,12 +53,43 @@ const budgets = [
   ["standard", { restarts: 1, populationSize: 12, differentialEvolutionMaxEvaluations: 300, nelderMeadMaxEvaluations: 200 }],
   ["large", { restarts: 3, populationSize: 20, differentialEvolutionMaxEvaluations: 2000, nelderMeadMaxEvaluations: 2000 }],
 ];
+const standardOptimizer = {
+  restarts: 1, populationSize: 12, differentialEvolutionMaxEvaluations: 300, nelderMeadMaxEvaluations: 200,
+};
+const resolutionRuns = [
+  ["grid-5", { optimizer: standardOptimizer, profileLikelihoodPoints: 5 }],
+  ["grid-9", { optimizer: standardOptimizer, profileLikelihoodPoints: 9 }],
+  ["grid-11", { optimizer: standardOptimizer, profileLikelihoodPoints: 11 }],
+  ["grid-11-refined", { optimizer: standardOptimizer, profileLikelihoodPoints: 11, profileRootRefinement: true }],
+  ["grid-11-refined-ar1", {
+    optimizer: standardOptimizer,
+    profileLikelihoodPoints: 11,
+    profileRootRefinement: true,
+    profileErrorModel: "both",
+  }],
+];
+
+function intervalSummary(parameters, estimateOf) {
+  return Object.fromEntries(Object.entries(parameters ?? {}).map(([parameter, entry]) => {
+    const range = entry.profileCompatibleRange95 ?? {};
+    const estimate = estimateOf(parameter);
+    return [parameter, {
+      status: entry.identifiability?.status ?? entry.status ?? null,
+      lower: range.lower ?? null,
+      upper: range.upper ?? null,
+      relativeHalfWidth: range.lower != null && range.upper != null && Number.isFinite(estimate)
+        ? (range.upper - range.lower) / (2 * Math.abs(estimate))
+        : null,
+    }];
+  }));
+}
 
 function summarise(name, result) {
   const training = result.training;
   const diagnostics = training.fitDiagnostics;
-  const identifiability = diagnostics.identifiability;
+  const identifiability = result.identifiability ?? diagnostics.identifiability;
   const profile = diagnostics.profileLikelihood;
+  const estimateOf = (parameter) => training.fittedBiologicalParameters?.[parameter];
   return {
     name,
     status: training.status,
@@ -77,17 +108,15 @@ function summarise(name, result) {
     },
     profileStatus: profile.status,
     profileReason: profile.reason,
-    profileIntervals95: Object.fromEntries(Object.entries(profile.parameters ?? {}).map(([parameter, entry]) => [parameter, {
-      status: entry.identifiability?.status ?? null,
-      lower: entry.profileCompatibleRange95?.lower ?? null,
-      upper: entry.profileCompatibleRange95?.upper ?? null,
-      relativeHalfWidth: entry.profileCompatibleRange95?.lower != null
-        && entry.profileCompatibleRange95?.upper != null
-        && Number.isFinite(training.fittedBiologicalParameters?.[parameter])
-        ? (entry.profileCompatibleRange95.upper - entry.profileCompatibleRange95.lower)
-          / (2 * Math.abs(training.fittedBiologicalParameters[parameter]))
-        : null,
-    }])),
+    profilePointCount: profile.pointCount,
+    profileRefitEvaluationCount: profile.profileRefitEvaluationCount ?? null,
+    rootRefinement: profile.rootRefinement ?? { enabled: false },
+    profileIntervals95: intervalSummary(profile.parameters, estimateOf),
+    ar1ProfileStatus: profile.ar1RandomIntercept?.status ?? null,
+    ar1Intervals95: profile.ar1RandomIntercept
+      ? intervalSummary(profile.ar1RandomIntercept.parameters, estimateOf)
+      : null,
+    residualDependence: profile.residualDependence ?? null,
   };
 }
 
@@ -97,7 +126,15 @@ for (const [name, optimizer] of budgets) {
   runs.push(summarise(name, result));
 }
 
-// Residual structure of the training curves around the per-time training mean.
+const resolution = [];
+for (const [name, options] of resolutionRuns) {
+  const result = await runEcolabStage4ResearchWorkflow({ ...base, ...options });
+  resolution.push(summarise(name, result));
+}
+
+// Descriptive residual structure around the per-time training mean. This is the
+// quantity used in the earlier report; the fitted-model dependence is read from
+// the refined AR(1) run above.
 const dataset = JSON.parse(datasetText);
 const training = dataset.observations.filter(({ role }) => role === "training");
 const byUnit = new Map();
@@ -134,12 +171,14 @@ for (const [index, unit] of units.entries()) {
 withinVariance /= withinCount;
 const designEffect = 1 + (times.length - 1) * lagOne;
 
+const refinedAr1 = resolution.find(({ name }) => name === "grid-11-refined-ar1");
 const report = {
   schemaVersion: "1.0.0",
   kind: "ecolab.parameter-precision",
   generatedFrom: { applicationVersion: packageJson.version, seed, createdAt },
   dataset: { path: datasetPath, normalizedJsonArtifactSha256: contentHash, trainingCurves: units.length, timePoints: times.length, trainingObservations: training.length },
   budgets: runs,
+  profileResolution: resolution,
   residualStructure: {
     lagOneAutocorrelation: lagOne,
     betweenCurveSd: Math.sqrt(betweenVariance),
@@ -148,9 +187,11 @@ const report = {
     designEffect,
     effectiveSampleSize: training.length / designEffect,
   },
+  fittedResidualDependence: refinedAr1?.residualDependence ?? null,
   interpretation: [
     "The small preset stops at its evaluation cap; the same fit converges at the standard and large budgets with identical estimates, so the status difference is a budget artefact, not a data limit.",
-    "Profile intervals assume independent homoscedastic Gaussian residuals. The training residuals have strong lag-one autocorrelation, so the design effect inflates the honest standard error by roughly its square root.",
+    "The five-point grid reports a narrower interval than the eleven-point grid, and both are narrower than the refined crossing: linear interpolation between distant grid points understates the profile width. Only the root-refined interval is reported as the IID profile interval.",
+    "The IID profile still assumes independent homoscedastic Gaussian residuals. The random-intercept AR(1) block is a sensitivity interval anchored at the IID estimate with nuisance parameters reoptimized under least squares; it is not a joint AR(1) refit.",
     "Absolute CFU scale is not identified: K is fixed and only the product s/K enters the OD observation layer.",
   ],
 };
@@ -159,5 +200,7 @@ await writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({
   output: slashPath(relative(rootPath, jsonPath)),
   budgets: runs.map(({ name, status, converged, evaluationCount, profileStatus, profileIntervals95 }) => ({ name, status, converged, evaluationCount, profileStatus, profileIntervals95 })),
+  profileResolution: resolution.map(({ name, profileStatus, profileIntervals95, ar1Intervals95, rootRefinement }) => ({ name, profileStatus, profileIntervals95, ar1Intervals95, rootRefinement })),
   residualStructure: report.residualStructure,
+  fittedResidualDependence: report.fittedResidualDependence,
 }, null, 2));

@@ -24,13 +24,13 @@ test("core package keeps release/core/model identities separate and includes imp
   const core = pathToFileURL(`${corePath}/`);
   const pkg = JSON.parse(await readFile(new URL("package.json", core), "utf8"));
   assert.equal(pkg.name, "@ecolab/scientific-core");
-  assert.equal(pkg.version, "6.1.0");
+  assert.equal(pkg.version, "6.2.0");
   assert.deepEqual(Object.keys(pkg.exports).sort(), [".", "./analysis", "./model"]);
   const [model, analysis] = await Promise.all([
     import(new URL("model/version.js", core)), import(new URL("analysis/version.js", core)),
   ]);
   assert.equal(model.ENGINE_VERSION, "2.0.0");
-  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.1.0");
+  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.2.0");
   assert.equal(analysis.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
   assert.equal(analysis.ANALYSIS_IMPLEMENTATION_ID, "ecolab-research-analysis-v2");
   const registry = JSON.parse(await readFile(new URL("data/registry/model-definitions.json", core), "utf8"));

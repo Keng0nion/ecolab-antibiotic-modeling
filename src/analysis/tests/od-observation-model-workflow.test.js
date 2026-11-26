@@ -287,6 +287,67 @@ test("OD least-squares workflow reports an assessed or explicitly unassessed pro
   }
 });
 
+test("root refinement widens the grid-only crossing and AR(1) dependence is reported as a sensitivity interval", async () => {
+  const { datasetText, resolvedModel } = await fixture();
+  const result = await runEcolabStage4ResearchWorkflow(reducedOptions(datasetText, resolvedModel, {
+    optimizer: {
+      restarts: 1,
+      populationSize: 12,
+      differentialEvolutionMaxEvaluations: 300,
+      nelderMeadMaxEvaluations: 200,
+    },
+    profileLikelihoodPoints: 5,
+    profileRootRefinement: true,
+    profileRootRefinementMaxIterations: 6,
+    profileErrorModel: "both",
+  }));
+  const profile = result.training.fitDiagnostics.profileLikelihood;
+  assert.equal(profile.status, "ASSESSED");
+  assert.equal(profile.primaryInterval, "iid_profile");
+  assert.equal(profile.sensitivityInterval, "random_intercept_ar1");
+  assert.ok(profile.profileRefitEvaluationCount > 0);
+
+  const threshold = 1.920729410347062;
+  const gridCrossing = (points, direction) => {
+    const ordered = direction === "upper" ? [...points].reverse() : points;
+    for (let index = 0; index < ordered.length - 1; index += 1) {
+      const first = ordered[index];
+      const second = ordered[index + 1];
+      if (first.deltaNegativeLogLikelihood > threshold && second.deltaNegativeLogLikelihood <= threshold) {
+        const fraction = (threshold - first.deltaNegativeLogLikelihood)
+          / (second.deltaNegativeLogLikelihood - first.deltaNegativeLogLikelihood);
+        return first.value + (second.value - first.value) * fraction;
+      }
+    }
+    return null;
+  };
+
+  for (const name of ["psiMaxLog10PerHour", "initialStates.pooled.log10PopulationDensity"]) {
+    const entry = profile.parameters[name];
+    assert.equal(entry.status, "ASSESSED");
+    assert.equal(entry.rootRefinement.enabled, true);
+    assert.ok(entry.rootRefinement.evaluations > 0);
+    assert.equal(entry.rootRefinement.lower.method, "bracket_bisection_linear_interpolation");
+    const gridLower = gridCrossing(entry.points, "lower");
+    const gridUpper = gridCrossing(entry.points, "upper");
+    assert.ok(Number.isFinite(gridLower) && Number.isFinite(gridUpper));
+    assert.ok(entry.profileCompatibleRange95.lower < gridLower, `${name} lower crossing must move outward`);
+    assert.ok(entry.profileCompatibleRange95.upper > gridUpper, `${name} upper crossing must move outward`);
+  }
+
+  const ar1 = profile.ar1RandomIntercept;
+  assert.equal(ar1.status, "ASSESSED");
+  assert.equal(ar1.role, "sensitivity_analysis");
+  assert.equal(ar1.nuisanceReoptimization, "iid_least_squares");
+  assert.ok(ar1.residualDependence.phi > 0.5 && ar1.residualDependence.phi < 1);
+  assert.ok(ar1.residualDependence.lambda >= 0);
+  assert.ok(ar1.residualDependence.designEffect > 1);
+  assert.ok(ar1.residualDependence.effectiveSampleSize < 352);
+  const iidPsi = profile.parameters.psiMaxLog10PerHour.profileCompatibleRange95;
+  const ar1Psi = ar1.parameters.psiMaxLog10PerHour.profileCompatibleRange95;
+  assert.ok(ar1Psi.lower < iidPsi.lower, "AR(1) sensitivity lower bound must not be narrower than the IID profile");
+});
+
 test("real workflow retains OD semantics in names and warnings", async () => {
   const { datasetText, resolvedModel } = await fixture();
   const result = await runEcolabStage4ResearchWorkflow(reducedOptions(datasetText, resolvedModel));

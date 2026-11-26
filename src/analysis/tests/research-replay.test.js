@@ -227,7 +227,7 @@ async function currentFixture() {
   currentFixturePromise ??= (async () => {
     const { options } = await fixture();
     return runEcolabResearchWorkflow({
-      ...options, applicationVersion: "6.1.0", runId: "replay-current-test",
+      ...options, applicationVersion: "6.2.0", runId: "replay-current-test",
       optimizer: { restarts: 1, populationSize: 4, differentialEvolutionMaxEvaluations: 8, nelderMeadMaxEvaluations: 8 },
       sobolBootstrapReplicates: 4, sobolBootstrapSeed: 73, sobolConfidenceLevel: 0.8, sobolPrecisionTolerance: 0.15,
       growthComparison: {

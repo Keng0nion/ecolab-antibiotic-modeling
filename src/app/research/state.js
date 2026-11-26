@@ -63,6 +63,38 @@ export const RESEARCH_PRESETS = deepFreeze({
     identifiabilityProfilePoints: 5,
     returnedMonteCarloSamples: 32,
   }),
+  precision: Object.freeze({
+    optimizer: Object.freeze({
+      restarts: 1,
+      populationSize: 12,
+      differentialEvolutionMaxEvaluations: 300,
+      nelderMeadMaxEvaluations: 200,
+    }),
+    scanPointsPerAxis: 5,
+    monteCarloSamples: 128,
+    morrisTrajectories: 8,
+    morrisLevels: 4,
+    sobolSamples: 64,
+    sobolBootstrapReplicates: 200,
+    sobolConfidenceLevel: 0.95,
+    sobolPrecisionTolerance: 0.2,
+    growthComparison: {
+      bounds: { baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30] },
+      optimizer: {
+        restarts: 1, populationSize: 12, differentialEvolutionMaxEvaluations: 1200,
+        nelderMeadMaxEvaluations: 800, tolerance: 1e-7, objectiveTolerance: 1e-12,
+      },
+      crossValidation: { tieTolerance: 1e-10 },
+      bootstrap: { samples: 100, intervalLevel: 0.95 },
+    },
+    identifiabilityProfilePoints: 5,
+    returnedMonteCarloSamples: 32,
+    profileLikelihoodPoints: 11,
+    profileRootRefinement: true,
+    profileRootRefinementMaxIterations: 8,
+    profileRootRefinementRelativeTolerance: 1e-6,
+    profileErrorModel: "both",
+  }),
 });
 
 export function routeFromHashValue(hash) {

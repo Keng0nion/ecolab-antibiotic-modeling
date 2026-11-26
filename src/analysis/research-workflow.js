@@ -16,6 +16,13 @@ import { runMonteCarlo } from "./monte-carlo.js";
 import { applyParameterOverrides } from "./parameter-space.js";
 import { runParameterScan } from "./parameter-scan.js";
 import { deriveSeed, RNG_ALGORITHM } from "./random.js";
+import {
+  ar1DesignEffect,
+  estimateVarianceComponents,
+  pooledAr1Coefficient,
+  randomInterceptAr1ProfileNegativeLogLikelihood,
+  refineThresholdCrossing,
+} from "./residual-dependence.js";
 import { localSensitivity } from "./sensitivity-local.js";
 import { morrisSensitivity } from "./sensitivity-morris.js";
 import { sobolJansenSensitivity } from "./sensitivity-sobol.js";
@@ -46,6 +53,7 @@ export const ECOLAB_STAGE4_WORKFLOW_LIMITS = Object.freeze({
   maximumReturnedMonteCarloSamples: 256,
   maximumMorrisTrajectories: 64,
   maximumSobolSamples: 1024,
+  maximumProfileRootRefinementIterations: 20,
 });
 
 export class EcolabResearchWorkflowError extends Error {
@@ -100,6 +108,27 @@ function integerOption(value, fallback, path, minimum, maximum) {
     fail(
       "INVALID_WORKFLOW_LIMIT",
       `${path} must be an integer within [${minimum}, ${maximum}].`,
+      path,
+      result,
+    );
+  }
+  return result;
+}
+
+function booleanOption(value, fallback, path) {
+  const result = value ?? fallback;
+  if (typeof result !== "boolean") {
+    fail("INVALID_WORKFLOW_OPTION", `${path} must be a boolean.`, path, result);
+  }
+  return result;
+}
+
+function enumOption(value, fallback, path, allowed) {
+  const result = value ?? fallback;
+  if (!allowed.includes(result)) {
+    fail(
+      "INVALID_WORKFLOW_OPTION",
+      `${path} must be one of: ${allowed.join(", ")}.`,
       path,
       result,
     );
@@ -509,6 +538,21 @@ function profileCrossing(points, threshold, direction) {
   return null;
 }
 
+function profileCrossingBracket(points, deltaOf, threshold, direction) {
+  const ordered = direction === "upper" ? [...points].reverse() : points;
+  for (let index = 0; index < ordered.length - 1; index += 1) {
+    const outer = ordered[index];
+    const inner = ordered[index + 1];
+    const outerDelta = deltaOf(outer);
+    const innerDelta = deltaOf(inner);
+    if (Number.isFinite(outerDelta) && Number.isFinite(innerDelta)
+      && outerDelta > threshold && innerDelta <= threshold) {
+      return { outer, inner };
+    }
+  }
+  return null;
+}
+
 async function profileLeastSquaresLikelihood({
   fit,
   observations,
@@ -523,75 +567,151 @@ async function profileLeastSquaresLikelihood({
 }) {
   const threshold = 1.920729410347062;
   const method = "profile_likelihood_gaussian_ssr_sigma_profiled";
+  const ar1Method = "profile_likelihood_gaussian_random_intercept_ar1_sigma_profiled";
+  const ar1Enabled = config.profileErrorModel === "both";
+  const refinementEnabled = config.profileRootRefinement;
+  const maxIterations = config.profileRootRefinementMaxIterations;
+  const relativeTolerance = config.profileRootRefinementRelativeTolerance;
   const profileTargets = {};
+  const ar1Parameters = {};
+  let ar1Status = "ASSESSED";
+  let ar1Reason = null;
   let completed = 0;
-  const total = PARAMETER_NAMES.length * config.profileLikelihoodPoints;
+  let refinementIndex = 0;
+  let refitEvaluationCount = 0;
+  let total = PARAMETER_NAMES.length * config.profileLikelihoodPoints
+    + (refinementEnabled ? PARAMETER_NAMES.length * 2 * maxIterations * (ar1Enabled ? 2 : 1) : 0);
+  const report = () => onProgress?.({ completed, total });
+
+  let dependence = null;
+  let dependenceFailure = null;
+  if (ar1Enabled) {
+    try {
+      if (!Array.isArray(fit.residuals) || fit.residuals.length !== observations.length) {
+        throw Object.assign(new Error("The main fit did not return aligned residuals."), {
+          code: "AR1_RESIDUALS_UNAVAILABLE",
+        });
+      }
+      const coefficient = pooledAr1Coefficient(observations, fit.residuals);
+      const components = estimateVarianceComponents(observations, fit.residuals);
+      const designEffect = ar1DesignEffect(components.observationsPerCurve, coefficient.phi, components.lambda);
+      dependence = {
+        method: "random_intercept_ar1_within_curve",
+        phi: coefficient.phi,
+        lambda: components.lambda,
+        icc: components.icc,
+        betweenCurveSd: components.betweenCurveSd,
+        withinCurveSd: components.withinCurveSd,
+        curveCount: components.curveCount,
+        observationsPerCurve: components.observationsPerCurve,
+        designEffect,
+        effectiveSampleSize: observations.length / designEffect,
+        lagOneDesignEffect: 1 + (components.observationsPerCurve - 1) * coefficient.phi,
+      };
+    } catch (error) {
+      dependenceFailure = error?.code ?? "AR1_ESTIMATION_FAILED";
+      ar1Status = "NOT_ASSESSED";
+      ar1Reason = dependenceFailure;
+    }
+  }
+
+  const ar1NegativeLogLikelihood = (residuals) => {
+    if (!dependence || !Array.isArray(residuals) || residuals.length !== observations.length) return null;
+    try {
+      return randomInterceptAr1ProfileNegativeLogLikelihood({
+        observations,
+        residuals,
+        phi: dependence.phi,
+        lambda: dependence.lambda,
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const evaluateAt = async (targetName, value, tag) => {
+    let refit;
+    if (Math.abs(value - fit.fittedParameters[targetName]) <= 1e-12 * Math.max(1, Math.abs(value))) {
+      refit = {
+        objectiveValue: fit.objectiveValue,
+        converged: fit.converged,
+        status: fit.status,
+        terminationReason: fit.optimization?.terminationReason ?? null,
+        residuals: fit.residuals,
+        optimization: null,
+      };
+    } else {
+      const freeNames = PARAMETER_NAMES.filter((name) => name !== targetName);
+      refit = fitParameters({
+        observations,
+        parameterPolicy: "scientific",
+        parameterWhitelist: freeNames,
+        parameterContext: { initialStateSeriesIds: ["pooled"], drugIds: [] },
+        bounds,
+        initialParameters: fit.fittedParameters,
+        fixedParameters: { [targetName]: value },
+        method: "least_squares",
+        seed: deriveSeed(seed, "profile-likelihood", targetName, tag),
+        restarts: config.optimizerRestarts,
+        differentialEvolution: {
+          ...computation.differentialEvolution,
+          populationSize: config.populationSize,
+          maxEvaluations: config.differentialEvolutionMaxEvaluations,
+        },
+        nelderMead: { ...computation.nelderMead, maxEvaluations: config.nelderMeadMaxEvaluations },
+        evaluator: (biologicalParameters, rows) => profiledTrainingEvaluation(
+          resolvedModel,
+          biologicalParameters,
+          rows,
+          maximumTimeHours,
+        ).predictions,
+        observationModel: (profiledOdPrediction) => profiledOdPrediction,
+      });
+    }
+    const sumSquares = refit.objectiveValue;
+    const negativeLogLikelihood = Number.isFinite(sumSquares) && sumSquares >= 0
+      ? (observations.length / 2) * Math.log(Math.max(sumSquares / observations.length, Number.MIN_VALUE))
+      : null;
+    refitEvaluationCount += refit.optimization?.evaluationCount ?? 0;
+    return {
+      value,
+      sumSquaredError: sumSquares,
+      negativeLogLikelihood,
+      ar1NegativeLogLikelihood: ar1NegativeLogLikelihood(refit.residuals),
+      converged: refit.converged === true,
+      fitStatus: refit.status,
+      terminationReason: refit.terminationReason ?? refit.optimization?.terminationReason ?? null,
+    };
+  };
+
   for (const targetName of PARAMETER_NAMES) {
     const [lower, upper] = bounds[targetName];
     const profileValues = profileGrid(lower, upper, fit.fittedParameters[targetName], config.profileLikelihoodPoints);
-    const freeNames = PARAMETER_NAMES.filter((name) => name !== targetName);
-    const fitPoints = [];
+    const evaluated = [];
     for (let index = 0; index < profileValues.length; index += 1) {
       await checkpoint();
-      const value = profileValues[index];
-      let refit;
-      if (Math.abs(value - fit.fittedParameters[targetName]) <= 1e-12 * Math.max(1, Math.abs(value))) {
-        refit = {
-          objectiveValue: fit.objectiveValue,
-          converged: fit.converged,
-          status: fit.status,
-          terminationReason: fit.optimization?.terminationReason ?? null,
-        };
-      } else {
-        refit = fitParameters({
-          observations,
-          parameterPolicy: "scientific",
-          parameterWhitelist: freeNames,
-          parameterContext: { initialStateSeriesIds: ["pooled"], drugIds: [] },
-          bounds,
-          initialParameters: fit.fittedParameters,
-          fixedParameters: { [targetName]: value },
-          method: "least_squares",
-          seed: deriveSeed(seed, "profile-likelihood", targetName, index),
-          restarts: config.optimizerRestarts,
-          differentialEvolution: {
-            ...computation.differentialEvolution,
-            populationSize: config.populationSize,
-            maxEvaluations: config.differentialEvolutionMaxEvaluations,
-          },
-          nelderMead: { ...computation.nelderMead, maxEvaluations: config.nelderMeadMaxEvaluations },
-          evaluator: (biologicalParameters, rows) => profiledTrainingEvaluation(
-            resolvedModel,
-            biologicalParameters,
-            rows,
-            maximumTimeHours,
-          ).predictions,
-          observationModel: (profiledOdPrediction) => profiledOdPrediction,
-        });
-      }
-      const sumSquares = refit.objectiveValue;
-      const negativeLogLikelihood = Number.isFinite(sumSquares) && sumSquares >= 0
-        ? (observations.length / 2) * Math.log(Math.max(sumSquares / observations.length, Number.MIN_VALUE))
-        : null;
-      fitPoints.push({
-        value,
-        sumSquaredError: sumSquares,
-        negativeLogLikelihood,
-        converged: refit.converged === true,
-        fitStatus: refit.status,
-        terminationReason: refit.terminationReason ?? refit.optimization?.terminationReason ?? null,
-      });
+      evaluated.push(await evaluateAt(targetName, profileValues[index], `grid-${index}`));
       completed += 1;
-      onProgress?.({ completed, total, parameter: targetName });
+      report();
     }
-    const usable = fitPoints.filter((point) => Number.isFinite(point.negativeLogLikelihood));
+
+    const usable = evaluated.filter((point) => Number.isFinite(point.negativeLogLikelihood));
     const minimum = usable.length ? Math.min(...usable.map((point) => point.negativeLogLikelihood)) : null;
-    const points = fitPoints.map((point) => ({
-      ...point,
-      deltaNegativeLogLikelihood: Number.isFinite(point.negativeLogLikelihood) && Number.isFinite(minimum)
-        ? Math.max(0, point.negativeLogLikelihood - minimum)
-        : null,
-    }));
+    const deltaOf = (point) => (Number.isFinite(point.negativeLogLikelihood) && Number.isFinite(minimum)
+      ? Math.max(0, point.negativeLogLikelihood - minimum)
+      : Number.NaN);
+    const points = evaluated.map((point) => {
+      const delta = deltaOf(point);
+      return {
+        value: point.value,
+        sumSquaredError: point.sumSquaredError,
+        negativeLogLikelihood: point.negativeLogLikelihood,
+        deltaNegativeLogLikelihood: Number.isFinite(delta) ? delta : null,
+        converged: point.converged,
+        fitStatus: point.fitStatus,
+        terminationReason: point.terminationReason,
+      };
+    });
     const failures = points.filter((point) => !point.converged || !Number.isFinite(point.deltaNegativeLogLikelihood)).length;
     const allPointsAssessed = fit.converged && failures === 0 && points.length >= 3;
     const leftOpen = allPointsAssessed && points[0].deltaNegativeLogLikelihood <= threshold;
@@ -600,11 +720,57 @@ async function profileLeastSquaresLikelihood({
       : leftOpen && rightOpen ? "NOT_IDENTIFIABLE"
         : leftOpen ? "lower-unidentified"
           : rightOpen ? "upper-unidentified" : "identified";
-    const lowerCrossing = allPointsAssessed && !leftOpen ? profileCrossing(points, threshold, "lower") : null;
-    const upperCrossing = allPointsAssessed && !rightOpen ? profileCrossing(points, threshold, "upper") : null;
     const reason = !fit.converged ? "main_fit_not_converged"
       : failures ? "profile_refit_nonconvergence_or_invalid_objective"
         : points.length < 3 ? "insufficient_profile_points" : null;
+
+    const refineSide = async (direction) => {
+      const bracket = profileCrossingBracket(evaluated, deltaOf, threshold, direction);
+      if (!bracket) return null;
+      const refinement = await refineThresholdCrossing({
+        evaluate: async (value) => {
+          refinementIndex += 1;
+          const point = await evaluateAt(targetName, value, `refine-${direction}-${refinementIndex}`);
+          completed += 1;
+          report();
+          return { delta: point.converged ? deltaOf(point) : Number.NaN };
+        },
+        inner: bracket.inner.value,
+        outer: bracket.outer.value,
+        innerDelta: deltaOf(bracket.inner),
+        outerDelta: deltaOf(bracket.outer),
+        threshold,
+        relativeTolerance,
+        maxIterations,
+      });
+      return refinement;
+    };
+
+    let lowerCrossing = allPointsAssessed && !leftOpen ? profileCrossing(points, threshold, "lower") : null;
+    let upperCrossing = allPointsAssessed && !rightOpen ? profileCrossing(points, threshold, "upper") : null;
+    let lowerRefinement = null;
+    let upperRefinement = null;
+    if (refinementEnabled && allPointsAssessed) {
+      if (lowerCrossing !== null) {
+        lowerRefinement = await refineSide("lower");
+        if (lowerRefinement?.converged) lowerCrossing = lowerRefinement.value;
+      }
+      if (upperCrossing !== null) {
+        upperRefinement = await refineSide("upper");
+        if (upperRefinement?.converged) upperCrossing = upperRefinement.value;
+      }
+    }
+
+    const rootRefinement = refinementEnabled ? {
+      enabled: true,
+      method: "bracket_bisection_linear_interpolation",
+      maxIterations,
+      relativeTolerance,
+      evaluations: (lowerRefinement?.evaluations ?? 0) + (upperRefinement?.evaluations ?? 0),
+      lower: lowerRefinement,
+      upper: upperRefinement,
+    } : { enabled: false };
+
     profileTargets[targetName] = {
       status: allPointsAssessed ? "ASSESSED" : "NOT_ASSESSED",
       ...(reason ? { reason } : {}),
@@ -615,6 +781,7 @@ async function profileLeastSquaresLikelihood({
       profileMinimumNegativeLogLikelihood: minimum,
       likelihoodRatioThreshold95: threshold,
       profileCompatibleRange95: { lower: lowerCrossing, upper: upperCrossing },
+      rootRefinement,
       identifiability: {
         status,
         trend: allPointsAssessed ? status === "identified" ? "bounded_profile_support" : status === "NOT_IDENTIFIABLE" ? "profile_support_spans_parameter_bounds" : `profile_open_at_${status === "lower-unidentified" ? "lower" : "upper"}_bound` : "profile_not_assessed",
@@ -626,7 +793,130 @@ async function profileLeastSquaresLikelihood({
       },
       points,
     };
+
+    if (ar1Enabled && dependence) {
+      const ar1Usable = evaluated.filter((point) => Number.isFinite(point.ar1NegativeLogLikelihood));
+      const estimatePoint = evaluated.find((point) => Math.abs(point.value - fit.fittedParameters[targetName])
+        <= 1e-12 * Math.max(1, Math.abs(point.value)));
+      // The AR(1) working likelihood is evaluated at IID-refit nuisance values, so
+      // its own minimum is not a stable reference. Anchor the ratio at the IID
+      // estimate instead: every reported interval is then grid-independent and
+      // explicitly conditional on that estimate.
+      const ar1Minimum = Number.isFinite(estimatePoint?.ar1NegativeLogLikelihood)
+        ? estimatePoint.ar1NegativeLogLikelihood
+        : ar1Usable.length ? Math.min(...ar1Usable.map((point) => point.ar1NegativeLogLikelihood)) : null;
+      const ar1DeltaOf = (point) => (Number.isFinite(point.ar1NegativeLogLikelihood) && Number.isFinite(ar1Minimum)
+        ? Math.max(0, point.ar1NegativeLogLikelihood - ar1Minimum)
+        : Number.NaN);
+      const ar1Points = evaluated.map((point) => {
+        const delta = ar1DeltaOf(point);
+        return {
+          value: point.value,
+          negativeLogLikelihood: point.ar1NegativeLogLikelihood,
+          deltaNegativeLogLikelihood: Number.isFinite(delta) ? delta : null,
+          converged: point.converged,
+        };
+      });
+      const ar1Failures = ar1Points.filter((point) => !point.converged
+        || !Number.isFinite(point.deltaNegativeLogLikelihood)).length;
+      const ar1Assessed = fit.converged && ar1Failures === 0 && ar1Points.length >= 3;
+      const ar1LeftOpen = ar1Assessed && ar1Points[0].deltaNegativeLogLikelihood <= threshold;
+      const ar1RightOpen = ar1Assessed && ar1Points.at(-1).deltaNegativeLogLikelihood <= threshold;
+      const ar1IdentifiabilityStatus = !ar1Assessed ? "NOT_ASSESSED"
+        : ar1LeftOpen && ar1RightOpen ? "NOT_IDENTIFIABLE"
+          : ar1LeftOpen ? "lower-unidentified"
+            : ar1RightOpen ? "upper-unidentified" : "identified";
+      const ar1Reason = !ar1Assessed ? "ar1_profile_refit_nonconvergence_or_invalid_objective" : null;
+
+      const refineAr1Side = async (direction) => {
+        const bracket = profileCrossingBracket(evaluated, ar1DeltaOf, threshold, direction);
+        if (!bracket) return null;
+        return refineThresholdCrossing({
+          evaluate: async (value) => {
+            refinementIndex += 1;
+            const point = await evaluateAt(targetName, value, `ar1-refine-${direction}-${refinementIndex}`);
+            completed += 1;
+            report();
+            return { delta: point.converged ? ar1DeltaOf(point) : Number.NaN };
+          },
+          inner: bracket.inner.value,
+          outer: bracket.outer.value,
+          innerDelta: ar1DeltaOf(bracket.inner),
+          outerDelta: ar1DeltaOf(bracket.outer),
+          threshold,
+          relativeTolerance,
+          maxIterations,
+        });
+      };
+
+      let ar1Lower = ar1Assessed && !ar1LeftOpen ? profileCrossing(ar1Points, threshold, "lower") : null;
+      let ar1Upper = ar1Assessed && !ar1RightOpen ? profileCrossing(ar1Points, threshold, "upper") : null;
+      let ar1LowerRefinement = null;
+      let ar1UpperRefinement = null;
+      if (refinementEnabled && ar1Assessed) {
+        if (ar1Lower !== null) {
+          ar1LowerRefinement = await refineAr1Side("lower");
+          if (ar1LowerRefinement?.converged) ar1Lower = ar1LowerRefinement.value;
+        }
+        if (ar1Upper !== null) {
+          ar1UpperRefinement = await refineAr1Side("upper");
+          if (ar1UpperRefinement?.converged) ar1Upper = ar1UpperRefinement.value;
+        }
+      }
+
+      ar1Parameters[targetName] = {
+        status: ar1Assessed ? "ASSESSED" : "NOT_ASSESSED",
+        ...(ar1Reason ? { reason: ar1Reason } : {}),
+        method: ar1Method,
+        profilePointCount: ar1Points.length,
+        convergedPointCount: ar1Points.length - ar1Failures,
+        nonConvergedPointCount: ar1Failures,
+        profileMinimumNegativeLogLikelihood: ar1Minimum,
+        likelihoodRatioThreshold95: threshold,
+        profileCompatibleRange95: { lower: ar1Lower, upper: ar1Upper },
+        rootRefinement: refinementEnabled ? {
+          enabled: true,
+          method: "bracket_bisection_linear_interpolation",
+          maxIterations,
+          relativeTolerance,
+          evaluations: (ar1LowerRefinement?.evaluations ?? 0) + (ar1UpperRefinement?.evaluations ?? 0),
+          lower: ar1LowerRefinement,
+          upper: ar1UpperRefinement,
+        } : { enabled: false },
+        identifiability: {
+          status: ar1IdentifiabilityStatus,
+          trend: ar1Assessed ? ar1IdentifiabilityStatus === "identified"
+            ? "bounded_profile_support"
+            : ar1IdentifiabilityStatus === "NOT_IDENTIFIABLE"
+              ? "profile_support_spans_parameter_bounds"
+              : `profile_open_at_${ar1IdentifiabilityStatus === "lower-unidentified" ? "lower" : "upper"}_bound`
+            : "profile_not_assessed",
+          reason: ar1Reason,
+          criterion: "95% profile-likelihood support under a block-diagonal random-intercept AR(1) working covariance with residual scale profiled analytically; phi and lambda are fixed at their training-residual moment estimates, nuisance parameters are reoptimized under the IID least-squares criterion, and the likelihood ratio is anchored at the IID estimate, so this is a sensitivity interval rather than a joint AR(1) refit",
+          oneSided95Bound: ar1IdentifiabilityStatus === "lower-unidentified" ? ar1Upper
+            : ar1IdentifiabilityStatus === "upper-unidentified" ? ar1Lower : null,
+          likelihoodRatioThreshold95: threshold,
+        },
+        points: ar1Points,
+      };
+      if (!ar1Assessed) {
+        ar1Status = "NOT_ASSESSED";
+        ar1Reason = "one_or_more_ar1_profile_refits_or_the_main_fit_did_not_converge";
+      }
+    } else if (ar1Enabled && !dependence) {
+      ar1Parameters[targetName] = {
+        status: "NOT_ASSESSED",
+        reason: dependenceFailure,
+        method: ar1Method,
+        profileCompatibleRange95: { lower: null, upper: null },
+        points: [],
+      };
+    }
   }
+
+  total = completed;
+  report();
+
   const status = Object.values(profileTargets).every((profile) => profile.status === "ASSESSED") ? "ASSESSED" : "NOT_ASSESSED";
   return {
     status,
@@ -634,7 +924,31 @@ async function profileLeastSquaresLikelihood({
     reason: status === "NOT_ASSESSED" ? "one_or_more_profile_refits_or_the_main_fit_did_not_converge" : null,
     pointCount: config.profileLikelihoodPoints,
     likelihoodRatioThreshold95: threshold,
+    rootRefinement: {
+      enabled: refinementEnabled,
+      method: "bracket_bisection_linear_interpolation",
+      maxIterations,
+      relativeTolerance,
+    },
+    profileRefitEvaluationCount: refitEvaluationCount,
     parameters: profileTargets,
+    ...(ar1Enabled ? {
+      errorModel: "both",
+      residualDependence: dependence,
+      ar1RandomIntercept: {
+        status: ar1Status,
+        role: "sensitivity_analysis",
+        method: ar1Method,
+        reason: ar1Reason,
+        likelihoodRatioThreshold95: threshold,
+        residualDependence: dependence,
+        nuisanceReoptimization: "iid_least_squares",
+        reference: "iid_estimate",
+        parameters: ar1Parameters,
+      },
+      primaryInterval: "iid_profile",
+      sensitivityInterval: ar1Status === "ASSESSED" ? "random_intercept_ar1" : null,
+    } : { errorModel: "iid" }),
   };
 }
 
@@ -822,6 +1136,36 @@ export function researchWorkflowConfiguration(options) {
       5,
       11,
     ),
+    profileRootRefinement: booleanOption(
+      options.profileRootRefinement,
+      false,
+      "profileRootRefinement",
+    ),
+    profileRootRefinementMaxIterations: integerOption(
+      options.profileRootRefinementMaxIterations,
+      8,
+      "profileRootRefinementMaxIterations",
+      1,
+      ECOLAB_STAGE4_WORKFLOW_LIMITS.maximumProfileRootRefinementIterations,
+    ),
+    profileRootRefinementRelativeTolerance: (() => {
+      const value = finite(options.profileRootRefinementRelativeTolerance ?? 1e-6, "profileRootRefinementRelativeTolerance");
+      if (!(value > 0 && value < 1)) {
+        fail(
+          "INVALID_WORKFLOW_OPTION",
+          "profileRootRefinementRelativeTolerance must lie strictly between 0 and 1.",
+          "profileRootRefinementRelativeTolerance",
+          value,
+        );
+      }
+      return value;
+    })(),
+    profileErrorModel: enumOption(
+      options.profileErrorModel,
+      "iid",
+      "profileErrorModel",
+      ["iid", "both"],
+    ),
     sobolBootstrapReplicates: integerOption(options.sobolBootstrapReplicates, 200, "sobolBootstrapReplicates", 0, 2000),
     sobolConfidenceLevel: finite(options.sobolConfidenceLevel ?? 0.95, "sobolConfidenceLevel"),
     sobolPrecisionTolerance: finite(options.sobolPrecisionTolerance ?? 0.2, "sobolPrecisionTolerance"),
@@ -857,6 +1201,20 @@ export function researchWorkflowComputationSettings(options) {
       nuisanceParametersReoptimized: ["baselineOd", "scaleOd"],
       otherBiologicalParametersReoptimized: true,
       errorScaleProfiledAnalytically: true,
+      rootRefinement: {
+        enabled: config.profileRootRefinement,
+        method: "bracket_bisection_linear_interpolation",
+        maxIterations: config.profileRootRefinementMaxIterations,
+        relativeTolerance: config.profileRootRefinementRelativeTolerance,
+      },
+      errorModel: config.profileErrorModel,
+      residualDependence: {
+        method: "random_intercept_ar1_within_curve",
+        phiEstimation: "pooled_lag_one_moment",
+        varianceComponents: "balanced_method_of_moments",
+        requiresEqualSpacing: true,
+        nuisanceReoptimization: "iid_least_squares",
+      },
     },
     identifiability: {
       relativeStep: 1e-4, rankTolerance: 1e-8, boundaryTolerance: 0.01,

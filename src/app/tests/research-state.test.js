@@ -32,8 +32,12 @@ test("Research state exposes four sections, uint32 seeds, and bounded presets", 
   assert.equal(normalizeResearchSeed("4294967295"), 0xffff_ffff);
   assert.throws(() => normalizeResearchSeed(-1), RangeError);
   assert.throws(() => normalizeResearchSeed(0x1_0000_0000), RangeError);
-  assert.deepEqual(Object.keys(RESEARCH_PRESETS), ["small", "standard"]);
+  assert.deepEqual(Object.keys(RESEARCH_PRESETS), ["small", "standard", "precision"]);
   assert.ok(researchPreset("small").monteCarloSamples < researchPreset("standard").monteCarloSamples);
+  assert.equal(researchPreset("precision").profileLikelihoodPoints, 11);
+  assert.equal(researchPreset("precision").profileRootRefinement, true);
+  assert.equal(researchPreset("precision").profileErrorModel, "both");
+  assert.equal(researchPreset("small").profileLikelihoodPoints, undefined);
   assert.throws(() => researchPreset("large"), RangeError);
 });
 
@@ -69,7 +73,7 @@ test("run capture records reproducibility once and workflow options include ever
 });
 
 test("development presets explicitly bound growth refits and Sobol uncertainty and clone deeply", () => {
-  for (const [name, de, nm, samples] of [["small", 120, 80, 20], ["standard", 1200, 800, 100]]) {
+  for (const [name, de, nm, samples] of [["small", 120, 80, 20], ["standard", 1200, 800, 100], ["precision", 1200, 800, 100]]) {
     const config = researchPreset(name);
     assert.deepEqual(config.growthComparison?.bounds, {
       baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30],

@@ -131,6 +131,7 @@ export function buildDatasetRecord({
   sourceText,
   contentHash,
   sourceKind,
+  recordedSourceFormat = null,
   registryRecord = null,
   trustedBundledArtifact = false,
   updatedAt = new Date().toISOString(),
@@ -149,7 +150,7 @@ export function buildDatasetRecord({
     title: dataset.metadata.title,
     license: dataset.metadata.license ?? "",
     sourceKind,
-    sourceFormat: imported.format,
+    sourceFormat: recordedSourceFormat ?? imported.format,
     sourceText,
     normalizedDataset: dataset,
     contentHash,
@@ -168,13 +169,14 @@ export function buildDatasetRecord({
   return record;
 }
 
-export async function createGenericDatasetRecord({ imported, sourceText, sourceFormat, hashImpl = sha256Hex, updatedAt }) {
+export async function createGenericDatasetRecord({ imported, sourceText, sourceFormat, recordedSourceFormat, hashImpl = sha256Hex, updatedAt }) {
   const contentHash = await hashImpl(sourceText);
   return buildDatasetRecord({
     imported: { ...imported, format: imported.format ?? sourceFormat },
     sourceText,
     contentHash,
     sourceKind: "file",
+    recordedSourceFormat,
     trustedBundledArtifact: false,
     updatedAt,
   });

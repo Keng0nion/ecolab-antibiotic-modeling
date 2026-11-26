@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetId": "figshare-bw25113-growth-v1",
+  "source": {
+    "title": "Bacterial growth profiles across one-thousand chemical-defined media",
+    "authors": [
+      "Honoka Aida",
+      "Bei-Wen Ying"
+    ],
+    "datasetDoi": "10.6084/m9.figshare.28342064.v1",
+    "articleDoi": "10.1038/s41597-025-05356-3",
+    "url": "https://figshare.com/articles/dataset/Bacterial_growth_profiles_across_one-thousand_chemical-defined_media/28342064",
+    "publishedDate": "2025-05-23T01:20:20Z",
+    "license": {
+      "id": "CC-BY-4.0",
+      "name": "Creative Commons Attribution 4.0 International",
+      "url": "https://creativecommons.org/licenses/by/4.0/",
+      "redistributionStatus": "redistributable_with_attribution"
+    }
+  },
+  "policy": {
+    "verification": "Each source payload must match the declared byte count, MD5, and SHA-256 before it is stored.",
+    "transformation": "None. The XLSX files are stored byte-for-byte."
+  },
+  "files": [
+    {
+      "id": "growth-round01",
+      "name": "BW25113_Growth_Round01.xlsx",
+      "url": "https://ndownloader.figshare.com/files/53453711",
+      "bytes": 1004441,
+      "md5": "c24e2d5b0b54c79a55b11d8868e73ad8",
+      "sha256": "d81c738fdf7885195203de9b8b28bc221cf81992dffe1288c42b81aa6876d921"
+    },
+    {
+      "id": "medium-composition",
+      "name": "BW25113_Medium composition.xlsx",
+      "url": "https://ndownloader.figshare.com/files/53453759",
+      "bytes": 2693064,
+      "md5": "eab20d0936d82546e073e41005f313a9",
+      "sha256": "e3d82236c0f9a65cff55bebf1d5478b15a0972111422c32a3395deb5c5509cdd"
+    },
+    {
+      "id": "growth-evaluation",
+      "name": "BW25113_GrowthDataEvaluation.xlsx",
+      "url": "https://ndownloader.figshare.com/files/53453777",
+      "bytes": 769714,
+      "md5": "6df4248797486cb5ecbafd598fb7d28e",
+      "sha256": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1"
+    }
+  ]
+}

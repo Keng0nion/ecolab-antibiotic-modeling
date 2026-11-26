@@ -29,6 +29,7 @@ import {
   setResearchSection,
 } from "./state.js";
 import { renderResearchWorkspace } from "./view.js";
+import { xlsxToCsv } from "./xlsx-import.js";
 
 const RESEARCH_PACKAGE_MAX_BYTES = 32 * 1024 * 1024;
 
@@ -48,7 +49,25 @@ function formatFromFile(file) {
   const name = String(file?.name ?? "").toLowerCase();
   if (name.endsWith(".csv") || file?.type === "text/csv") return "csv";
   if (name.endsWith(".json") || file?.type === "application/json") return "json";
+  if (name.endsWith(".xlsx") || file?.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return "xlsx";
+  if (name.endsWith(".xls")) return "xls";
   return "auto";
+}
+
+function xlsxConversionWarning(conversion) {
+  return {
+    code: "XLSX_FIRST_WORKSHEET_ONLY",
+    severity: "warning",
+    message: `Excel workbook converted to CSV from worksheet ${conversion.worksheetName ? `"${conversion.worksheetName}"` : "1"}`
+      + ` (${conversion.worksheetCount} worksheet${conversion.worksheetCount === 1 ? "" : "s"} present).`
+      + " Only the first worksheet is read, formulas use cached values, and Excel dates are not converted.",
+    details: {
+      worksheetName: conversion.worksheetName,
+      worksheetCount: conversion.worksheetCount,
+      rowCount: conversion.rowCount,
+      columnCount: conversion.columnCount,
+    },
+  };
 }
 
 function mergeRecord(records, saved) {
@@ -303,15 +322,33 @@ export function createResearchController(options) {
     state.datasetError = null;
     requestRender();
     try {
-      const text = await file.text();
       const format = formatFromFile(file);
-      const parseOptions = { format };
-      if (format === "csv") parseOptions.datasetMetadata = validateCsvMetadata(state.csvMetadata);
+      if (format === "xls") {
+        throw Object.assign(
+          new Error("Legacy .xls workbooks are not supported. Save the sheet as .xlsx or CSV and import that file."),
+          { code: "XLSX_LEGACY_FORMAT" },
+        );
+      }
+      let text;
+      let conversion = null;
+      if (format === "xlsx") {
+        conversion = await xlsxToCsv(new Uint8Array(await file.arrayBuffer()));
+        text = conversion.csv;
+      } else {
+        text = await file.text();
+      }
+      const importFormat = format === "xlsx" ? "csv" : format;
+      const parseOptions = { format: importFormat };
+      if (importFormat === "csv") parseOptions.datasetMetadata = validateCsvMetadata(state.csvMetadata);
       const imported = await parseDataset(text, parseOptions);
+      if (conversion) {
+        imported.warnings = [...(imported.warnings ?? []), xlsxConversionWarning(conversion)];
+      }
       const record = await createGenericDatasetRecord({
         imported,
         sourceText: text,
-        sourceFormat: format,
+        sourceFormat: importFormat,
+        recordedSourceFormat: format,
         hashImpl,
         updatedAt: now().toISOString(),
       });

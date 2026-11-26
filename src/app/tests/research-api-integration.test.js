@@ -29,7 +29,7 @@ test("browser small preset works with actual v2 API, bilingual presentation and 
     parameterSetRef: { id: "ecolab.bw25113-m9-regoes-transferred", version: "1.0.0" },
   });
   const dataset = createDatasetRecord({ sourceText, contentHash: sha256HexFallback(sourceText), normalizedDataset: JSON.parse(sourceText) });
-  const run = captureResearchRun({ dataset, seed: 9127, preset: "small", applicationVersion: "6.1.0", now: () => new Date("2026-09-07T12:00:00Z") });
+  const run = captureResearchRun({ dataset, seed: 9127, preset: "small", applicationVersion: "6.2.0", now: () => new Date("2026-09-07T12:00:00Z") });
   const options = buildResearchWorkflowOptions({ run, dataset, resolvedModel });
   const phases = new Set();
   const result = await runEcolabResearchWorkflow({ ...options, runtime: { yieldControl: async () => {} }, onProgress: ({ phase }) => phases.add(phase.replace(/[-:]/g, "_")) });

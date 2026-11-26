@@ -43,22 +43,22 @@ function contrastRatio(first, second) {
 
 test("application version is consistent with the root package source of truth", async () => {
   const { stdout } = await runNode(["scripts/check-version.js"]);
-  assert.match(stdout, /6\.1\.0/);
-  assert.match(stdout, /analysis 2\.1\.0/i);
+  assert.match(stdout, /6\.2\.0/);
+  assert.match(stdout, /analysis 2\.2\.0/i);
   assert.match(stdout, /ecolab-research-analysis-v2/);
   assert.match(stdout, /core 2\.0\.0.*model 1\.0\.0/);
 });
 
-test("Stage 6.1 advances application and analysis versions without renaming the stable engine or teaching core", async () => {
+test("Stage 6.2 advances application and analysis versions without renaming the stable engine or teaching core", async () => {
   const [application, analysis, model, packageText] = await Promise.all([
     import("../../src/app/version.js"),
     import("../../src/analysis/version.js"),
     import("../../src/model/version.js"),
     readFile(resolve(rootPath, "package.json"), "utf8"),
   ]);
-  assert.equal(JSON.parse(packageText).version, "6.1.0");
-  assert.equal(application.APPLICATION_VERSION, "6.1.0");
-  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.1.0");
+  assert.equal(JSON.parse(packageText).version, "6.2.0");
+  assert.equal(application.APPLICATION_VERSION, "6.2.0");
+  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.2.0");
   assert.equal(analysis.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
   assert.equal(analysis.ANALYSIS_ENGINE_STABLE_ID, analysis.ANALYSIS_ENGINE_ID);
   assert.equal(analysis.ANALYSIS_STABLE_ID, analysis.ANALYSIS_ENGINE_ID);
@@ -88,14 +88,18 @@ test("release audit checks temporary products and writes a sorted SHA-256 manife
   const core = resolve(temporaryRoot, "core");
   const web = resolve(temporaryRoot, "web");
   const manifest = resolve(temporaryRoot, "release-manifest.sha256");
-  await runNode(["scripts/build-core.js", "--out-dir", core]);
-  await runNode(["scripts/build-web.js", "--out-dir", web]);
+  // Harness guard only: the default 60 s child budget is exceeded when the full
+  // suite runs these builds concurrently with the release-replay test on a loaded
+  // host. Every assertion below still runs.
+  const buildTimeout = 240_000;
+  await runNode(["scripts/build-core.js", "--out-dir", core], buildTimeout);
+  await runNode(["scripts/build-web.js", "--out-dir", web], buildTimeout);
   const { stdout } = await runNode([
     "scripts/audit-release.js",
     "--core-dir", core,
     "--web-dir", web,
     "--manifest-out", manifest,
-  ]);
+  ], buildTimeout);
   assert.match(stdout, /Release audit passed/);
   const lines = (await readFile(manifest, "utf8")).trim().split("\n");
   const paths = lines.map((line) => line.slice(66));
@@ -123,7 +127,7 @@ test("Stage 6 release audit verifies actual replay science and rejects rehashed 
   await run(["scripts/generate-example-research.js"]);
   await run(["scripts/build-core.js", "--out-dir", "products/core"]);
   await run(["scripts/build-web.js", "--out-dir", "products/web"]);
-  const examplePath = resolve(fixture, "data/examples/ecolab-stage6-research-6.1.0.json");
+  const examplePath = resolve(fixture, "data/examples/ecolab-stage6-research-6.2.0.json");
   const originalText = await readFile(examplePath, "utf8");
   const original = JSON.parse(originalText);
   const manifestPath = resolve(fixture, "products/release-manifest.sha256");
@@ -140,7 +144,7 @@ test("Stage 6 release audit verifies actual replay science and rejects rehashed 
   }
   await t.test("accepts the actual new example and reports successful scientific replay", async () => {
     const { stdout } = await audit();
-    assert.match(stdout, /Release audit passed for application 6\.1\.0/);
+    assert.match(stdout, /Release audit passed for application 6\.2\.0/);
     assert.match(stdout, /strict package.*scientific replay matched/i);
     assert.ok(stdout.includes(`preset=${original.generatedFrom.preset}`));
     await access(manifestPath);

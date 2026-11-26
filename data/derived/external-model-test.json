@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "kind": "ecolab.external-model-test",
   "generatedFrom": {
-    "applicationVersion": "6.1.0",
+    "applicationVersion": "6.2.0",
     "preset": "small",
     "seed": 3817,
     "createdAt": "2026-11-26T00:00:00.000Z"

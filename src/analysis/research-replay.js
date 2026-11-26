@@ -22,7 +22,7 @@ const MAX_PATH_LENGTH = 512;
 const ENCODER = new TextEncoder();
 const UNSAFE_KEYS = new Set(["__proto__", "prototype", "constructor", "toJSON"]);
 const HASH = /^[0-9a-f]{64}$/;
-const VERSIONS = Object.freeze({ application: "6.1.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID });
+const VERSIONS = Object.freeze({ application: "6.2.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID });
 const MODEL = Object.freeze({ id: "ecolab.single-population.regoes-logistic", version: "1.0.0", implementationId: "regoes-logistic-piecewise-analytic-v1" });
 const REQUIRED_ARTIFACTS = ["normalized-observation-dataset", "dataset-split", "locked-analysis-plan", "resolved-model-snapshot", "research-replay-input", "scientific-result"];
 const OPTIMIZER_KEYS = ["restarts", "populationSize", "differentialEvolutionMaxEvaluations", "nelderMeadMaxEvaluations"];
@@ -32,6 +32,12 @@ const OPTION_KEYS = [
   "scanPointsPerAxis", "monteCarloSamples", "morrisTrajectories", "morrisLevels", "sobolSamples", "sobolBootstrapReplicates",
   "sobolConfidenceLevel", "sobolPrecisionTolerance", "identifiabilityProfilePoints", "returnedMonteCarloSamples",
   "sobolBootstrapSeed", "uncertaintyRangeFraction", "includeMonteCarloSamples", "growthComparison",
+];
+// Added after 6.0.0: replay inputs produced before analysis 2.2.0 must remain
+// inspectable, so these keys are optional rather than required.
+const OPTIONAL_OPTION_KEYS = [
+  "preset", "profileLikelihoodPoints", "profileRootRefinement",
+  "profileRootRefinementMaxIterations", "profileRootRefinementRelativeTolerance", "profileErrorModel",
 ];
 const ARTIFACT_PATH = "$.contents.artifacts";
 const MANIFEST_PATH = "$.contents.analysisManifest";
@@ -361,7 +367,7 @@ function validateReplayInput(input, trainingTrajectoryCount) {
   string(input.implementationId, `${INPUT_PATH}.implementationId`);
   shape(input.versions, Object.keys(VERSIONS), [], `${INPUT_PATH}.versions`); strings(input.versions, Object.keys(VERSIONS), `${INPUT_PATH}.versions`);
   const o = input.options; const p = `${INPUT_PATH}.options`;
-  shape(o, OPTION_KEYS, ["preset"], p);
+  shape(o, OPTION_KEYS, OPTIONAL_OPTION_KEYS, p);
   strings(o, ["datasetInput", "datasetFormat", "applicationVersion", "runId", "datasetVersion", "contentHash", "packageId", "planId"], p);
   timestamp(o.createdAt, `${p}.createdAt`); digest(o.contentHash, `${p}.contentHash`);
   schema(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(o.datasetVersion), `${p}.datasetVersion`);
@@ -499,7 +505,7 @@ export function inspectResearchPackage(input) {
   const reasons = [];
   const reason = (code, message) => reasons.push({ code, message });
   if (!isNew) reason("MISSING_REPLAY_INPUT", "Legacy package has no complete versioned replay input; inspection only.");
-  if (Object.entries(VERSIONS).some(([key, value]) => m.versions[key] !== value) || m.versions.analysisEngineId !== ANALYSIS_ENGINE_ID) reason("UNSUPPORTED_SOFTWARE_VERSION", "Replay requires application 6.1.0, core 2.0.0 and the built-in analysis 2.1.0 implementation exactly.");
+  if (Object.entries(VERSIONS).some(([key, value]) => m.versions[key] !== value) || m.versions.analysisEngineId !== ANALYSIS_ENGINE_ID) reason("UNSUPPORTED_SOFTWARE_VERSION", "Replay requires application 6.2.0, core 2.0.0 and the built-in analysis 2.2.0 implementation exactly.");
   if (isNew && replayInput.options.computationSettings.growthComparison?.implementationId !== GROWTH_COMPARISON_IMPLEMENTATION_ID) {
     reason("UNSUPPORTED_GROWTH_COMPARISON_IMPLEMENTATION", "The saved OD comparison predates the current independent trajectory calibration method; inspect only, without replay.");
   }

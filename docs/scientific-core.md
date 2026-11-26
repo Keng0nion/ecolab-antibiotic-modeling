@@ -2,7 +2,7 @@
 
 ## 版本契约
 
-应用 `6.1.0` 保留教学科学核心 `2.0.0` 与模型 `1.0.0`；分析引擎为 `2.1.0`，增加统一拟合识别性状态和真实轮廓似然诊断。当前教学科学模型为：
+应用 `6.2.0` 保留教学科学核心 `2.0.0` 与模型 `1.0.0`；分析引擎为 `2.2.0`，增加统一拟合识别性状态和真实轮廓似然诊断。当前教学科学模型为：
 
 - Model ID：`ecolab.single-population.regoes-logistic`
 - Model version：`1.0.0`
@@ -16,11 +16,11 @@
 
 - Public entry：`src/analysis.js`
 - Analysis engine ID：`ecolab.stage4.analysis`
-- Analysis engine version：`2.1.0`
+- Analysis engine version：`2.2.0`
 - Analysis implementation ID：`ecolab-research-analysis-v2`
 - Core package subpath：`@ecolab/scientific-core/analysis`
 
-应用版本、分析版本与确定性模型引擎版本分开维护。根 `package.json` 管理应用发布版本；科学核心 `2.0.0` 与分析引擎 `2.1.0` 只在各自语义契约改变时升级。稳定分析 ID `ecolab.stage4.analysis` 不随发布代次重命名。模拟 `createRunManifest()` 描述一条确定性模型运行；研究分析使用 `ecolab.analysis-run` manifest 和 `ecolab.research-package`，另外记录数据集、拆分、锁定计划、随机种子、优化、拟合、指标、残差、能力等级和警告。二者不能混用来暗示确定性模拟已经完成真实数据验证。
+应用版本、分析版本与确定性模型引擎版本分开维护。根 `package.json` 管理应用发布版本；科学核心 `2.0.0` 与分析引擎 `2.2.0` 只在各自语义契约改变时升级。稳定分析 ID `ecolab.stage4.analysis` 不随发布代次重命名。模拟 `createRunManifest()` 描述一条确定性模型运行；研究分析使用 `ecolab.analysis-run` manifest 和 `ecolab.research-package`，另外记录数据集、拆分、锁定计划、随机种子、优化、拟合、指标、残差、能力等级和警告。二者不能混用来暗示确定性模拟已经完成真实数据验证。
 
 ## 状态与单位
 
@@ -172,4 +172,4 @@ OD600 = baselineOd + scaleOd × (N/K)
 
 `baselineOd` 与 `scaleOd` 是训练数据上的观测层干扰参数，不改变源值，也不构成普适 OD→CFU 转换。开发评价前它们被锁定，评价时不重新拟合。新增直接 OD 曲线是独立经验观测模型，其 `ratePerHour`/`timingHours` 不等于生理比增长率/延滞期。
 
-内置后四条曲线已经查看，自 6.0.0 起该部分的评价改称开发集比较，6.1.0 延续该定位，不是未触碰或外部验证。`completed`、`converged`、`identified`、`precisionAssessed` 分开报告。详细流程见 [Research Workspace](./research-workspace.md)。
+内置后四条曲线已经查看，自 6.0.0 起该部分的评价改称开发集比较，6.2.0 延续该定位，不是未触碰或外部验证。`completed`、`converged`、`identified`、`precisionAssessed` 分开报告。详细流程见 [Research Workspace](./research-workspace.md)。

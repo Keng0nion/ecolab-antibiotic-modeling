@@ -36,14 +36,15 @@
       "properties": {
         "application": { "$ref": "#/$defs/nonEmptyString" },
         "core": { "$ref": "#/$defs/nonEmptyString" },
-        "analysis": { "enum": ["1.0.0", "2.0.0", "2.1.0"] },
+        "analysis": { "enum": ["1.0.0", "2.0.0", "2.1.0", "2.2.0"] },
         "analysisEngineId": { "const": "ecolab.stage4.analysis" },
         "analysisImplementationId": { "enum": ["ecolab-stage4-analysis-v1", "ecolab-research-analysis-v2"] }
       },
       "oneOf": [
         { "properties": { "analysis": { "const": "1.0.0" }, "analysisImplementationId": { "const": "ecolab-stage4-analysis-v1" } } },
         { "properties": { "analysis": { "const": "2.0.0" }, "analysisImplementationId": { "const": "ecolab-research-analysis-v2" } } },
-        { "properties": { "analysis": { "const": "2.1.0" }, "analysisImplementationId": { "const": "ecolab-research-analysis-v2" } } }
+        { "properties": { "analysis": { "const": "2.1.0" }, "analysisImplementationId": { "const": "ecolab-research-analysis-v2" } } },
+        { "properties": { "analysis": { "const": "2.2.0" }, "analysisImplementationId": { "const": "ecolab-research-analysis-v2" } } }
       ]
     },
     "model": {

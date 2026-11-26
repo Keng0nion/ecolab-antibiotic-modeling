@@ -19,7 +19,7 @@ import {
 import { ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "./version.js";
 
 export const RESEARCH_WORKFLOW_IMPLEMENTATION_ID = "ecolab-research-development-v2";
-const APPLICATION_VERSION = "6.1.0";
+const APPLICATION_VERSION = "6.2.0";
 const SCIENTIFIC_FIELDS = Object.freeze([
   "dataset", "model", "split", "parameterSpace", "seeds", "training", "identifiability",
   "lockedPlan", "validation", "analyses", "growthComparison", "capability", "warnings", "researchAssessment",
@@ -29,6 +29,8 @@ const SCALAR_KEYS = [
   "scanPointsPerAxis", "monteCarloSamples", "morrisTrajectories", "morrisLevels", "sobolSamples",
   "sobolBootstrapReplicates", "sobolBootstrapSeed", "sobolConfidenceLevel", "sobolPrecisionTolerance",
   "identifiabilityProfilePoints", "returnedMonteCarloSamples", "uncertaintyRangeFraction", "includeMonteCarloSamples",
+  "profileLikelihoodPoints", "profileRootRefinement", "profileRootRefinementMaxIterations",
+  "profileRootRefinementRelativeTolerance", "profileErrorModel",
 ];
 const OPTION_KEYS = [
   "datasetInput", "datasetFormat", "resolvedModel", "runId", "createdAt", "datasetVersion", "contentHash",
@@ -42,6 +44,8 @@ const APP_DEFAULTS = {
   sobolSamples: 64, sobolBootstrapReplicates: 200, sobolConfidenceLevel: 0.95, sobolPrecisionTolerance: 0.2,
   identifiabilityProfilePoints: 5, returnedMonteCarloSamples: 32,
   uncertaintyRangeFraction: 0.1, includeMonteCarloSamples: false,
+  profileLikelihoodPoints: 5, profileRootRefinement: false, profileRootRefinementMaxIterations: 8,
+  profileRootRefinementRelativeTolerance: 1e-6, profileErrorModel: "iid",
 };
 const GROWTH_DEFAULTS = {
   bounds: { baselineOd: [0, 0.3], amplitudeOd: [0.001, 1], ratePerHour: [0.001, 4], timingHours: [0, 30] },
@@ -397,7 +401,7 @@ function buildArtifacts(result, legacy, options) {
 /**
  * Development-only, pure v2 research workflow; no I/O or registry resolution.
  * Required: datasetInput (source text or JSON object), resolvedModel, runId,
- * createdAt (ISO timestamp), datasetVersion. applicationVersion defaults to 6.1.0
+ * createdAt (ISO timestamp), datasetVersion. applicationVersion defaults to 6.2.0
  * and other versions are rejected. contentHash defaults to SHA-256 of the exact
  * text; object input is canonicalized to NEW source text and any supplied hash
  * must match that text. The bundled legacy dataset/model restrictions still apply.

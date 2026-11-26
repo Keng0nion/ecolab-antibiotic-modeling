@@ -5,7 +5,7 @@
     "runId": "ecolab-prediction-band-coverage",
     "createdAt": "2026-11-26T00:00:00.000Z"
   },
-  "applicationVersion": "6.1.0",
+  "applicationVersion": "6.2.0",
   "analysisImplementationId": "ecolab-research-development-v2",
   "dataset": {
     "id": "figshare-bw25113-growth-v1",

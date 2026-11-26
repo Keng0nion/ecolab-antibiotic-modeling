@@ -52,7 +52,12 @@ async function readBundledFile(relativePath, label) {
   try {
     return await readFile(new URL(relativePath, root));
   } catch (error) {
-    throw new Error(`${label} cannot read ${relativePath}: ${error.message}`);
+    const hint = label.endsWith("acquisitionMetadata")
+      ? " The acquisition manifest is tracked in git even though the XLSX payloads are local downloads;"
+        + " restore it with `git checkout -- data/raw/figshare-bw25113-growth-v1/acquisition.json`"
+        + " or regenerate it with `npm run data:acquire:figshare`."
+      : "";
+    throw new Error(`${label} cannot read ${relativePath}: ${error.message}${hint}`);
   }
 }
 

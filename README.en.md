@@ -6,7 +6,7 @@
 - [English](README.en.md)
 - [Japanese](README.ja.md)
 
-# Ecolab 6.1.0
+# Ecolab 6.2.0
 
 ![Screenshot of the Ecolab learning interface](./docs/screenshot.png)
 
@@ -37,9 +37,9 @@ Ecolab is a local-first, auditable, and reproducible *E. coli*–antibiotic popu
 
 ## Version contract
 
-- App: `6.1.0`
+- App: `6.2.0`
 - Scientific core: `2.0.0` (teaching dynamics unchanged)
-- Analysis engine: `2.1.0` (fit-identifiability gates, profile diagnostics, and result-status audit)
+- Analysis engine: `2.2.0` (fit-identifiability gates, profile diagnostics, root-refined endpoints, and dependence sensitivity)
 - Model: `ecolab.single-population.regoes-logistic@1.0.0`
 
 The root `package.json` is the authoritative source for the app release version. The new release keeps the teaching Regoes/Logistic model and adds direct OD-scale Logistic/Gompertz, whole-curve cross-validation on training data, joint whole-curve bootstrap, an independent whole-trajectory split-conformal prediction band, and checksum-verified same-version replay of research packages. The previously held-out data has been viewed; new results are explicitly labeled as development-set comparisons, not an untouched test set or external validation.
@@ -71,7 +71,7 @@ Press `Ctrl+C` in the terminal to stop the server. Default outputs are `dist/cor
 
 ## How the code works
 
-The following explains the actual data flow, mathematical computation, and engineering constraints of the current `6.1.0` source. Links point to concrete implementations; the papers explain the methodological basis and cannot replace this project's condition-matched experimental validation. The app does not depend on React, third-party optimizers, or remote compute services — it uses native JavaScript ES Modules, DOM/SVG, Web Workers, and IndexedDB.
+The following explains the actual data flow, mathematical computation, and engineering constraints of the current `6.2.0` source. Links point to concrete implementations; the papers explain the methodological basis and cannot replace this project's condition-matched experimental validation. The app does not depend on React, third-party optimizers, or remote compute services — it uses native JavaScript ES Modules, DOM/SVG, Web Workers, and IndexedDB.
 
 ### 1. Layered structure and call chain
 
@@ -233,7 +233,7 @@ Each returned row contains `timeHours`, `concentrationMgPerL`, `netGrowthLog10Pe
 
 #### 3.1 From file to analyzable data
 
-The CSV parser in `dataset-import.js` is a character state machine, handling quotes, escaped double quotes, commas, CRLF, and BOM, and checking the required column set, finite numbers, and nested JSON. Import has file-size, row/column-count, field-length, and nesting-depth limits; it does not guess units, auto-smooth, or fill in points. Browser CSV import requires the user to explicitly provide `datasetId`, title, and license; the underlying public import API's license field is optional, but provenance and license are never auto-inferred from filenames.
+The CSV parser in `dataset-import.js` is a character state machine, handling quotes, escaped double quotes, commas, CRLF, and BOM, and checking the required column set, finite numbers, and nested JSON. Import has file-size, row/column-count, field-length, and nesting-depth limits; it does not guess units, auto-smooth, or fill in points. Browser CSV import requires the user to explicitly provide `datasetId`, title, and license; the underlying public import API's license field is optional, but provenance and license are never auto-inferred from filenames. Excel (`.xlsx`) import decompresses in the browser and converts only the first worksheet to CSV text before handing it to the same strict importer: formulas use cached values, date serials are not converted, merged cells and hidden rows are ignored, and a second worksheet is never merged silently.
 
 The browser import chain is `file.text()` → `dataset.parse` Worker → normalized `observation-dataset` → QC → data record. Only QC-qualified data is persisted. Generic imports are marked as unversioned file provenance and do not automatically inherit Figshare attribution, license proof, or built-in research eligibility.
 
@@ -313,7 +313,7 @@ After the frozen selection, candidates are refit on all training trajectories; t
 
 Actual record for fixed `small`, seed `123456789`: CV selected the mean baseline; development macro RMSE **0.00304756 OD**, MAE **0.00239205 OD**; the original latent model's macro RMSE was **0.00833386 OD**, non-converged. Direct Logistic/Gompertz also did not converge in each CV fold, so this is not evidence of the new models improving prediction accuracy.
 
-Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric aggregation](./src/analysis/metrics.js), [versioned actual results](./data/examples/ecolab-stage6-research-6.1.0.md).
+Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric aggregation](./src/analysis/metrics.js), [versioned actual results](./data/examples/ecolab-stage6-research-6.2.0.md).
 
 #### 4.4 Fit status and refusal conditions
 
@@ -365,7 +365,7 @@ When rank-deficient, the parameter covariance/correlation matrix is unavailable;
 
 The current `objectiveSlices` sweeps one parameter while fixing the remaining biological parameters and re-solving the OD nuisance parameters; this is a **nuisance-profiled objective slice**. It is not a full profile likelihood with all other parameters fully optimized, the sweep endpoints are not confidence limits; the old `profiles` is a compatibility alias only. The distinction references [Raue et al. (2009)](https://doi.org/10.1093/bioinformatics/btp358).
 
-6.1.0 adds a genuine **profile likelihood**: the target parameter is fixed, the remaining biological and OD nuisance parameters are reoptimized, and the Gaussian residual scale is profiled analytically; the 95% likelihood-ratio threshold `1.9207` is used to find lower and upper crossings on the grid. If the main fit or any refit fails to converge, both the overall and per-parameter statuses are `NOT_ASSESSED` with the reason recorded, and sweep endpoints are not reported as confidence limits. The result remains conditional on the model, error assumptions, and parameter bounds; it is not a coverage proof.
+6.2.0 introduced a genuine **profile likelihood**: the target parameter is fixed, the remaining biological and OD nuisance parameters are reoptimized, and the Gaussian residual scale is profiled analytically; the 95% likelihood-ratio threshold `1.9207` is bracketed on the grid and then solved with a deterministic bisection. Grid interpolation alone pulls endpoints toward the estimate: the five-point grid reported `psiMax` as `±0.345%`, while root refinement gives `±3.66%`. The `precision` preset additionally reports a random-intercept AR(1) sensitivity interval; it is wider and asymmetric, and it is not a joint refit. If the main fit or any refit fails to converge, both the overall and per-parameter statuses are `NOT_ASSESSED` with the reason recorded, and sweep endpoints are not reported as confidence limits. The result remains conditional on the model, error assumptions, and parameter bounds; it is not a coverage proof.
 
 The system therefore records `completed`, `converged`, `identified`, and `precisionAssessed` separately. The current growth comparison has not yet established parameter identifiability and interval coverage; a normal workflow end cannot automatically flip these labels to true.
 
@@ -458,7 +458,7 @@ The cross-runtime patch only handles duplicate numeric text for closed warning t
 
 Therefore the distinctions are mandatory: **integrity passing ≠ provenance real; replayable ≠ replay matched; replay matched ≠ scientifically valid or parameters identified.** `replayable` only means it can be attempted; `matched` means the results agree under the specified comparison rules.
 
-When importing a versioned example in the browser, use the `researchPackage` inside the [6.1.0 example JSON](./data/examples/ecolab-stage6-research-6.1.0.json), not the outer example wrapper; research packages exported by the browser itself can be imported directly.
+When importing a versioned example in the browser, use the `researchPackage` inside the [6.2.0 example JSON](./data/examples/ecolab-stage6-research-6.2.0.json), not the outer example wrapper; research packages exported by the browser itself can be imported directly.
 
 Source: [strict checks, compatibility decisions, and replay comparison](./src/analysis/research-replay.js), [closed numeric warning templates](./src/analysis/replay-warning-equivalence.js).
 
@@ -498,7 +498,7 @@ Suggested reading order for first-time readers:
 
 ## Documentation
 
-- [Detailed update notes for this release](./docs/release-notes-6.1.0.md)
+- [Detailed update notes for this release](./docs/release-notes-6.2.0.md)
 - [6.0.0 historical release notes](./docs/release-notes-6.0.0.md)
 - [Changelog](./docs/changelog.md)
 - [Prediction-band coverage study](./docs/prediction-band-coverage.md)
@@ -524,8 +524,8 @@ Ecolab's own code is released under the [MIT License](./LICENSE), copyright © 2
 
 Versioned generated examples:
 
-- [Current 6.1.0 Markdown](./data/examples/ecolab-stage6-research-6.1.0.md)
-- [Current 6.1.0 JSON](./data/examples/ecolab-stage6-research-6.1.0.json)
+- [Current 6.2.0 Markdown](./data/examples/ecolab-stage6-research-6.2.0.md)
+- [Current 6.2.0 JSON](./data/examples/ecolab-stage6-research-6.2.0.json)
 - [Historical 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
 - [Historical 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
 - [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)

@@ -6,9 +6,9 @@
 
 Ecolab 分开维护三个版本面：
 
-- 应用与发布 `6.1.0`：UI、发布线、文档、部署或整体产品契约变化时升级。
+- 应用与发布 `6.2.0`：UI、发布线、文档、部署或整体产品契约变化时升级。
 - 科学核心引擎 `2.0.0`，教学模型 `1.0.0`：模型实现、单位、状态、协议或数值语义变化时分别升级。
-- 分析引擎 `2.1.0`：拟合、指标、评价、不确定性或敏感性算法契约变化时升级；当前 implementation 为 `ecolab-research-analysis-v2`，稳定 ID 仍是 `ecolab.stage4.analysis`。
+- 分析引擎 `2.2.0`：拟合、指标、评价、不确定性或敏感性算法契约变化时升级；当前 implementation 为 `ecolab-research-analysis-v2`，稳定 ID 仍是 `ecolab.stage4.analysis`。
 
 根 `package.json` 是应用版本的唯一权威来源。`src/app/version.js` 是浏览器可导入的镜像，必须由 `npm run check:version` 与根版本一致。`build-core.js` 直接读取根 package 版本，不保留第二份发布版本常量。
 
@@ -53,6 +53,8 @@ Ecolab 分开维护三个版本面：
 
 Ecolab versions the application release, scientific core, and analysis engine separately. The root `package.json` is the sole authority for the application version. `src/app/version.js` is the browser-importable mirror checked by `npm run check:version`, while `build-core.js` reads the root package directly.
 
-Scientific core `2.0.0` and teaching model `1.0.0` remain unchanged. Application `6.1.0` includes analysis `2.1.0` (`ecolab-research-analysis-v2`), retaining stable engine ID `ecolab.stage4.analysis`. Preserve historical artifacts, pin replay dependencies exactly, and compare the complete recomputed manifest as well as scientific output. Previously inspected holdouts remain development data; higher budgets and passing software tests do not establish scientific validation.
+Scientific core `2.0.0` and teaching model `1.0.0` remain unchanged. Application `6.2.0` includes analysis `2.2.0` (`ecolab-research-analysis-v2`), retaining stable engine ID `ecolab.stage4.analysis`. Preserve historical artifacts, pin replay dependencies exactly, and compare the complete recomputed manifest as well as scientific output. Previously inspected holdouts remain development data; higher budgets and passing software tests do not establish scientific validation.
+
+`data/raw/` stays out of the published build, but `data/raw/figshare-bw25113-growth-v1/acquisition.json` is tracked on purpose: `npm run audit:data` requires it, and the XLSX payloads next to it are optional local downloads. Never commit the workbooks; keep the manifest.
 
 For data updates: register provenance, license, conditions, intended use, and version; retain source checksums; use deterministic acquisition/extraction scripts; run `npm run audit:data`; update the data card and candidate review; regenerate the portfolio artifact when results may change; and run the release audit to exclude raw workbooks and tests. Download availability does not imply redistribution permission, unknown conditions must remain unknown, and OD measurements must retain OD semantics unless an independently validated conversion exists.

@@ -11,8 +11,11 @@ import {
   TEST_HASH,
   createCatalogFixture,
   createDatasetRecord,
+  createNormalizedDataset,
+  createQualityReport,
   createResearchResult,
 } from "./research-test-fixtures.js";
+import { buildXlsx, workbookEntries } from "./xlsx-fixture.js";
 
 function createAppStub() {
   return {
@@ -68,7 +71,7 @@ function createHarness(options = {}) {
     app,
     catalog,
     repository,
-    applicationVersion: "6.1.0",
+    applicationVersion: "6.2.0",
     downloadText(text, name, type) { downloads.push({ text, name, type }); },
     t(key, params = {}) {
       return Object.entries(params).reduce(
@@ -306,7 +309,7 @@ test("dedicated workflow submission captures one run, updates progress DOM direc
   const options = harness.taskCalls[0].payload.options;
   assert.equal(options.datasetVersion, "1.0.0");
   assert.equal(options.contentHash, TEST_HASH);
-  assert.equal(options.applicationVersion, "6.1.0");
+  assert.equal(options.applicationVersion, "6.2.0");
     assert.match(options.runId, /^research-v2-/);
     assert.equal(options.growthComparison?.bootstrap.samples, 20);
   assert.equal(options.seed, harness.controller.state.seed);
@@ -677,4 +680,111 @@ test("route-specific export menu and actions disable result artifacts until comp
   for (const action of ["manifest", "package", "dataset", "predictions", "methods", "svg"]) {
     assert.match(menu, new RegExp(`research-export-${action}\\" disabled`));
   }
+});
+
+function xlsxImportFixture() {
+  const csv = [
+    "observationId,seriesId,independentUnitId,timeHours,value,measurementType,role",
+    "o1,s1,u1,0.5,0.1,od600,training",
+  ].join("\r\n");
+  const bytes = buildXlsx(workbookEntries({
+    sheetXml: `<worksheet><sheetData><row r="1">`
+      + `<c r="A1" t="inlineStr"><is><t>observationId</t></is></c>`
+      + `<c r="B1" t="inlineStr"><is><t>seriesId</t></is></c>`
+      + `</row></sheetData></worksheet>`,
+    sheetNames: ["Observations"],
+  }));
+  const imported = {
+    schemaVersion: "1.0.0",
+    kind: "observation-dataset-import-result",
+    format: "csv",
+    dataset: createNormalizedDataset(),
+    qualityReport: createQualityReport(),
+    warnings: [],
+    stats: { bytes: csv.length, rowCount: 1, columnCount: 7 },
+  };
+  return { bytes, imported };
+}
+
+test("an Excel workbook is converted to CSV, imported through the strict worker, and keeps its source format", async () => {
+  const { bytes, imported } = xlsxImportFixture();
+  const queued = deferredHandle();
+  const harness = createHarness({ queuedRuns: [queued] });
+  await harness.controller.initialize();
+  harness.controller.state.csvMetadata = { datasetId: "xlsx-import", title: "Excel import", license: "CC0-1.0" };
+  const promise = harness.controller.handleChange({
+    name: "research-dataset-file",
+    files: [{
+      name: "growth.xlsx",
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      size: bytes.length,
+      async arrayBuffer() { return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength); },
+      async text() { throw new Error("text() must not be called for a workbook"); },
+    }],
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(harness.taskCalls.length, 1);
+  assert.equal(harness.taskCalls[0].kind, "dataset.parse");
+  assert.equal(harness.taskCalls[0].payload.options.format, "csv");
+  assert.equal(harness.taskCalls[0].payload.options.datasetMetadata.datasetId, "xlsx-import");
+  assert.equal(harness.taskCalls[0].payload.input, "observationId,seriesId");
+  queued.resolve(imported);
+  assert.equal(await promise, true);
+
+  const record = harness.controller.state.selectedDataset;
+  assert.equal(record.sourceFormat, "xlsx");
+  assert.equal(record.importWarnings.length, 1);
+  assert.equal(record.importWarnings[0].code, "XLSX_FIRST_WORKSHEET_ONLY");
+  assert.equal(record.importWarnings[0].details.worksheetName, "Observations");
+  assert.equal(record.qualityReport.warnings.length, imported.qualityReport.warnings.length);
+});
+
+test("an Excel import still requires the explicit CSV dataset metadata", async () => {
+  const { bytes } = xlsxImportFixture();
+  const harness = createHarness();
+  await harness.controller.initialize();
+  await harness.controller.handleChange({
+    name: "research-dataset-file",
+    files: [{
+      name: "growth.xlsx",
+      size: bytes.length,
+      async arrayBuffer() { return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength); },
+    }],
+  });
+  assert.match(harness.controller.state.datasetError, /CSV import requires explicit/u);
+  assert.equal(harness.taskCalls.length, 0);
+});
+
+test("a damaged workbook reports a stable XLSX error instead of a raw inflate failure", async () => {
+  const harness = createHarness();
+  await harness.controller.initialize();
+  harness.controller.state.csvMetadata = { datasetId: "xlsx-import", title: "Excel import", license: "CC0-1.0" };
+  const broken = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]);
+  await harness.controller.handleChange({
+    name: "research-dataset-file",
+    files: [{
+      name: "broken.xlsx",
+      size: broken.length,
+      async arrayBuffer() { return broken.buffer; },
+    }],
+  });
+  assert.match(harness.controller.state.datasetError, /not a readable XLSX ZIP container/u);
+  assert.equal(harness.taskCalls.length, 0);
+});
+
+test("a legacy .xls workbook is rejected with an actionable message before any read", async () => {
+  const harness = createHarness();
+  await harness.controller.initialize();
+  let readCalls = 0;
+  await harness.controller.handleChange({
+    name: "research-dataset-file",
+    files: [{
+      name: "legacy.xls",
+      size: 1024,
+      async text() { readCalls += 1; return "unexpected"; },
+      async arrayBuffer() { readCalls += 1; return new ArrayBuffer(0); },
+    }],
+  });
+  assert.equal(readCalls, 0);
+  assert.match(harness.controller.state.datasetError, /Legacy \.xls workbooks are not supported/u);
 });

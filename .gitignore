@@ -10,8 +10,13 @@ coverage/
 .tmp/
 tmp/
 
-# Local raw source artifacts are provenance inputs, not release files
-data/raw/
+# Local raw source artifacts are provenance inputs, not release files.
+# The acquisition manifest is tracked because it carries source URLs, byte
+# counts, MD5 and SHA-256 values; the XLSX payloads themselves stay local.
+data/raw/*
+!data/raw/figshare-bw25113-growth-v1/
+data/raw/figshare-bw25113-growth-v1/*
+!data/raw/figshare-bw25113-growth-v1/acquisition.json
 *.xlsx
 *.xls
 

@@ -79,6 +79,7 @@ await Promise.all([
   access(new URL("src/app/boot-watchdog.js", web)),
   access(new URL("src/app/main.js", web)),
   access(new URL("src/app/charts.js", web)),
+  access(new URL("src/app/research/xlsx-import.js", web)),
   access(new URL("src/app/workers/analysis-worker.js", web)),
   access(new URL("src/app/workers/task-client.js", web)),
   access(new URL("src/app/workers/task-protocol.js", web)),

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "kind": "ecolab.parameter-precision",
   "generatedFrom": {
-    "applicationVersion": "6.1.0",
+    "applicationVersion": "6.2.0",
     "seed": 1582041777,
     "createdAt": "2026-11-26T00:00:00.000Z"
   },
@@ -26,12 +26,20 @@
       },
       "localGeometry": {
         "rank": 2,
-        "parameterCount": null,
+        "parameterCount": 2,
         "conditionNumber": 18.867688745326795,
-        "correlation": null
+        "correlation": -0.9936584660359868
       },
       "profileStatus": "NOT_ASSESSED",
       "profileReason": "one_or_more_profile_refits_or_the_main_fit_did_not_converge",
+      "profilePointCount": 5,
+      "profileRefitEvaluationCount": 961,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
       "profileIntervals95": {
         "psiMaxLog10PerHour": {
           "status": "NOT_ASSESSED",
@@ -45,7 +53,10 @@
           "upper": null,
           "relativeHalfWidth": null
         }
-      }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
     },
     {
       "name": "standard",
@@ -59,12 +70,20 @@
       },
       "localGeometry": {
         "rank": 2,
-        "parameterCount": null,
+        "parameterCount": 2,
         "conditionNumber": 18.867684688555823,
-        "correlation": null
+        "correlation": -0.9936584630832225
       },
       "profileStatus": "ASSESSED",
       "profileReason": null,
+      "profilePointCount": 5,
+      "profileRefitEvaluationCount": 2219,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
       "profileIntervals95": {
         "psiMaxLog10PerHour": {
           "status": "identified",
@@ -74,11 +93,14 @@
         },
         "initialStates.pooled.log10PopulationDensity": {
           "status": "identified",
-          "lower": 4.5856216179711335,
-          "upper": 4.641823009867992,
+          "lower": 4.585621617971134,
+          "upper": 4.641823009867993,
           "relativeHalfWidth": 0.0060828058772790005
         }
-      }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
     },
     {
       "name": "large",
@@ -92,12 +114,20 @@
       },
       "localGeometry": {
         "rank": 2,
-        "parameterCount": null,
+        "parameterCount": 2,
         "conditionNumber": 18.86768543859024,
-        "correlation": null
+        "correlation": -0.9936584635790284
       },
       "profileStatus": "ASSESSED",
       "profileReason": null,
+      "profilePointCount": 5,
+      "profileRefitEvaluationCount": 14991,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
       "profileIntervals95": {
         "psiMaxLog10PerHour": {
           "status": "identified",
@@ -108,9 +138,259 @@
         "initialStates.pooled.log10PopulationDensity": {
           "status": "identified",
           "lower": 4.585621441489053,
-          "upper": 4.641822833123254,
-          "relativeHalfWidth": 0.006082806086220321
+          "upper": 4.641822833123253,
+          "relativeHalfWidth": 0.006082806086220226
         }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
+    }
+  ],
+  "profileResolution": [
+    {
+      "name": "grid-5",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": 2,
+        "conditionNumber": 18.867684688555823,
+        "correlation": -0.9936584630832225
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profilePointCount": 5,
+      "profileRefitEvaluationCount": 2219,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.42162131107296635,
+          "upper": 0.4245367678155322,
+          "relativeHalfWidth": 0.00344572205385248
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.585621617971134,
+          "upper": 4.641823009867993,
+          "relativeHalfWidth": 0.0060828058772790005
+        }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
+    },
+    {
+      "name": "grid-9",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": 2,
+        "conditionNumber": 18.867684688555823,
+        "correlation": -0.9936584630832225
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profilePointCount": 9,
+      "profileRefitEvaluationCount": 5079,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.42069793791520693,
+          "upper": 0.4268743678442752,
+          "relativeHalfWidth": 0.00729980332410453
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.577026896109531,
+          "upper": 4.675157067954046,
+          "relativeHalfWidth": 0.010620854144140553
+        }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
+    },
+    {
+      "name": "grid-11",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": 2,
+        "conditionNumber": 18.867684688555823,
+        "correlation": -0.9936584630832225
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profilePointCount": 11,
+      "profileRefitEvaluationCount": 6226,
+      "rootRefinement": {
+        "enabled": false,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.42013166267337915,
+          "upper": 0.42737434547002795,
+          "relativeHalfWidth": 0.008559987008933394
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.5564458303693405,
+          "upper": 4.661527581598056,
+          "relativeHalfWidth": 0.01137323956570068
+        }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
+    },
+    {
+      "name": "grid-11-refined",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": 2,
+        "conditionNumber": 18.867684688555823,
+        "correlation": -0.9936584630832225
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profilePointCount": 11,
+      "profileRefitEvaluationCount": 17362,
+      "rootRefinement": {
+        "enabled": true,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.4079652362281464,
+          "upper": 0.4389150622416483,
+          "relativeHalfWidth": 0.03657900201385436
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.450776620479868,
+          "upper": 4.780393768533784,
+          "relativeHalfWidth": 0.035675221871975964
+        }
+      },
+      "ar1ProfileStatus": null,
+      "ar1Intervals95": null,
+      "residualDependence": null
+    },
+    {
+      "name": "grid-11-refined-ar1",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": 2,
+        "conditionNumber": 18.867684688555823,
+        "correlation": -0.9936584630832225
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profilePointCount": 11,
+      "profileRefitEvaluationCount": 28498,
+      "rootRefinement": {
+        "enabled": true,
+        "method": "bracket_bisection_linear_interpolation",
+        "maxIterations": 8,
+        "relativeTolerance": 0.000001
+      },
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.4079652362281464,
+          "upper": 0.4389150622416483,
+          "relativeHalfWidth": 0.03657900201385436
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.450776620480059,
+          "upper": 4.780393768533806,
+          "relativeHalfWidth": 0.0356752218719576
+        }
+      },
+      "ar1ProfileStatus": "ASSESSED",
+      "ar1Intervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.33459530282486893,
+          "upper": 0.4281597049867523,
+          "relativeHalfWidth": 0.11058196106212512
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.560432072013558,
+          "upper": 5.508063419423051,
+          "relativeHalfWidth": 0.10256431976088597
+        }
+      },
+      "residualDependence": {
+        "method": "random_intercept_ar1_within_curve",
+        "phi": 0.8352431868010504,
+        "lambda": 0.12247851682746778,
+        "icc": 0.10911435273936164,
+        "betweenCurveSd": 0.0027051177348820024,
+        "withinCurveSd": 0.007729585623347013,
+        "curveCount": 8,
+        "observationsPerCurve": 44,
+        "designEffect": 15.130033625828851,
+        "effectiveSampleSize": 23.264984646107607,
+        "lagOneDesignEffect": 36.91545703244517
       }
     }
   ],
@@ -122,9 +402,23 @@
     "designEffect": 40.45699975231873,
     "effectiveSampleSize": 8.700595747459639
   },
+  "fittedResidualDependence": {
+    "method": "random_intercept_ar1_within_curve",
+    "phi": 0.8352431868010504,
+    "lambda": 0.12247851682746778,
+    "icc": 0.10911435273936164,
+    "betweenCurveSd": 0.0027051177348820024,
+    "withinCurveSd": 0.007729585623347013,
+    "curveCount": 8,
+    "observationsPerCurve": 44,
+    "designEffect": 15.130033625828851,
+    "effectiveSampleSize": 23.264984646107607,
+    "lagOneDesignEffect": 36.91545703244517
+  },
   "interpretation": [
     "The small preset stops at its evaluation cap; the same fit converges at the standard and large budgets with identical estimates, so the status difference is a budget artefact, not a data limit.",
-    "Profile intervals assume independent homoscedastic Gaussian residuals. The training residuals have strong lag-one autocorrelation, so the design effect inflates the honest standard error by roughly its square root.",
+    "The five-point grid reports a narrower interval than the eleven-point grid, and both are narrower than the refined crossing: linear interpolation between distant grid points understates the profile width. Only the root-refined interval is reported as the IID profile interval.",
+    "The IID profile still assumes independent homoscedastic Gaussian residuals. The random-intercept AR(1) block is a sensitivity interval anchored at the IID estimate with nuisance parameters reoptimized under least squares; it is not a joint AR(1) refit.",
     "Absolute CFU scale is not identified: K is fixed and only the product s/K enters the OD observation layer."
   ]
 }

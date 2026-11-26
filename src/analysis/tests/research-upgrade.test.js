@@ -65,7 +65,7 @@ test("development mode reaches legacy snapshots, capability and methods before p
   const input = await options();
   const result = await runEcolabStage4ResearchWorkflow({
     ...input, growthComparison: undefined, developmentComparison: true,
-    applicationVersion: "6.1.0", contentHash: sha256HexFallback(input.datasetInput),
+    applicationVersion: "6.2.0", contentHash: sha256HexFallback(input.datasetInput),
   });
   assert.equal(result.validation.role, "development_comparison");
   assert.equal(result.validation.untouched, false);
@@ -98,12 +98,12 @@ test("new wrapper builds strict replay artifacts and deterministic scientific pr
   assert.equal(replay.kind, "ecolab-research-replay-input");
   assert.equal(replay.implementationId, upgrade.RESEARCH_WORKFLOW_IMPLEMENTATION_ID);
   assert.deepEqual(replay.versions, {
-    application: "6.1.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID,
+    application: "6.2.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID,
   });
   assert.equal(replay.options.datasetInput, input.datasetInput);
   assert.deepEqual(replay.options.resolvedModel, input.resolvedModel);
   assert.equal(replay.options.contentHash, sha256HexFallback(input.datasetInput));
-  assert.equal(replay.options.applicationVersion, "6.1.0");
+  assert.equal(replay.options.applicationVersion, "6.2.0");
   assert.equal(replay.options.developmentComparison, true);
   for (const key of ["datasetFormat", "packageId", "planId", "uncertaintyRangeFraction", "morrisLevels", "includeMonteCarloSamples", "returnedMonteCarloSamples", "scalarOutputTimeHours", "computationSettings", "seeds"]) {
     assert.ok(Object.hasOwn(replay.options, key), key);

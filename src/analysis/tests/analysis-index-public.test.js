@@ -43,7 +43,7 @@ test("analysis index re-exports every public symbol from every Stage 4 module", 
       assert.equal(publicApi[name], value, `${name} does not preserve the module export identity`);
     }
   }
-  assert.equal(publicApi.ANALYSIS_ENGINE_VERSION, "2.1.0");
+  assert.equal(publicApi.ANALYSIS_ENGINE_VERSION, "2.2.0");
   assert.equal(publicApi.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
   assert.equal(publicApi.ANALYSIS_IMPLEMENTATION_ID, "ecolab-research-analysis-v2");
 });

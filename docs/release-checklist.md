@@ -1,5 +1,81 @@
 # Ecolab release checklist / 发布检查表
 
+## 6.2.0 发布记录 / 6.2.0 release record
+
+更新：2026-11-26；应用 `6.2.0`，分析 `2.2.0`，教学核心 `2.0.0`，教学模型 `1.0.0`。发布说明见 [release-notes-6.2.0.md](./release-notes-6.2.0.md) 与 [release-notes-analysis-2.2.0.md](./release-notes-analysis-2.2.0.md)。
+
+### `acquisition.json` 缺失的根因与修复
+
+- 现象：从 GitHub 取得 6.1.0 后运行 `npm run check` / `npm run audit:data` 报 `figshare-bw25113-growth-v1.paths.acquisitionMetadata cannot read data/raw/figshare-bw25113-growth-v1/acquisition.json: ENOENT`。
+- 根因：`data/raw/` 整目录被 `.gitignore` 排除，但 `scripts/audit-data.js` 把 `acquisitionMetadata` 列为必需路径并校验其 SHA-256（`8a2aa270…`）。克隆产物因此缺少该清单。
+- 修复：`.gitignore` 改为只放行 `data/raw/figshare-bw25113-growth-v1/acquisition.json`，三个 XLSX 载荷继续忽略；`audit:data` 的缺失报错补充 `git checkout --` 与 `npm run data:acquire:figshare` 两条恢复路径。发布产物仍不含 `data/raw/`（`build-web` / `build-core` 的 `assertMissing` 未改）。
+- 复现验证：临时改名该文件后 `npm run audit:data` 复现同一错误并显示新提示；恢复后 SHA-256 仍为 `8a2aa270…`，审计通过。
+
+### Excel（`.xlsx`）直接导入
+
+- 新增 `src/app/research/xlsx-import.js`：纯 JS 读取 ZIP 中央目录与第一个工作表，支持 stored 与 deflate 条目，`DecompressionStream("deflate-raw")` 解压（Chrome/Edge 103+、Safari 16.4+、Firefox 113+、Node 21+），无第三方依赖。
+- 转换结果交给既有严格导入器：列名、单位、测量语义、删失与范围校验仍由 `src/analysis/dataset-import.js` 负责；Excel 只是传输格式，不改变任何科学语义。
+- 记录 `sourceFormat: "xlsx"`，并写入 `XLSX_FIRST_WORKSHEET_ONLY` 导入警告（工作表名、工作表数、行列数）；CSV / Excel 都必须显式填写 `datasetId`、标题、许可。
+- 明确拒绝并给出稳定错误码：`.xls`（`XLSX_LEGACY_FORMAT`）、加密（`XLSX_ENCRYPTED`）、ZIP64（`XLSX_ZIP64`）、不支持的压缩方法（`XLSX_COMPRESSION`）、越界路径（`XLSX_UNSAFE_PATH`）、空表（`XLSX_EMPTY`）、无工作表（`XLSX_NO_WORKSHEET`）、超过 100 000 行 × 256 列（`XLSX_TOO_WIDE`）、解压失败（`XLSX_CORRUPT`）。
+- 真实工作簿核对：`BW25113_GrowthDataEvaluation.xlsx` → 13 609 行 × 10 列；`BW25113_Medium composition.xlsx` → 13 609 行 × 47 列；`BW25113_Growth_Round01.xlsx` 是每孔一列的宽表，按设计返回 `XLSX_TOO_WIDE`，提示先转成长表。
+
+### 本轮验证
+
+| 命令 | 实际结果 |
+| --- | --- |
+| `npm run check:syntax` | 通过（`src/app/research/xlsx-import.js` 已登记）。 |
+| `node --test src/app/tests/xlsx-import.test.js` | **14/14 通过**（shared/inline string、稀疏单元格、实体、矩形填充、deflate/stored、默认解压器，以及 9 类拒绝路径）。 |
+| `node --test src/app/tests/research-controller.test.js` | **68/68 通过**，含 XLSX→CSV→worker 全链路、`sourceFormat`、警告、CSV 元数据必填、`.xls` 与损坏文件拒绝。 |
+| `npm test` | **633/633 通过**，0 失败/取消/跳过；约 505–719 秒（随主机负载）。 |
+| `npm run test:release` | **82/82 通过**，约 311 秒。 |
+| `npm run check:reproducible` | 两次干净临时构建 **175 个文件逐字节一致**。 |
+| `scripts/build-core.js` + `build-web.js` + `audit-release.js`（临时目录） | 发布审计通过（application 6.2.0）；`preset=precision`，科学回放匹配；45 个 Markdown 链接通过；Core 7.32 MiB、Web 7.86 MiB。 |
+| `npm run audit:data` | 通过（文件在位时）；文件缺失时复现用户报告的错误并显示新提示。 |
+
+并发全量测试曾让 `release audit checks temporary products` 的子进程 60 秒预算超时（该测试单独运行 14 秒通过）。按既有原则只把该测试的 build/audit 子进程预算提到 240 秒，断言未改。
+
+### 版本与示例（已完成）
+
+- [x] 应用 `6.1.0` → `6.2.0`：`package.json`、`src/app/version.js`、`scripts/check-version.js`、回放契约（`research-replay.js` / `research-upgrade.js`）、版本门禁与全部测试同步。
+- [x] 当前示例改为 `data/examples/ecolab-stage6-research-6.2.0.{json,md}`（`precision` 预设、分析 `2.2.0`）；JSON SHA-256 `4648e4ce…`。
+- [x] `5.0.0`、`6.0.0`、`6.1.0` 六个历史文件字节未变；6.1.0 从 HEAD 恢复为发布字节（JSON `f13ebd58…`，MD `7ec7127c…`）。
+- [x] `docs/release-notes-6.2.0.md` 与 changelog 的 6.2.0 段完成。
+
+### 分析 2.2.0 精度分层（含在 6.2.0 内）
+
+更新：2026-11-26；应用 `6.2.0`，分析 `2.2.0`，教学核心 `2.0.0`，教学模型 `1.0.0`。科学细节见 [parameter-precision.md](./parameter-precision.md)。
+
+- [x] 查清 `profileLikelihoodPoints` 的合法区间为 `[5, 11]`（`src/analysis/research-workflow.js` 的 `researchWorkflowConfiguration` → `integerOption(..., 5, 11)`），越界返回 `INVALID_WORKFLOW_LIMIT`（不是 `INVALID_WORKFLOW_OPTION`）；最大合法值 11 仍不足以替代求根。
+- [x] 端点改为“网格括号 + 确定性二分 + 线性插值”，无 `Date.now()`、无墙钟、无随机数；同一输入两次运行产物 SHA-256 相同。
+- [x] 新增 `src/analysis/residual-dependence.js` 与单元测试：AR(1) 块二次型、随机截距 Woodbury 修正、设计效应、阈值求根。
+- [x] `precision` 预设贯通 UI select、中英文案、CLI 用法、回放选项、导出元数据与测试；`small` 仍是默认，`standard` 行为不变。
+- [x] 当前示例以 `precision` 重新生成；`5.0.0` / `6.0.0` / `6.1.0` 六个历史文件字节未变。
+- [x] 状态型结果（单时间点、秩亏）仍返回 `NOT_IDENTIFIABLE`，且不产生参数、预测、残差、`growthComparison`、`researchPackage` 或 `manifest`。
+- [x] 修复发布审计的单向预设比较：`precision` 与 `standard` 共用优化预算，旧检查无法区分二者；现按 `researchWorkflowConfiguration` 解析后双向比较，`rejects stale preset` 恢复为有效断言。
+
+### 已执行验证（本轮）
+
+本机 macOS（Darwin，Node `v22.22.2`）。
+
+| 命令 | 实际结果 |
+| --- | --- |
+| `npm run check:syntax` | 通过（含新增 `src/analysis/residual-dependence.js`）。 |
+| `npm run check:version` | 通过：应用 `6.1.0`、分析 `2.2.0` / `ecolab-research-analysis-v2`、核心 `2.0.0`、模型 `1.0.0`。 |
+| `npm run audit:data` | 通过：1 model、1 parameter set、14 sources、7 dataset records、6 drug records。 |
+| `npm test` | **610/610 通过**，0 失败/取消/跳过，约 293 秒。 |
+| `npm run test:release` | **77/77 通过**，0 失败，约 145 秒。 |
+| `npm run benchmark:precision`（两次） | 产物 SHA-256 均为 `b2d134e8…`，stdout 逐字节一致；无墙钟字段。 |
+| `npm run benchmark:external` | 产物 SHA-256 `63bb513a…`，48 条留出覆盖 35/48 = 72.92%，`band.available` 5/5 折为 `false`。 |
+| `npm run benchmark:coverage` | 20 000 次重复：IID 73.08%、AR(1) 82.13%、2× 偏移 84.42%、4× 偏移 53.29%，与文档一致。 |
+| `npm run example:research`（两次） | 6.1.0 示例字节一致：JSON `156c9ec9…`，Markdown `29c0fbd2…`；历史哈希未变。 |
+| `node scripts/build-core.js` + `build-web.js` + `audit-release.js`（临时目录） | 发布审计通过；`preset=precision`，科学回放匹配；43 个 Markdown 链接通过；Core 7.32 MiB、Web 7.85 MiB，最大单文件 4.10 MiB。 |
+| `npm run check:reproducible` | 两次干净临时构建 **175 个文件逐字节一致**。 |
+| `node bin/ecolab.js research --preset precision` | 成功，`FIT_COMPLETED` / profile `ASSESSED`，28498 次 profile 重拟合评价，空载 10.2 秒。 |
+
+- `npm run build:public` 的 `build:clean` 步骤被宿主沙箱的批量删除保护拦截（`SAFE_DELETE_BULK_CONFIRM_REQUIRED`，`dist/` 173 个文件）。未绕过该保护，改为等价的“临时目录干净构建 + 发布审计 + 可复现构建”三件事分别执行，断言未删减。
+- 历史文件哈希（本轮前后一致）：5.0.0 JSON `f3365e5c…`、5.0.0 MD `05ca4c25…`、6.0.0 JSON `f5929dae…`、6.0.0 MD `2b451d5b…`。
+- 浏览器小预设集成测试 `src/app/tests/research-api-integration.test.js` 通过；`research.progress.profile_likelihood` 中英文案均存在，且测试对每个实际出现的 phase 逐语言断言文案存在。
+
 ## 6.1.0 fit-status and audit release / 拟合状态与审计版本
 
 更新：2026-11-26；应用 `6.1.0`，分析 `2.1.0`，教学核心 `2.0.0`，教学模型 `1.0.0`。6.0.0 release record follows unchanged below.

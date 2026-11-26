@@ -3,6 +3,7 @@ import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { canonicalJson } from "../src/analysis/fingerprint.js";
 import { RNG_ALGORITHM } from "../src/analysis/random.js";
+import { researchWorkflowConfiguration } from "../src/analysis/research-workflow.js";
 import { inspectResearchPackage, replayResearchPackage } from "../src/analysis/research-replay.js";
 import { RESEARCH_WORKFLOW_IMPLEMENTATION_ID } from "../src/analysis/research-upgrade.js";
 import { ANALYSIS_ENGINE_ID, ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "../src/analysis/version.js";
@@ -99,6 +100,48 @@ function assertPreset(actual, expected, path = "options") {
   }
 }
 
+/**
+ * Resolve a preset through the same configuration function the workflow uses.
+ * A one-directional comparison (preset -> options) cannot tell presets apart
+ * when one preset is a strict superset of another, e.g. `precision` and
+ * `standard` share an optimizer budget but differ in profile settings. Compare
+ * the resolved values in both directions so a preset substitution is rejected.
+ */
+function resolvedPresetOptions(preset) {
+  const config = researchWorkflowConfiguration(preset);
+  return {
+    optimizer: {
+      restarts: config.optimizerRestarts,
+      populationSize: config.populationSize,
+      differentialEvolutionMaxEvaluations: config.differentialEvolutionMaxEvaluations,
+      nelderMeadMaxEvaluations: config.nelderMeadMaxEvaluations,
+    },
+    scanPointsPerAxis: config.scanPointsPerAxis,
+    monteCarloSamples: config.monteCarloSamples,
+    morrisTrajectories: config.morrisTrajectories,
+    morrisLevels: config.morrisLevels,
+    sobolSamples: config.sobolSamples,
+    sobolBootstrapReplicates: config.sobolBootstrapReplicates,
+    sobolConfidenceLevel: config.sobolConfidenceLevel,
+    sobolPrecisionTolerance: config.sobolPrecisionTolerance,
+    identifiabilityProfilePoints: config.identifiabilityProfilePoints,
+    returnedMonteCarloSamples: config.returnedMonteCarloSamples,
+    profileLikelihoodPoints: config.profileLikelihoodPoints,
+    profileRootRefinement: config.profileRootRefinement,
+    profileRootRefinementMaxIterations: config.profileRootRefinementMaxIterations,
+    profileRootRefinementRelativeTolerance: config.profileRootRefinementRelativeTolerance,
+    profileErrorModel: config.profileErrorModel,
+  };
+}
+
+function assertPresetResolution(options, preset) {
+  const resolved = resolvedPresetOptions(preset);
+  for (const [key, expected] of Object.entries(resolved)) {
+    assert(options?.[key] !== undefined && canonicalJson(options[key]) === canonicalJson(expected),
+      `Example preset is stale at options.${key}; regenerate with npm run example:research after the preset is stable.`);
+  }
+}
+
 async function auditPortfolioExample(packageVersion) {
   const path = resolve(rootPath, `data/examples/ecolab-stage6-research-${packageVersion}.json`);
   const artifact = JSON.parse(await readFile(path, "utf8"));
@@ -163,12 +206,15 @@ async function auditPortfolioExample(packageVersion) {
     throw new Error("Example preset is unknown; regenerate with npm run example:research.", { cause: error });
   }
   assertPreset(options, preset);
+  assertPresetResolution(options, preset);
 
   const historical = [
     ["data/examples/ecolab-stage5-small-research-5.0.0.json", "f3365e5c616597c042aa87eb76040b620955f4ea9e8865c77b83e5245acc41b8"],
     ["data/examples/ecolab-stage5-small-research-5.0.0.md", "05ca4c25a2327f81119ee7af609d2536c1ec7072f35a4532f32319406f416bbd"],
     ["data/examples/ecolab-stage6-research-6.0.0.json", "f5929dae8d22c9b6bc6839abb19d5e92dfa458566e9dd31cb2f82175e5c1d41f"],
     ["data/examples/ecolab-stage6-research-6.0.0.md", "2b451d5bd26add57098e0a6a7eabcc2a531bd945b710dd104b735a12efec1527"],
+    ["data/examples/ecolab-stage6-research-6.1.0.json", "f13ebd587b36d3820a28da3ba5e623418f450f488a3066f945dde0d7ecb149b8"],
+    ["data/examples/ecolab-stage6-research-6.1.0.md", "7ec7127cb2df9fc8a658a4824cf48fee1739f0d93a83081ef3312502b3796bcd"],
   ];
   assert(Array.isArray(artifact.historicalArtifacts) && artifact.historicalArtifacts.length === historical.length,
     "Example historical references must retain every frozen historical artifact.");
@@ -262,7 +308,7 @@ const [packageJson, corePackageJson, sourceVersion, builtVersion, headers, markd
   auditMarkdownLinks(),
   auditInlineHandlers(),
 ]);
-assert(packageJson.version === "6.1.0", `Stage 6.1 release must be 6.1.0, found ${packageJson.version}.`);
+assert(packageJson.version === "6.2.0", `Stage 6.2 release must be 6.2.0, found ${packageJson.version}.`);
 assert(sourceVersion.APPLICATION_VERSION === packageJson.version, "Source application version differs from package.json.");
 assert(builtVersion.APPLICATION_VERSION === packageJson.version, "Built application version differs from package.json.");
 assert(corePackageJson.version === packageJson.version, "Built core package version differs from package.json.");
@@ -277,7 +323,7 @@ const [modelVersion, analysisVersion] = await Promise.all([
   import(`${pathToFileURL(resolve(webPath, "src/analysis/version.js")).href}?audit=${Date.now()}`),
 ]);
 assert(ENGINE_VERSION === "2.0.0" && modelVersion.ENGINE_VERSION === ENGINE_VERSION, "Scientific core engine must remain at 2.0.0 in Stage 6.");
-assert(ANALYSIS_ENGINE_VERSION === "2.1.0" && analysisVersion.ANALYSIS_ENGINE_VERSION === ANALYSIS_ENGINE_VERSION, "Stage 6.1 analysis engine must be 2.1.0.");
+assert(ANALYSIS_ENGINE_VERSION === "2.2.0" && analysisVersion.ANALYSIS_ENGINE_VERSION === ANALYSIS_ENGINE_VERSION, "Stage 6.1 analysis engine must be 2.2.0.");
 assert(ANALYSIS_ENGINE_ID === "ecolab.stage4.analysis" && analysisVersion.ANALYSIS_ENGINE_ID === ANALYSIS_ENGINE_ID, "The stable analysis engine ID must remain ecolab.stage4.analysis.");
 assert(ANALYSIS_IMPLEMENTATION_ID === "ecolab-research-analysis-v2" && analysisVersion.ANALYSIS_IMPLEMENTATION_ID === ANALYSIS_IMPLEMENTATION_ID, "Stage 6.1 must use the ecolab-research-analysis-v2 implementation.");
 

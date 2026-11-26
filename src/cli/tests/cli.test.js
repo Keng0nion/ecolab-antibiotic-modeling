@@ -14,7 +14,8 @@ const bundledDatasetPath = resolve(
   rootPath,
   "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json",
 );
-const examplePackagePath = resolve(rootPath, "data/examples/ecolab-stage6-research-6.1.0.json");
+const examplePackagePath = resolve(rootPath, "data/examples/ecolab-stage6-research-6.2.0.json");
+const historical61ExamplePackagePath = resolve(rootPath, "data/examples/ecolab-stage6-research-6.1.0.json");
 const historicalExamplePackagePath = resolve(rootPath, "data/examples/ecolab-stage6-research-6.0.0.json");
 
 function runCli(args, { input = null } = {}) {
@@ -94,9 +95,9 @@ test("info prints the catalog, versions, presets, and command list as one JSON d
   const info = parseStdout(run);
   assert.equal(info.kind, "ecolab.cli.info");
   assert.equal(info.schemaVersion, "1.0.0");
-  assert.equal(info.application.version, "6.1.0");
+  assert.equal(info.application.version, "6.2.0");
   assert.equal(info.scientificCore.engineVersion, "2.0.0");
-  assert.equal(info.analysis.engineVersion, "2.1.0");
+  assert.equal(info.analysis.engineVersion, "2.2.0");
   assert.equal(info.scientificCore.modelId, "ecolab.single-population.regoes-logistic");
   assert.equal(info.analysis.stableEngineId, "ecolab.stage4.analysis");
   assert.deepEqual(info.drugs.map(({ id }) => id), [
@@ -105,7 +106,7 @@ test("info prints the catalog, versions, presets, and command list as one JSON d
   assert.equal(info.drugs.find(({ id }) => id === "ciprofloxacin").zMicMgPerL, 0.017);
   assert.equal(info.dataset.id, "figshare-bw25113-growth-v1");
   assert.equal(info.dataset.normalizedDataSha256.length, 64);
-  assert.deepEqual(info.researchPresets, ["small", "standard"]);
+  assert.deepEqual(info.researchPresets, ["small", "standard", "precision"]);
   assert.equal(info.taskKinds.length, 13);
   assert.ok(info.taskKinds.includes("analysis.kill-workflow"));
   assert.equal(info.simulationPlan.kind, "ecolab.simulation-plan");
@@ -257,11 +258,11 @@ test("replay inspects the current Stage 6 example by unwrapping its researchPack
   assert.equal(document.input.unwrappedFrom, "researchPackage");
   assert.equal(document.inspection.status, "replayable");
   assert.equal(document.inspection.replayable, true);
-  assert.equal(document.inspection.runId, "ecolab-stage6-research-6.1.0");
+  assert.equal(document.inspection.runId, "ecolab-stage6-research-6.2.0");
   assert.equal(document.replay, null);
 });
 
-test("replay refuses the frozen 6.0.0 example as inspect-only under the 6.1.0 software contract", async () => {
+test("replay refuses the frozen 6.0.0 example as inspect-only under the 6.2.0 software contract", async () => {
   const run = await runCli(["replay", "--package", historicalExamplePackagePath]);
   assert.equal(run.code, 0);
   const document = parseStdout(run);
@@ -270,6 +271,19 @@ test("replay refuses the frozen 6.0.0 example as inspect-only under the 6.1.0 so
   assert.equal(document.inspection.status, "inspect_only");
   assert.equal(document.inspection.replayable, false);
   assert.equal(document.inspection.runId, "ecolab-stage6-research-6.0.0");
+  assert.ok(document.inspection.reasons.some(({ code }) => code === "UNSUPPORTED_SOFTWARE_VERSION"));
+  assert.equal(document.replay, null);
+});
+
+test("replay refuses the frozen 6.1.0 example as inspect-only under the 6.2.0 software contract", async () => {
+  const run = await runCli(["replay", "--package", historical61ExamplePackagePath]);
+  assert.equal(run.code, 0);
+  const document = parseStdout(run);
+  assert.equal(document.mode, "inspect");
+  assert.equal(document.input.unwrappedFrom, "researchPackage");
+  assert.equal(document.inspection.status, "inspect_only");
+  assert.equal(document.inspection.replayable, false);
+  assert.equal(document.inspection.runId, "ecolab-stage6-research-6.1.0");
   assert.ok(document.inspection.reasons.some(({ code }) => code === "UNSUPPORTED_SOFTWARE_VERSION"));
   assert.equal(document.replay, null);
 });

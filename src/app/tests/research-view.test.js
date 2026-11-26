@@ -81,8 +81,8 @@ test("kill fit results display status and run settings while withheld parameters
   state.killResult = {
     kind: "ecolab-kill-workflow",
     status: "NOT_IDENTIFIABLE",
-    applicationVersion: "6.1.0",
-    runMetadata: { applicationVersion: "6.1.0", seed: 42, randomAlgorithm: "xoshiro", settings: { profileLikelihood: true, profilePoints: 5 } },
+    applicationVersion: "6.2.0",
+    runMetadata: { applicationVersion: "6.2.0", seed: 42, randomAlgorithm: "xoshiro", settings: { profileLikelihood: true, profilePoints: 5 } },
     strains: { StrainA: { strain: "StrainA", drugId: "ciprofloxacin", status: "NOT_IDENTIFIABLE", fittedParameters: null, unitGrowthRateIdentifiability: { units: [] } } },
   };
   const html = render(state);
@@ -270,7 +270,7 @@ test("OD status-only results remain visible without fabricated estimates", () =>
       },
     },
     runMetadata: {
-      runId: "underdetermined-fixture", applicationVersion: "6.1.0", seed: 19,
+      runId: "underdetermined-fixture", applicationVersion: "6.2.0", seed: 19,
       settings: { profileLikelihoodPoints: 5 },
     },
   };
@@ -388,7 +388,7 @@ function createKillResultFixture() {
   return {
     kind: "ecolab-kill-workflow",
     status: "PARTIALLY_IDENTIFIABLE",
-    runMetadata: { applicationVersion: "6.1.0", seed: 7, settings: { profileLikelihood: true, profilePoints: 5 } },
+    runMetadata: { applicationVersion: "6.2.0", seed: 7, settings: { profileLikelihood: true, profilePoints: 5 } },
     strains: {
       StrainA: {
         strain: "StrainA",

@@ -6,7 +6,7 @@
 - [英文版](README.en.md)
 - [日文版](README.ja.md)
 
-# Ecolab 6.1.0
+# Ecolab 6.2.0
 
 ![Ecolab 学习界面截图](./docs/screenshot.png)
 
@@ -37,9 +37,9 @@ Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种
 
 ## 版本契约
 
-- 应用：`6.1.0`
+- 应用：`6.2.0`
 - 科学核心：`2.0.0`（教学动力学不变）
-- 分析引擎：`2.1.0`（拟合识别性门槛、轮廓诊断与结果状态审计）
+- 分析引擎：`2.2.0`（拟合识别性门槛、轮廓诊断、端点求根与相关残差敏感性）
 - 模型：`ecolab.single-population.regoes-logistic@1.0.0`
 
 根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap、独立整曲线 split-conformal 预测带，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
@@ -71,7 +71,7 @@ npm run ecolab -- help
 
 ## 代码原理
 
-以下按当前 `6.1.0` 源码解释实际数据流、数学计算和工程约束。链接指向具体实现；论文说明方法依据，不能替代本项目的条件匹配实验验证。应用不依赖 React、第三方优化器或远端计算服务，而是使用原生 JavaScript ES Modules、DOM/SVG、Web Worker 与 IndexedDB。
+以下按当前 `6.2.0` 源码解释实际数据流、数学计算和工程约束。链接指向具体实现；论文说明方法依据，不能替代本项目的条件匹配实验验证。应用不依赖 React、第三方优化器或远端计算服务，而是使用原生 JavaScript ES Modules、DOM/SVG、Web Worker 与 IndexedDB。
 
 ### 1. 分层结构与调用链
 
@@ -234,7 +234,7 @@ console.table(result.trajectory);
 
 #### 3.1 从文件到可分析数据
 
-`dataset-import.js` 的 CSV 解析器是字符状态机，处理引号、转义双引号、逗号、CRLF 和 BOM，并检查规定的列集合、有限数字和嵌套 JSON。导入有文件体积、行列数、字段长度和嵌套深度限制；不猜测单位、不自动平滑或补点。浏览器 CSV 导入要求用户明确提供 `datasetId`、标题和许可；底层公共导入 API 的许可字段可选，但不会从文件名自动推断来源或许可。
+`dataset-import.js` 的 CSV 解析器是字符状态机，处理引号、转义双引号、逗号、CRLF 和 BOM，并检查规定的列集合、有限数字和嵌套 JSON。导入有文件体积、行列数、字段长度和嵌套深度限制；不猜测单位、不自动平滑或补点。浏览器 CSV 导入要求用户明确提供 `datasetId`、标题和许可；底层公共导入 API 的许可字段可选，但不会从文件名自动推断来源或许可。Excel（`.xlsx`）导入在浏览器内解压，只把第一个工作表转成 CSV 文本再交给同一个严格导入器：公式取缓存值，日期序列不转换，合并单元格与隐藏行被忽略，第二个工作表不会被静默合并。
 
 浏览器导入链为 `file.text()` → `dataset.parse` Worker → 规范化 `observation-dataset` → QC → 数据记录。只有 QC 合格的数据才持久化。通用导入标为未版本化文件来源，不会自动继承 Figshare 的署名、许可证明或内置研究资格。
 
@@ -316,7 +316,7 @@ MAE         = ΣuΣj |euj| / Σu nu
 
 固定 `small`、种子 `123456789` 的实际记录：CV 选中均值基线，开发 macro RMSE 为 **0.00304756 OD**、MAE 为 **0.00239205 OD**；原潜在模型 macro RMSE 为 **0.00833386 OD**，且未收敛。直接 Logistic/Gompertz 也未在各 CV 折收敛，因此这不是新模型提高预测精度的证据。
 
-源码：[CV 与冻结比较](./src/analysis/growth-comparison.js)、[指标汇总](./src/analysis/metrics.js)、[版本化实际结果](./data/examples/ecolab-stage6-research-6.1.0.md)。
+源码：[CV 与冻结比较](./src/analysis/growth-comparison.js)、[指标汇总](./src/analysis/metrics.js)、[版本化实际结果](./data/examples/ecolab-stage6-research-6.2.0.md)。
 
 #### 4.4 拟合状态与拒绝条件
 
@@ -372,7 +372,7 @@ Sobol 拒绝相关输入；这里使用伪随机抽样，不是 Sobol 低差异�
 
 当前 `objectiveSlices` 固定其余生物参数扫描一个参数，同时重新求解 OD 干扰参数；这是 **nuisance-profiled objective slice**。它不是对所有其他参数充分优化的完整 profile likelihood，扫描端点也不是置信限；旧 `profiles` 仅为兼容别名。区别参考 [Raue et al. (2009)](https://doi.org/10.1093/bioinformatics/btp358)。
 
-6.1.0 另提供真正的**轮廓似然**：固定目标参数，重优化其余生物参数与 OD 干扰参数，并解析剖面高斯残差尺度；按 95% 似然比阈值 `1.9207` 在网格上求上下交叉点。主拟合或任一重拟合不收敛时，整体与逐参数状态都标为 `NOT_ASSESSED` 并记录原因，不把目标切片端点当置信区间。该结果仍条件于模型、误差假设与参数边界，不是覆盖率证明。
+6.2.0 起提供真正的**轮廓似然**：固定目标参数，重优化其余生物参数与 OD 干扰参数，并解析剖面高斯残差尺度；按 95% 似然比阈值 `1.9207` 先取网格括号，再用确定性二分求根。仅靠网格线性插值会把端点拉向估计点：五点网格曾把 `psiMax` 报成 `±0.345%`，求根后为 `±3.66%`。`precision` 预设另给出 AR(1)+随机截距敏感性区间；它更宽且不对称，是敏感性分析，不是联合重拟合。主拟合或任一重拟合不收敛时，整体与逐参数状态都标为 `NOT_ASSESSED` 并记录原因，不把目标切片端点当置信区间。该结果仍条件于模型、误差假设与参数边界，不是覆盖率证明。
 
 系统因此分别记录 `completed`、`converged`、`identified`、`precisionAssessed`。当前增长比较尚未建立参数可识别性与区间覆盖率，流程正常结束不能自动把这些标签改为 true。
 
@@ -465,7 +465,7 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 
 因此必须区分：**完整性通过 ≠ 来源真实；可复算 ≠ 复算匹配；复算匹配 ≠ 科学有效或参数已识别。** `replayable` 只表示可尝试，`matched` 才表示规定比较规则下的结果相符。
 
-浏览器导入版本化示例时，应使用 [6.1.0 示例 JSON](./data/examples/ecolab-stage6-research-6.1.0.json) 内的 `researchPackage`，而不是外层示例 wrapper；浏览器自己导出的研究包可直接导入。
+浏览器导入版本化示例时，应使用 [6.2.0 示例 JSON](./data/examples/ecolab-stage6-research-6.2.0.json) 内的 `researchPackage`，而不是外层示例 wrapper；浏览器自己导出的研究包可直接导入。
 
 源码：[严格检查、兼容判定和复算比较](./src/analysis/research-replay.js)、[封闭数值警告模板](./src/analysis/replay-warning-equivalence.js)。
 
@@ -505,7 +505,7 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 
 ## 文档
 
-- [本次详细更新说明](./docs/release-notes-6.1.0.md)
+- [本次详细更新说明](./docs/release-notes-6.2.0.md)
 - [6.0.0 历史更新说明](./docs/release-notes-6.0.0.md)
 - [变更日志](./docs/changelog.md)
 - [预测带覆盖率研究](./docs/prediction-band-coverage.md)
@@ -531,8 +531,8 @@ Ecolab 自有代码以 [MIT License](./LICENSE) 发布，版权所有 © 2026 Ke
 
 版本化生成示例：
 
-- [Current 6.1.0 Markdown](./data/examples/ecolab-stage6-research-6.1.0.md)
-- [Current 6.1.0 JSON](./data/examples/ecolab-stage6-research-6.1.0.json)
+- [Current 6.2.0 Markdown](./data/examples/ecolab-stage6-research-6.2.0.md)
+- [Current 6.2.0 JSON](./data/examples/ecolab-stage6-research-6.2.0.json)
 - [Historical 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
 - [Historical 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
 - [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)

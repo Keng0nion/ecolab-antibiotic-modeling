@@ -1,6 +1,6 @@
 # 终端前端 CLI / Terminal front end
 
-Ecolab 6.1.0 除了浏览器应用，还提供终端前端 `ecolab`，让整个应用都可以在终端运行，方便 agent 与脚本直接调用。它不新增任何科学语义：所有计算都复用浏览器应用使用的同一份科学核心、分析引擎、任务协议与导出函数。详见 [Learn / Sandbox](./interactive-app.md) 与 [Research Workspace](./research-workspace.md) 了解浏览器端对应功能。agent 速览见仓库根目录的 [AGENTS.md](../AGENTS.md)。
+Ecolab 6.2.0 除了浏览器应用，还提供终端前端 `ecolab`，让整个应用都可以在终端运行，方便 agent 与脚本直接调用。它不新增任何科学语义：所有计算都复用浏览器应用使用的同一份科学核心、分析引擎、任务协议与导出函数。详见 [Learn / Sandbox](./interactive-app.md) 与 [Research Workspace](./research-workspace.md) 了解浏览器端对应功能。agent 速览见仓库根目录的 [AGENTS.md](../AGENTS.md)。
 
 ## 中文
 
@@ -74,7 +74,7 @@ node bin/ecolab.js qc --dataset path/to/dataset.json
 node bin/ecolab.js qc --dataset data.csv --format csv --dataset-id my-data --title "My data" --license "CC0-1.0" --out /tmp/ecolab-qc
 ```
 
-输出导入结果、质量报告、数据集记录（不含源文本本体）与工作流准入资格。只有与已注册内置数据逐字节一致（SHA-256 匹配）的输入才会被认定为受信任的内置数据；其它文件只做 QC 与导出，不自动套用一键研究设计，这与浏览器的准入规则一致。`--out` 写出规范数据 CSV。
+终端 `qc` 接受规范 JSON 与 CSV；Excel（`.xlsx`）导入目前只在浏览器研究工作区提供（浏览器内解压后转成同一份 CSV 文本），终端请先用 Excel 或 `libreoffice --convert-to csv` 另存为 CSV。输出导入结果、质量报告、数据集记录（不含源文本本体）与工作流准入资格。只有与已注册内置数据逐字节一致（SHA-256 匹配）的输入才会被认定为受信任的内置数据；其它文件只做 QC 与导出，不自动套用一键研究设计，这与浏览器的准入规则一致。`--out` 写出规范数据 CSV。
 
 ### research：锁定的研究工作流
 
@@ -82,7 +82,7 @@ node bin/ecolab.js qc --dataset data.csv --format csv --dataset-id my-data --tit
 node bin/ecolab.js research --preset small --seed 123456789 --out /tmp/ecolab-research
 ```
 
-在内置数据集上执行与浏览器一键研究完全相同的流程（准入、预声明设计、分析、结果），使用同一预设预算与根种子派生。`--run-id` 与 `--created-at` 可以固定审计元数据，使产物逐字节可复现。`--out` 写出六类与浏览器导出同格式的文件：研究包 JSON、分析 manifest JSON、预测残差指标 CSV、规范数据 CSV、方法摘要 Markdown、研究仪表板 SVG。结果中的能力等级、完成、收敛、可识别性、精度与警告全部原样保留；开发集比较仍然不是未触碰验证。
+在内置数据集上执行与浏览器一键研究完全相同的流程（准入、预声明设计、分析、结果），使用同一预设预算与根种子派生。研究预设为 `small`、`standard`、`precision`：`small` 仍是默认；`precision` 使用标准优化预算、11 点 profile、确定性求根与 AR(1)+随机截距敏感性区间；本机空载实测约 10 秒（`node bin/ecolab.js research --preset precision`，28498 次 profile 重拟合评价）。`--run-id` 与 `--created-at` 可以固定审计元数据，使产物逐字节可复现。`--out` 写出六类与浏览器导出同格式的文件：研究包 JSON、分析 manifest JSON、预测残差指标 CSV、规范数据 CSV、方法摘要 Markdown、研究仪表板 SVG。结果中的能力等级、完成、收敛、可识别性、精度与警告全部原样保留；开发集比较仍然不是未触碰验证。
 
 泛型数据集不能用本命令跑一键工作流，只能用 `qc`。
 
@@ -93,7 +93,7 @@ node bin/ecolab.js replay --package run.research-package.json             # 只�
 node bin/ecolab.js replay --package run.research-package.json --execute   # 显式复算并比较
 ```
 
-默认只做离线检查（安全 JSON、结构、inventory、字节与交叉引用），不执行数值任务；`--execute` 才在精确兼容的内置实现上复算，并同时比较科学投影与完整分析 manifest。输入若含顶层 `researchPackage` 字段（例如 6.1.0 当前示例或 6.0.0 历史示例包装文件），CLI 会自动取该字段并在输出中标注。`replay.matched` 为 false 表示复算发现差异；这属于结果而非错误，退出码仍为 0。
+默认只做离线检查（安全 JSON、结构、inventory、字节与交叉引用），不执行数值任务；`--execute` 才在精确兼容的内置实现上复算，并同时比较科学投影与完整分析 manifest。输入若含顶层 `researchPackage` 字段（例如 6.2.0 当前示例、6.1.0 或 6.0.0 历史示例包装文件），CLI 会自动取该字段并在输出中标注。`replay.matched` 为 false 表示复算发现差异；这属于结果而非错误，退出码仍为 0。
 
 ### task：原始任务协议
 

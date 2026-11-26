@@ -4,7 +4,7 @@
 
 ## 一、仓库是什么
 
-Ecolab 6.1.0：本地优先、可审计、可复现的大肠杆菌与抗生素种群建模项目。版本面为应用 `6.1.0`、科学核心 `2.0.0`、分析引擎 `2.1.0`、教学模型 `1.0.0`。无第三方运行时依赖，要求 Node.js 20.19 或更高，纯 ES Modules。分层为：浏览器应用 `src/app/`，科学核心 `src/model/`，分析引擎 `src/analysis/`，注册表与实验清单 `src/registry/`、`src/experiment/`，终端前端 `bin/ecolab.js` 与 `src/cli/`。全部计算在本地完成，不访问网络。
+Ecolab 6.2.0：本地优先、可审计、可复现的大肠杆菌与抗生素种群建模项目。版本面为应用 `6.2.0`、科学核心 `2.0.0`、分析引擎 `2.2.0`、教学模型 `1.0.0`。无第三方运行时依赖，要求 Node.js 20.19 或更高，纯 ES Modules。分层为：浏览器应用 `src/app/`，科学核心 `src/model/`，分析引擎 `src/analysis/`，注册表与实验清单 `src/registry/`、`src/experiment/`，终端前端 `bin/ecolab.js` 与 `src/cli/`。全部计算在本地完成，不访问网络。
 
 ## 二、在终端操作：ecolab 命令行
 
@@ -71,12 +71,12 @@ node bin/ecolab.js replay --package /tmp/ecolab-research/my-run.research-package
 node bin/ecolab.js qc --dataset data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json
 ```
 
-课程预设名：`run-control`、`run-zmic`、`run-high`、`run-washout`、`compare-drugs`。研究预设名：`small`、`standard`。`replay` 的 `matched` 为 false 属于复算结果而不是命令错误，退出码仍为 0。
+课程预设名：`run-control`、`run-zmic`、`run-high`、`run-washout`、`compare-drugs`。研究预设名：`small`、`standard`、`precision`。`replay` 的 `matched` 为 false 属于复算结果而不是命令错误，退出码仍为 0。
 
 ## 三、修改代码时的约束
 
 1. 不新增第三方依赖；Node.js 20.19 以上，纯 ESM；
-2. 当前应用版本为 `6.1.0`，分析引擎为 `2.1.0`；会改变拟合、识别性、诊断或结果契约的修改必须升级对应版本并同步锁定检查、回放兼容、当前示例和发布记录。历史版本化示例不可覆盖；
+2. 当前应用版本为 `6.2.0`，分析引擎为 `2.2.0`；会改变拟合、识别性、诊断或结果契约的修改必须升级对应版本并同步锁定检查、回放兼容、当前示例和发布记录。历史版本化示例不可覆盖；
 3. 新增源码文件要登记到 `package.json` 的 `check:syntax` 列表；测试放在对应模块的 `tests/` 目录，使用 `node:test`；
 4. `src/cli/` 不会进入 `dist/` 构建产物，不要把 CLI 代码混入 `src/app/`、`src/model/`、`src/analysis/`，也不要改动 `scripts/serve-static.js`（离线发布包声明与它逐字节一致）；
 5. 科学语义不要复制粘贴：浏览器与终端都经由 `src/model/`、`src/analysis/` 调用同一份实现；
@@ -84,4 +84,4 @@ node bin/ecolab.js qc --dataset data/datasets/figshare-bw25113-growth-v1/figshar
 
 ## 四、English summary
 
-This repository is Ecolab 6.1.0, a local first E. coli / antibiotic population modeling app (scientific core 2.0.0, analysis engine 2.1.0, teaching model 1.0.0), with no third party runtime dependencies; it needs Node.js 20.19 or newer and plain ES modules. Agents operate it from the terminal through the bundled CLI: `node bin/ecolab.js <command> [options]`, or `npm run ecolab -- <command> [options]` from the repository root. Commands: `info`, `simulate`, `qc`, `research`, `replay`, `task`, `serve`, `help`. Every command prints exactly one JSON document on stdout (`kind` is `ecolab.cli.<command>`, `schemaVersion` is `1.0.0`); failures print a structured JSON error on stderr and exit with code 1; `-` reads an input from stdin; `--out` writes artifacts and lists their SHA-256 hashes; `--progress` streams NDJSON progress on stderr while stdout stays a single document. Simulation plans for `simulate --plan` follow [schemas/simulation-plan.schema.json](./schemas/simulation-plan.schema.json); the full CLI reference is [docs/cli.md](./docs/cli.md). When editing code: add no dependencies, update versions and exact replay contracts when numerical semantics change, preserve explicitly named historical examples, register new source files in `check:syntax`, keep tests in `tests/` directories, never mix `src/cli/` into the web build, and verify with `npm run check:syntax && npm run check:version && npm run test:release`.
+This repository is Ecolab 6.2.0, a local first E. coli / antibiotic population modeling app (scientific core 2.0.0, analysis engine 2.2.0, teaching model 1.0.0), with no third party runtime dependencies; it needs Node.js 20.19 or newer and plain ES modules. Agents operate it from the terminal through the bundled CLI: `node bin/ecolab.js <command> [options]`, or `npm run ecolab -- <command> [options]` from the repository root. Commands: `info`, `simulate`, `qc`, `research`, `replay`, `task`, `serve`, `help`. Every command prints exactly one JSON document on stdout (`kind` is `ecolab.cli.<command>`, `schemaVersion` is `1.0.0`); failures print a structured JSON error on stderr and exit with code 1; `-` reads an input from stdin; `--out` writes artifacts and lists their SHA-256 hashes; `--progress` streams NDJSON progress on stderr while stdout stays a single document. Simulation plans for `simulate --plan` follow [schemas/simulation-plan.schema.json](./schemas/simulation-plan.schema.json); the full CLI reference is [docs/cli.md](./docs/cli.md). When editing code: add no dependencies, update versions and exact replay contracts when numerical semantics change, preserve explicitly named historical examples, register new source files in `check:syntax`, keep tests in `tests/` directories, never mix `src/cli/` into the web build, and verify with `npm run check:syntax && npm run check:version && npm run test:release`.

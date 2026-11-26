@@ -28,6 +28,8 @@ const historicalPaths = [
   "data/examples/ecolab-stage5-small-research-5.0.0.md",
   "data/examples/ecolab-stage6-research-6.0.0.json",
   "data/examples/ecolab-stage6-research-6.0.0.md",
+  "data/examples/ecolab-stage6-research-6.1.0.json",
+  "data/examples/ecolab-stage6-research-6.1.0.md",
 ];
 
 function historicalArtifactVersion(path) {
@@ -102,7 +104,7 @@ const resolvedModel = resolveModelFromRegistries({
   modelRef: { id: "ecolab.single-population.regoes-logistic", version: "1.0.0" },
   parameterSetRef: { id: "ecolab.bw25113-m9-regoes-transferred", version: "1.0.0" },
 });
-const preset = "small";
+const preset = "precision";
 const result = await runEcolabResearchWorkflow({
   datasetInput: datasetText,
   resolvedModel,

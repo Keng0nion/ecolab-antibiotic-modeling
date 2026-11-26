@@ -93,7 +93,7 @@ const COMMANDS = Object.freeze([
   {
     name: "research",
     summary: "Run the locked Research Workspace workflow on the bundled dataset (development comparison).",
-    usage: "ecolab research [--preset small|standard] [--seed N] [--run-id ID] [--created-at ISO] [--locale en|zh-CN] [--out DIR] [--progress]",
+    usage: "ecolab research [--preset small|standard|precision] [--seed N] [--run-id ID] [--created-at ISO] [--locale en|zh-CN] [--out DIR] [--progress]",
     options: {
       value: Object.freeze(["--preset", "--seed", "--run-id", "--created-at", "--locale", "--out"]),
       boolean: Object.freeze(["--progress"]),

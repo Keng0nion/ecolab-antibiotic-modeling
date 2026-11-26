@@ -2,7 +2,7 @@
 
 ## 定位与版本
 
-Ecolab `6.1.0` 在 `#/research` 提供本地优先的真实数据工作区。分析引擎为 `2.1.0`，implementation `ecolab-research-analysis-v2`，稳定 ID 仍为 `ecolab.stage4.analysis`；教学科学核心 `2.0.0`、模型 `1.0.0` 不变。
+Ecolab `6.2.0` 在 `#/research` 提供本地优先的真实数据工作区。分析引擎为 `2.2.0`，implementation `ecolab-research-analysis-v2`，稳定 ID 仍为 `ecolab.stage4.analysis`；教学科学核心 `2.0.0`、模型 `1.0.0` 不变。
 
 新版保留现有潜在种群模型的 OD 校准，增加直接 OD Logistic/Gompertz 比较、整训练轨迹交叉验证及联合 bootstrap、严格研究包检查与同版显式复算。原留出曲线已在此前版本中查看，因此本版一律称**开发集比较**，不是未触碰测试或外部验证。功能完成、优化收敛、参数可识别性与统计精度分开报告。
 
@@ -26,7 +26,7 @@ npm run preview
 ### 1. Data：准入与质量检查
 
 - 延迟加载内置真实数据，严格导入前检查规范 JSON 精确 UTF-8 字节 SHA-256。
-- 支持规范 JSON / CSV 导入；CSV 显式声明数据集 ID、标题和许可证。
+- 支持规范 JSON / CSV / Excel（`.xlsx`）导入；CSV 与 Excel 都必须显式声明数据集 ID、标题和许可证。Excel 在浏览器内解压并只把第一个工作表转成 CSV 文本，再交给同一个严格导入器；公式取缓存值，日期序列不转换，合并单元格与隐藏行不特殊处理。
 - 检查 schema、字段、角色、完整轨迹、测量类型和条件元数据；逐字段显示菌株、培养基、观测层匹配。
 - 泛型数据缺失的条件保持 `Unknown`，不继承 Figshare 的来源、许可或实验默认值。
 - 只有通过精确注册表、哈希、观测数、角色和轨迹数合约的内置数据能启动一键研究工作流。泛型导入可 QC、保存、导出，不会自动套用该分析设计。
@@ -60,7 +60,8 @@ npm run preview
 
 - 所有入口统一要求未删失精确训练点不少于 `自由参数数 + 1`。不足时返回 `NOT_IDENTIFIABLE`，不生成拟合数字、预测、残差或验证分数。满足数量仍需检查最优点处的局部预测 Jacobian 秩。
 - 已完成的拟合分别报告优化器收敛、参数命中边界、残差尺度 σ 是否命中下界，以及 profile likelihood 状态；profile 未运行或任一重拟合失败为 `NOT_ASSESSED`。
-- OD 最小二乘 profile 固定被扫描参数，重拟合其他生物参数和 OD nuisance 参数；在同方差 Gaussian 残差下对误差尺度作解析剖析。轮廓区间是条件似然诊断，不是无需假设的通用置信区间。
+- OD 最小二乘 profile 固定被扫描参数，重拟合其他生物参数和 OD nuisance 参数；在同方差 Gaussian 残差下对误差尺度作解析剖析。端点用确定性二分求根，不读网格插值。轮廓区间是条件似然诊断，不是无需假设的通用置信区间。
+- `precision` 预设（11 点、求根、AR(1)+随机截距敏感性）本机空载实测约 10 秒；`small` 仍是默认，`standard` 保持旧行为。AR(1) 块锚定在 IID 估计，nuisance 按 IID 重优化，只作敏感性报告。
 - 杀菌流程保留删失 Gaussian likelihood 的参数 profile；`psiMin` 下界统一为 −5 log10/h，浓度组 ψ(C) 的 profile 范围记录为 `[-5, 2]` log10/h。
 - 导入预检、拟合结果、导出菜单和结果 JSON 暴露状态。结果文件记录软件版本、随机种子、RNG 算法和实际拟合设置；应用重新打开会按已有研究工作区逻辑恢复用户保留的 seed 和分析记录。
 
@@ -128,7 +129,7 @@ CSV 防电子表格公式注入，不承诺任意文本的字节级无损往返�
 
 数据自包含不等于独立可执行；精确依赖仍必需。旧包缺输入或版本不兼容时只检查查看，拒绝复算。哈希不证明来源真实性；`replayable` 表示允许尝试复算，不表示已经确认科学结论一致。
 
-生成示例的 JSON 是 wrapper，不是研究包 schema；若从 [6.1.0 当前示例](../data/examples/ecolab-stage6-research-6.1.0.json) 或 [6.0.0 历史示例](../data/examples/ecolab-stage6-research-6.0.0.json) 导入，使用其中 `researchPackage` 字段。
+生成示例的 JSON 是 wrapper，不是研究包 schema；若从 [6.2.0 当前示例](../data/examples/ecolab-stage6-research-6.2.0.json) 或 [6.0.0 历史示例](../data/examples/ecolab-stage6-research-6.0.0.json) 导入，使用其中 `researchPackage` 字段。
 
 ## 复现与验证
 
@@ -140,7 +141,7 @@ npm run build:public
 npm run check:reproducible
 ```
 
-需要重建来源链时，可运行 `npm run data:acquire:figshare` 和 `npm run data:extract:figshare`；常规回放只需包内的规范源文本，不需联网或原始 XLSX。发布排除 `data/raw/`、`.xlsx` 和测试目录。
+需要重建来源链时，可运行 `npm run data:acquire:figshare` 和 `npm run data:extract:figshare`；常规回放只需包内的规范源文本，不需联网或原始 XLSX。发布产物排除 `data/raw/`、`.xlsx` 和测试目录；仓库只跟踪 `data/raw/figshare-bw25113-growth-v1/acquisition.json` 这份来源清单，三个 XLSX 载荷仍是本地下载，不入库。
 
 实际全量、发布与隔离浏览器验证记录见 [发布检查表](./release-checklist.md)。软件测试与确定性复算不替代独立实验、充分优化预算、统计精度或同行评议。
 

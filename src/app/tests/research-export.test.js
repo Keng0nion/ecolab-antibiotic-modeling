@@ -148,9 +148,9 @@ test("fit-result JSON and result-linked CSV preserve status, software version, s
   const result = {
     kind: "ecolab-kill-workflow",
     status: "NOT_IDENTIFIABLE",
-    applicationVersion: "6.1.0",
+    applicationVersion: "6.2.0",
     runMetadata: {
-      applicationVersion: "6.1.0",
+      applicationVersion: "6.2.0",
       seed: 77,
       seeds: { algorithm: "xoshiro128ss-splitmix32-v1", analysis: 77 },
       settings: { profileLikelihood: true, profilePoints: 5, restarts: 6 },
@@ -161,10 +161,10 @@ test("fit-result JSON and result-linked CSV preserve status, software version, s
   assert.deepEqual(JSON.parse(json), result);
   assert.match(json, /"status": "NOT_IDENTIFIABLE"/);
   assert.match(json, /"seed": 77/);
-  assert.match(json, /"applicationVersion": "6.1.0"/);
+  assert.match(json, /"applicationVersion": "6.2.0"/);
   const dataset = createDatasetRecord().normalizedDataset;
   const csv = normalizedDatasetToCsv(dataset, "en", result);
-  assert.match(csv, /# application_version: 6\.1\.0/);
+  assert.match(csv, /# application_version: 6\.2\.0/);
   assert.match(csv, /# random_seed: 77/);
   assert.match(csv, /# random_algorithm: xoshiro128ss-splitmix32-v1/);
   assert.match(csv, /# run_settings_json:/);
