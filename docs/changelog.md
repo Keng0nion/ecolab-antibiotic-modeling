@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added an external-data model test (`npm run benchmark:external`): five untreated wells from an independent laboratory (CC0) and 12 new conditions from the public BW25113 study, with 48 held-out curves. The 80% band covered 35/48 = 72.9% (95% CI 59.0-83.4%), consistent with the 73.1% simulation; the workflow refused a band in all five 4-curve folds as expected. Documented in [docs/external-model-test.md](./external-model-test.md).
 - Added a deterministic prediction-band coverage study (`npm run benchmark:coverage`) with a documented report at [docs/prediction-band-coverage.md](./prediction-band-coverage.md). It is evidence tooling only: no analysis contract, version, or existing result changes.
 
 ## 6.1.0 — 2026-11-26

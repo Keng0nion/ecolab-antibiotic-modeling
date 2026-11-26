@@ -1,0 +1,1300 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ecolab.external-model-test",
+  "generatedFrom": {
+    "applicationVersion": "6.1.0",
+    "preset": "small",
+    "seed": 3817,
+    "createdAt": "2026-11-26T00:00:00.000Z"
+  },
+  "externalLaboratory": {
+    "source": {
+      "dataset": "El Karoui lab checkerboard assay (2024)",
+      "doi": "10.5281/zenodo.15311905",
+      "license": "CC0-1.0",
+      "path": "data/external/elkaroui-2024/positive-controls.csv",
+      "note": "Five untreated positive-control wells from one plate; technical, not biological, replication."
+    },
+    "folds": [
+      {
+        "heldOut": "elkaroui-E12",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.04670694398369816,
+        "crossValidation": {
+          "training_mean": 0.04670694398369816,
+          "logistic": 0.34440644120166214,
+          "gompertz": 0.34466807162076696
+        },
+        "development": {
+          "selectedMacroRmse": 0.018311758334296966,
+          "baselineMacroRmse": 0.018311758334296966,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": false,
+          "status": "insufficient_finite_sample_resolution"
+        },
+        "bandCoverage": null,
+        "warningCodes": [
+          "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED",
+          "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED"
+        ]
+      },
+      {
+        "heldOut": "elkaroui-F12",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.03424026492938934,
+        "crossValidation": {
+          "training_mean": 0.03424026492938934,
+          "logistic": 0.3330285386450087,
+          "gompertz": 0.33340710784852856
+        },
+        "development": {
+          "selectedMacroRmse": 0.06629001929984266,
+          "baselineMacroRmse": 0.06629001929984266,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": false,
+          "status": "insufficient_finite_sample_resolution"
+        },
+        "bandCoverage": null,
+        "warningCodes": [
+          "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED",
+          "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED"
+        ]
+      },
+      {
+        "heldOut": "elkaroui-G12",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.0492346034233266,
+        "crossValidation": {
+          "training_mean": 0.0492346034233266,
+          "logistic": 0.34460147169531113,
+          "gompertz": 0.3450160234663391
+        },
+        "development": {
+          "selectedMacroRmse": 0.00998514955292624,
+          "baselineMacroRmse": 0.00998514955292624,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": false,
+          "status": "insufficient_finite_sample_resolution"
+        },
+        "bandCoverage": null,
+        "warningCodes": [
+          "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED",
+          "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED"
+        ]
+      },
+      {
+        "heldOut": "elkaroui-H11",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.03932438773777673,
+        "crossValidation": {
+          "training_mean": 0.03932438773777673,
+          "logistic": 0.34553346630679904,
+          "gompertz": 0.3459727341711556
+        },
+        "development": {
+          "selectedMacroRmse": 0.04166589520603112,
+          "baselineMacroRmse": 0.04166589520603112,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": false,
+          "status": "insufficient_finite_sample_resolution"
+        },
+        "bandCoverage": null,
+        "warningCodes": [
+          "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED",
+          "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED"
+        ]
+      },
+      {
+        "heldOut": "elkaroui-H12",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.037139115649503035,
+        "crossValidation": {
+          "training_mean": 0.037139115649503035,
+          "logistic": 0.35389857882585984,
+          "gompertz": 0.35400796180236627
+        },
+        "development": {
+          "selectedMacroRmse": 0.058750264457898924,
+          "baselineMacroRmse": 0.058750264457898924,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": false,
+          "status": "insufficient_finite_sample_resolution"
+        },
+        "bandCoverage": null,
+        "warningCodes": [
+          "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED",
+          "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED"
+        ]
+      }
+    ]
+  },
+  "sameLaboratoryNewConditions": {
+    "source": {
+      "dataset": "Aida & Ying BW25113 expanded validation",
+      "doi": "10.6084/m9.figshare.28342064.v1",
+      "license": "CC-BY-4.0",
+      "path": "data/derived/figshare-bw25113-expanded-validation/observations.csv",
+      "note": "12 conditions with 8 training and 4 held-out curves each; same laboratory and plate-reader pipeline as the bundled data."
+    },
+    "conditions": [
+      {
+        "conditionId": "Cond00042",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.004168331251998712,
+        "crossValidation": {
+          "training_mean": 0.004168331251998712,
+          "logistic": 0.014707498603296943,
+          "gompertz": 0.018884831244695106
+        },
+        "development": {
+          "selectedMacroRmse": 0.00703085152936391,
+          "baselineMacroRmse": 0.00703085152936391,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.013000000000000012,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 2
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.013000000000000012,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00042-Curve00553",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.013000000000000012,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00042-Curve00557",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.01425000000000004,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00042-Curve00558",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.007750000000000007,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00042-Curve00559",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.018500000000000016,
+              "covered": false
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00045",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.010854681606467322,
+        "crossValidation": {
+          "training_mean": 0.010854681606467322,
+          "logistic": 0.018493212106282825,
+          "gompertz": 0.01943730094518969
+        },
+        "development": {
+          "selectedMacroRmse": 0.008404420762537073,
+          "baselineMacroRmse": 0.008404420762537073,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.026999999999999996,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 3
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.026999999999999996,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00045-Curve00603",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.017500000000000016,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00045-Curve00605",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.026000000000000023,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00045-Curve00608",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.03649999999999998,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00045-Curve00609",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.018500000000000016,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00054",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.004267590405646345,
+        "crossValidation": {
+          "training_mean": 0.004267590405646345,
+          "logistic": 0.018661076535382883,
+          "gompertz": 0.01708477887705876
+        },
+        "development": {
+          "selectedMacroRmse": 0.003654638473413903,
+          "baselineMacroRmse": 0.003654638473413903,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.017499999999999988,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 3
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.017499999999999988,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00054-Curve00736",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.006000000000000005,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00054-Curve00740",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.010499999999999954,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00054-Curve00743",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.02049999999999999,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00054-Curve00744",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.010499999999999954,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00057",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.007601615013672876,
+        "crossValidation": {
+          "training_mean": 0.007601615013672876,
+          "logistic": 0.016444206153972633,
+          "gompertz": 0.025154829684127536
+        },
+        "development": {
+          "selectedMacroRmse": 0.007091454727553971,
+          "baselineMacroRmse": 0.007091454727553971,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.02675000000000005,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 2
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.02675000000000005,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00057-Curve00781",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.016750000000000043,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00057-Curve00785",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.03699999999999998,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00057-Curve00788",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.011249999999999982,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00057-Curve00792",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.04300000000000004,
+              "covered": false
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00070",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.03206235619811862,
+        "crossValidation": {
+          "training_mean": 0.03206235619811862,
+          "logistic": 0.037607417436871814,
+          "gompertz": 0.040472342340317706
+        },
+        "development": {
+          "selectedMacroRmse": 0.025053375494686267,
+          "baselineMacroRmse": 0.025053375494686267,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.11025000000000001,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 4
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.11025000000000001,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00070-Curve00999",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.07424999999999998,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00070-Curve01000",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.046750000000000014,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00070-Curve01003",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.07524999999999998,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00070-Curve01006",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.05024999999999996,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00072",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.004782155386821547,
+        "crossValidation": {
+          "training_mean": 0.004782155386821547,
+          "logistic": 0.023927704134731102,
+          "gompertz": 0.0190128137599725
+        },
+        "development": {
+          "selectedMacroRmse": 0.0043764259009572495,
+          "baselineMacroRmse": 0.0043764259009572495,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.04000000000000001,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 4
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.04000000000000001,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00072-Curve01036",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.021999999999999992,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00072-Curve01040",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.004750000000000032,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00072-Curve01041",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.01175000000000001,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00072-Curve01043",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.009250000000000036,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00090",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.009232710139712693,
+        "crossValidation": {
+          "training_mean": 0.009232710139712693,
+          "logistic": 0.021524001905104582,
+          "gompertz": 0.022787604086951636
+        },
+        "development": {
+          "selectedMacroRmse": 0.03400733823496035,
+          "baselineMacroRmse": 0.03400733823496035,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.11149999999999999,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 2
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.11149999999999999,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00090-Curve01303",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.05024999999999999,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00090-Curve01305",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.16149999999999998,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00090-Curve01306",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.05224999999999996,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00090-Curve01307",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.16149999999999998,
+              "covered": false
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00092",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.016342278013571365,
+        "crossValidation": {
+          "training_mean": 0.016342278013571365,
+          "logistic": 0.0246246115276643,
+          "gompertz": 0.023491881791747802
+        },
+        "development": {
+          "selectedMacroRmse": 0.03053546566642476,
+          "baselineMacroRmse": 0.03053546566642476,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.05475000000000002,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 2
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.05475000000000002,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00092-Curve01334",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.03175,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00092-Curve01341",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.15400000000000003,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00092-Curve01343",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.17099999999999999,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00092-Curve01344",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.048750000000000016,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00097",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.01675269691066932,
+        "crossValidation": {
+          "training_mean": 0.01675269691066932,
+          "logistic": 0.02198356569914227,
+          "gompertz": 0.031024295909551802
+        },
+        "development": {
+          "selectedMacroRmse": 0.015732835147467386,
+          "baselineMacroRmse": 0.015732835147467386,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.12025,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 4
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.12025,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00097-Curve01407",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.053749999999999964,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00097-Curve01409",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.048750000000000016,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00097-Curve01414",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.08025000000000002,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00097-Curve01416",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.026749999999999996,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00126",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.005270916937494478,
+        "crossValidation": {
+          "training_mean": 0.005270916937494478,
+          "logistic": 0.01886839588917262,
+          "gompertz": 0.01968998317178657
+        },
+        "development": {
+          "selectedMacroRmse": 0.0059181304443260765,
+          "baselineMacroRmse": 0.0059181304443260765,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.028000000000000025,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 4
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.028000000000000025,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00126-Curve01837",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.022749999999999937,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00126-Curve01839",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.006250000000000033,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00126-Curve01841",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.01050000000000001,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00126-Curve01843",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.009499999999999953,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00130",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.004457015695463577,
+        "crossValidation": {
+          "training_mean": 0.004457015695463577,
+          "logistic": 0.016210079083706832,
+          "gompertz": 0.014643190388503828
+        },
+        "development": {
+          "selectedMacroRmse": 0.004773413859435725,
+          "baselineMacroRmse": 0.004773413859435725,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.017500000000000016,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 4
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.017500000000000016,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00130-Curve01903",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.012250000000000011,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00130-Curve01905",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.01125000000000001,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00130-Curve01906",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.015000000000000013,
+              "covered": true
+            },
+            {
+              "unitId": "expanded-Cond00130-Curve01907",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.014500000000000013,
+              "covered": true
+            }
+          ]
+        }
+      },
+      {
+        "conditionId": "Cond00137",
+        "selectedModel": "training_mean",
+        "selectedScore": 0.0034838164261132595,
+        "crossValidation": {
+          "training_mean": 0.0034838164261132595,
+          "logistic": 0.02807292427345015,
+          "gompertz": 0.023985638179484712
+        },
+        "development": {
+          "selectedMacroRmse": 0.003823677804534272,
+          "baselineMacroRmse": 0.003823677804534272,
+          "deltaMacroRmseVsBaseline": 0
+        },
+        "trainingFits": {
+          "training_mean": {
+            "converged": true,
+            "finite": true
+          },
+          "logistic": {
+            "converged": false,
+            "finite": true
+          },
+          "gompertz": {
+            "converged": false,
+            "finite": true
+          }
+        },
+        "band": {
+          "available": true,
+          "radius": 0.010249999999999981,
+          "calibrationUnitCount": 4
+        },
+        "bandCoverage": {
+          "curves": 4,
+          "covered": 1
+        },
+        "warningCodes": [
+          "OD600_NOT_CFU",
+          "DEVELOPMENT_ALREADY_VIEWED",
+          "TRAJECTORY_INDEPENDENCE_UNVERIFIED",
+          "EXPLORATORY_CONDITIONAL_INTERVALS",
+          "LOW_OPTIMIZER_BUDGET",
+          "OPTIMIZER_NOT_CONVERGED",
+          "OPTIMIZER_STAGE_NOT_CONVERGED",
+          "LOW_BOOTSTRAP_SAMPLE_COUNT",
+          "BOOTSTRAP_TAILS_UNRESOLVED"
+        ],
+        "coverageDetail": {
+          "available": true,
+          "radius": 0.010249999999999981,
+          "curves": [
+            {
+              "unitId": "expanded-Cond00137-Curve02009",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.010250000000000009,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00137-Curve02010",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.010499999999999954,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00137-Curve02013",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.01050000000000001,
+              "covered": false
+            },
+            {
+              "unitId": "expanded-Cond00137-Curve02014",
+              "pointCount": 48,
+              "maximumAbsoluteResidual": 0.0050000000000000044,
+              "covered": true
+            }
+          ]
+        }
+      }
+    ],
+    "bandCoverage": {
+      "conditionsWithBand": 12,
+      "curves": 48,
+      "covered": 35,
+      "coverage": 0.7291666666666666,
+      "perCondition": [
+        {
+          "conditionId": "Cond00042",
+          "radius": 0.013000000000000012,
+          "curves": 4,
+          "covered": 2
+        },
+        {
+          "conditionId": "Cond00045",
+          "radius": 0.026999999999999996,
+          "curves": 4,
+          "covered": 3
+        },
+        {
+          "conditionId": "Cond00054",
+          "radius": 0.017499999999999988,
+          "curves": 4,
+          "covered": 3
+        },
+        {
+          "conditionId": "Cond00057",
+          "radius": 0.02675000000000005,
+          "curves": 4,
+          "covered": 2
+        },
+        {
+          "conditionId": "Cond00070",
+          "radius": 0.11025000000000001,
+          "curves": 4,
+          "covered": 4
+        },
+        {
+          "conditionId": "Cond00072",
+          "radius": 0.04000000000000001,
+          "curves": 4,
+          "covered": 4
+        },
+        {
+          "conditionId": "Cond00090",
+          "radius": 0.11149999999999999,
+          "curves": 4,
+          "covered": 2
+        },
+        {
+          "conditionId": "Cond00092",
+          "radius": 0.05475000000000002,
+          "curves": 4,
+          "covered": 2
+        },
+        {
+          "conditionId": "Cond00097",
+          "radius": 0.12025,
+          "curves": 4,
+          "covered": 4
+        },
+        {
+          "conditionId": "Cond00126",
+          "radius": 0.028000000000000025,
+          "curves": 4,
+          "covered": 4
+        },
+        {
+          "conditionId": "Cond00130",
+          "radius": 0.017500000000000016,
+          "curves": 4,
+          "covered": 4
+        },
+        {
+          "conditionId": "Cond00137",
+          "radius": 0.010249999999999981,
+          "curves": 4,
+          "covered": 1
+        }
+      ]
+    }
+  },
+  "interpretation": [
+    "The external-laboratory set has only five wells from one plate, so its leave-one-well-out folds test schema, units and prediction behaviour, not biological generalisation.",
+    "Four training curves yield two calibration units, below the four required for an 80% conformal band; the comparison should report the band as unavailable instead of a number.",
+    "The same-laboratory new-condition set is the only part with enough curves for a real band check; it shares the plate-reader pipeline with the bundled data, so it is not independent external validation."
+  ]
+}
