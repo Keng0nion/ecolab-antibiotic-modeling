@@ -43,6 +43,14 @@
 - 研究包导入：当前 6.1.0 包检查为“版本兼容 · 等待显式重放”，显式重放返回“重放匹配”并显示比较报告与预览指标；历史 6.0.0 包检查为“仅检查 · 不可重放”，原因 `UNSUPPORTED_SOFTWARE_VERSION` 与 `UNSUPPORTED_GROWTH_COMPARISON_IMPLEMENTATION`，重放按钮禁用。
 - 控制台无错误；观察到的应用请求均为 `127.0.0.1`，仅有构建未包含的 `favicon.ico` 404。未执行跨浏览器、窄屏、读屏或性能 P95 矩阵。
 
+### 6.1.0 发布与线上复验
+
+- 提交 `7cb8de8` 已推送到 `Keng0nion/ecolab-antibiotic-modeling` 的 `main`；Pages workflow [45764449041](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45764449041) 成功，用时约 2 分 1 秒。
+- 线上 `https://keng0nion.github.io/ecolab-antibiotic-modeling/` 返回 `APPLICATION_VERSION = "6.1.0"`，页面标题与页脚显示 Ecolab 6.1.0；真实 Chromium 打开研究页并加载内置数据，显示同一 SHA-256 与“精确合约 · 可运行”。
+- `data/examples/*` 不进入 `dist/web`（单文件约 12 MB，超出 5 MiB 单文件预算），因此线上示例 JSON 为 404 属预期；示例通过仓库文件与 README 链接分发。
+- 官网 `Keng0nion.github.io` 的项目条目已更新并推送（提交 `48df8dd`，部署 [45764719908](https://github.com/Keng0nion/Keng0nion.github.io/actions/runs/45764719908) 成功），中英文详情页均显示新的 6.1.0 方法说明。
+- 以上只证明本地构建、推送与 Pages 部署成功，不构成独立科学验证或跨浏览器认证。
+
 更新：2026-09-07；本地 macOS，Node `v26.4.0`。这是本轮记录，不沿用历史 5.0.0 的 238 项测试数。
 
 ## 发布标识与范围
