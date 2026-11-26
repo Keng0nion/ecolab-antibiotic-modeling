@@ -290,7 +290,7 @@ J(θ) = (1/U) × Σu [(1/nu) × Σj (yuj - f(tuj;θ))²]
 3. **预算与重启**：每阶段都有评价次数上限，可配置多起点重启；保留阶段种子、失败候选、最佳已评价点和停止原因。NM 即使在预算耗尽前刚找到更优点，也不会因该点尚未写入单纯形而丢失它。
 4. **收敛不是必然**：DE 使用种群跨度与目标跨度判据，NM 使用单纯形跨度与目标跨度判据；`maximum_evaluations` 表示预算耗尽，不能解释为找到全局最优。
 
-两类拟合都组合 DE→NM，但潜在校准经 `fitParameters()`／`optimizeBounded()`，直接 OD 比较有自己的阶段结果选择逻辑，不是同一个包装函数。优化器在传入参数坐标搜索；局部敏感性/Morris 支持的 log 变换不会自动施加到优化器，不能概括为“所有算法都在同一归一化空间运行”。
+两类拟合都组合 DE→NM，但潜在校准经 `fitParameters()`／`optimizeBounded()`，直接 OD 比较有自己的阶段结果选择逻辑，不是同一个包装函数。优化器默认在传入参数坐标搜索；需要时可用 `optimizationTransforms` 声明 `log` / `negative_log` 变换，kill 曲线拟合对 `psiMax`、`kappa`、`zMIC`、`σ` 用 `log`、对 `psiMin` 用 `negative_log`，而 OD 生长拟合不启用变换。因此不能概括为“所有算法都在同一归一化空间运行”。
 
 源码：[DE、NM 与最佳点记录](./src/analysis/optimizers.js)、[参数白名单及变换](./src/analysis/parameter-space.js)。
 
@@ -317,6 +317,14 @@ MAE         = ΣuΣj |euj| / Σu nu
 固定 `small`、种子 `123456789` 的实际记录：CV 选中均值基线，开发 macro RMSE 为 **0.00304756 OD**、MAE 为 **0.00239205 OD**；原潜在模型 macro RMSE 为 **0.00833386 OD**，且未收敛。直接 Logistic/Gompertz 也未在各 CV 折收敛，因此这不是新模型提高预测精度的证据。
 
 源码：[CV 与冻结比较](./src/analysis/growth-comparison.js)、[指标汇总](./src/analysis/metrics.js)、[版本化实际结果](./data/examples/ecolab-stage6-research-6.1.0.md)。
+
+#### 4.4 拟合状态与拒绝条件
+
+每次拟合先检查训练集中**精确、未删失**观测数，至少为自由参数数 + 1。OD 最小二乘另检查局部预测雅可比秩，秩亏即停止。任一条件不满足时返回 `NOT_IDENTIFIABLE` 状态结果：只保留观测数、门槛与诊断，不产生参数、预测、残差或验证指标，也不用伪逆或边界替代值填补。
+
+可执行的拟合仍分别记录 `FIT_COMPLETED`、`FIT_NOT_CONVERGED` 与 `NOT_IDENTIFIABLE`，并保留收敛判据、终止原因、每个贴边参数、`sigmaAtLowerBound` 与逐参数轮廓状态。`sigmaAtLowerBound` 在 σ 不是被拟合参数时为 `null`（不适用），不是 `false`；kill 曲线把 σ 作为有下界的参数拟合，才给出布尔值。界面和导出保留这些状态，未收敛拟合不会被显示为可用估计。
+
+源码：[拟合入口与状态](./src/analysis/fitting.js)、[kill 状态与边界](./src/analysis/kill-workflow.js)。
 
 ### 5. 参数扫描与敏感性分析
 
@@ -363,6 +371,8 @@ Sobol 拒绝相关输入；这里使用伪随机抽样，不是 Sobol 低差异�
 秩亏时参数协方差/相关矩阵不可用；保留的伪逆仅作几何诊断。即使满秩，兼容字段中的逆信息矩阵也未进行噪声校准，不能当成可靠参数协方差或置信区间。
 
 当前 `objectiveSlices` 固定其余生物参数扫描一个参数，同时重新求解 OD 干扰参数；这是 **nuisance-profiled objective slice**。它不是对所有其他参数充分优化的完整 profile likelihood，扫描端点也不是置信限；旧 `profiles` 仅为兼容别名。区别参考 [Raue et al. (2009)](https://doi.org/10.1093/bioinformatics/btp358)。
+
+6.1.0 另提供真正的**轮廓似然**：固定目标参数，重优化其余生物参数与 OD 干扰参数，并解析剖面高斯残差尺度；按 95% 似然比阈值 `1.9207` 在网格上求上下交叉点。主拟合或任一重拟合不收敛时，整体与逐参数状态都标为 `NOT_ASSESSED` 并记录原因，不把目标切片端点当置信区间。该结果仍条件于模型、误差假设与参数边界，不是覆盖率证明。
 
 系统因此分别记录 `completed`、`converged`、`identified`、`precisionAssessed`。当前增长比较尚未建立参数可识别性与区间覆盖率，流程正常结束不能自动把这些标签改为 true。
 

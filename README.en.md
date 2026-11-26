@@ -289,7 +289,7 @@ Source: [general fitting](./src/analysis/fitting.js), [censored likelihood](./sr
 3. **Budget and restarts**: each phase has an evaluation-count cap, with configurable multi-start restarts; phase seeds, failed candidates, best-evaluated points, and stop reasons are preserved. Even if NM just found a better point before the budget was exhausted, that point is not lost just because it was not yet written into the simplex.
 4. **Convergence is not guaranteed**: DE uses population-spread and objective-spread criteria, NM uses simplex-spread and objective-spread criteria; `maximum_evaluations` means the budget is exhausted and cannot be interpreted as having found the global optimum.
 
-Both fitting paths combine DE→NM, but latent calibration goes through `fitParameters()`／`optimizeBounded()`, while direct OD comparison has its own phase-result selection logic — not the same wrapper function. The optimizers search in the passed parameter coordinates; the log transform supported by local sensitivity/Morris is not automatically applied to the optimizers, so this cannot be summarized as "all algorithms run in the same normalized space".
+Both fitting paths combine DE→NM, but latent calibration goes through `fitParameters()`／`optimizeBounded()`, while direct OD comparison has its own phase-result selection logic — not the same wrapper function. The optimizers search in the passed parameter coordinates by default; where needed, `optimizationTransforms` declares `log` / `negative_log` transforms. Kill-curve fits use `log` for `psiMax`, `kappa`, `zMIC`, and `σ`, and `negative_log` for `psiMin`, while OD growth fits apply no transform. This therefore cannot be summarized as "all algorithms run in the same normalized space".
 
 Source: [DE, NM, and best-point recording](./src/analysis/optimizers.js), [parameter whitelist and transforms](./src/analysis/parameter-space.js).
 
@@ -314,6 +314,14 @@ After the frozen selection, candidates are refit on all training trajectories; t
 Actual record for fixed `small`, seed `123456789`: CV selected the mean baseline; development macro RMSE **0.00304756 OD**, MAE **0.00239205 OD**; the original latent model's macro RMSE was **0.00833386 OD**, non-converged. Direct Logistic/Gompertz also did not converge in each CV fold, so this is not evidence of the new models improving prediction accuracy.
 
 Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric aggregation](./src/analysis/metrics.js), [versioned actual results](./data/examples/ecolab-stage6-research-6.1.0.md).
+
+#### 4.4 Fit status and refusal conditions
+
+Every fit first checks the number of **exact, uncensored** training observations: at least the number of free parameters plus one. OD least squares additionally checks the local prediction-Jacobian rank and stops when it is rank deficient. If either condition fails, the fit returns a `NOT_IDENTIFIABLE` status result: observation counts, thresholds, and diagnostics only, with no parameters, predictions, residuals, or validation metrics, and no pseudo-inverse or boundary substitute filling the gap.
+
+Executable fits still record `FIT_COMPLETED`, `FIT_NOT_CONVERGED`, or `NOT_IDENTIFIABLE` separately, together with the convergence criterion, stop reason, every parameter at a bound, `sigmaAtLowerBound`, and the per-parameter profile status. `sigmaAtLowerBound` is `null` (not applicable) when σ is not a fitted parameter, and a boolean only in the kill workflow, where σ is fitted with a lower bound. The interface and exports preserve these states; a non-converged fit is not presented as a usable estimate.
+
+Source: [fit entry points and status](./src/analysis/fitting.js), [kill status and boundaries](./src/analysis/kill-workflow.js).
 
 ### 5. Parameter sweeps and sensitivity analysis
 
@@ -356,6 +364,8 @@ Source: [MC and R7 quantiles](./src/analysis/monte-carlo.js), [distribution samp
 When rank-deficient, the parameter covariance/correlation matrix is unavailable; the kept pseudo-inverse serves only as a geometric diagnostic. Even at full rank, the inverse information matrix in the compatible fields is not noise-calibrated and cannot be treated as a reliable parameter covariance or confidence interval.
 
 The current `objectiveSlices` sweeps one parameter while fixing the remaining biological parameters and re-solving the OD nuisance parameters; this is a **nuisance-profiled objective slice**. It is not a full profile likelihood with all other parameters fully optimized, the sweep endpoints are not confidence limits; the old `profiles` is a compatibility alias only. The distinction references [Raue et al. (2009)](https://doi.org/10.1093/bioinformatics/btp358).
+
+6.1.0 adds a genuine **profile likelihood**: the target parameter is fixed, the remaining biological and OD nuisance parameters are reoptimized, and the Gaussian residual scale is profiled analytically; the 95% likelihood-ratio threshold `1.9207` is used to find lower and upper crossings on the grid. If the main fit or any refit fails to converge, both the overall and per-parameter statuses are `NOT_ASSESSED` with the reason recorded, and sweep endpoints are not reported as confidence limits. The result remains conditional on the model, error assumptions, and parameter bounds; it is not a coverage proof.
 
 The system therefore records `completed`, `converged`, `identified`, and `precisionAssessed` separately. The current growth comparison has not yet established parameter identifiability and interval coverage; a normal workflow end cannot automatically flip these labels to true.
 
