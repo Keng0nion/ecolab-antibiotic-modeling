@@ -503,6 +503,7 @@ Suggested reading order for first-time readers:
 - [Changelog](./docs/changelog.md)
 - [Prediction-band coverage study](./docs/prediction-band-coverage.md)
 - [External-data model test](./docs/external-model-test.md)
+- [Parameter-precision diagnosis](./docs/parameter-precision.md)
 - [Project overview](./docs/project-overview.md)
 - [System architecture](./docs/architecture.md)
 - [Scientific core](./docs/scientific-core.md)

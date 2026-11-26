@@ -503,6 +503,7 @@ UI インポートは inspect のみ行い、ユーザーが明示的にリプ�
 - [変更履歴](./docs/changelog.md)
 - [予測バンドのカバレッジ研究](./docs/prediction-band-coverage.md)
 - [外部データによるモデルテスト](./docs/external-model-test.md)
+- [パラメータ精度の診断](./docs/parameter-precision.md)
 - [プロジェクト概要](./docs/project-overview.md)
 - [システムアーキテクチャ](./docs/architecture.md)
 - [科学コア](./docs/scientific-core.md)

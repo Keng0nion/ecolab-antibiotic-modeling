@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ecolab.parameter-precision",
+  "generatedFrom": {
+    "applicationVersion": "6.1.0",
+    "seed": 1582041777,
+    "createdAt": "2026-11-26T00:00:00.000Z"
+  },
+  "dataset": {
+    "path": "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json",
+    "normalizedJsonArtifactSha256": "67b5fc2757073f92832a9c2cc575324eb91f54dd3621c3e5c2cfb335f8f03817",
+    "trainingCurves": 8,
+    "timePoints": 44,
+    "trainingObservations": 352
+  },
+  "budgets": [
+    {
+      "name": "small",
+      "status": "FIT_NOT_CONVERGED",
+      "converged": false,
+      "evaluationCount": 160,
+      "terminationReason": "maximum_evaluations",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305466799497016,
+        "initialLog10PopulationDensity": 4.6196919691458085
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": null,
+        "conditionNumber": 18.867688745326795,
+        "correlation": null
+      },
+      "profileStatus": "NOT_ASSESSED",
+      "profileReason": "one_or_more_profile_refits_or_the_main_fit_did_not_converge",
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "NOT_ASSESSED",
+          "lower": null,
+          "upper": null,
+          "relativeHalfWidth": null
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "NOT_ASSESSED",
+          "lower": null,
+          "upper": null,
+          "relativeHalfWidth": null
+        }
+      }
+    },
+    {
+      "name": "standard",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 415,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305454372128,
+        "initialLog10PopulationDensity": 4.619693035642217
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": null,
+        "conditionNumber": 18.867684688555823,
+        "correlation": null
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.42162131107296635,
+          "upper": 0.4245367678155322,
+          "relativeHalfWidth": 0.00344572205385248
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.5856216179711335,
+          "upper": 4.641823009867992,
+          "relativeHalfWidth": 0.0060828058772790005
+        }
+      }
+    },
+    {
+      "name": "large",
+      "status": "FIT_COMPLETED",
+      "converged": true,
+      "evaluationCount": 5750,
+      "terminationReason": "converged_simplex",
+      "estimates": {
+        "psiMaxLog10PerHour": 0.42305456001878955,
+        "initialLog10PopulationDensity": 4.619692855367936
+      },
+      "localGeometry": {
+        "rank": 2,
+        "parameterCount": null,
+        "conditionNumber": 18.86768543859024,
+        "correlation": null
+      },
+      "profileStatus": "ASSESSED",
+      "profileReason": null,
+      "profileIntervals95": {
+        "psiMaxLog10PerHour": {
+          "status": "identified",
+          "lower": 0.4216213272445931,
+          "upper": 0.4245367839855298,
+          "relativeHalfWidth": 0.0034457219191860225
+        },
+        "initialStates.pooled.log10PopulationDensity": {
+          "status": "identified",
+          "lower": 4.585621441489053,
+          "upper": 4.641822833123254,
+          "relativeHalfWidth": 0.006082806086220321
+        }
+      }
+    }
+  ],
+  "residualStructure": {
+    "lagOneAutocorrelation": 0.9176046454027611,
+    "betweenCurveSd": 0.002945426424328645,
+    "withinCurveSd": 0.002304922880717211,
+    "betweenCurveIcc": 0.6202036651887188,
+    "designEffect": 40.45699975231873,
+    "effectiveSampleSize": 8.700595747459639
+  },
+  "interpretation": [
+    "The small preset stops at its evaluation cap; the same fit converges at the standard and large budgets with identical estimates, so the status difference is a budget artefact, not a data limit.",
+    "Profile intervals assume independent homoscedastic Gaussian residuals. The training residuals have strong lag-one autocorrelation, so the design effect inflates the honest standard error by roughly its square root.",
+    "Absolute CFU scale is not identified: K is fixed and only the product s/K enters the OD observation layer."
+  ]
+}
