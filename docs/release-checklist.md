@@ -41,6 +41,13 @@
 - [x] `5.0.0`、`6.0.0`、`6.1.0` 六个历史文件字节未变；6.1.0 从 HEAD 恢复为发布字节（JSON `f13ebd58…`，MD `7ec7127c…`）。
 - [x] `docs/release-notes-6.2.0.md` 与 changelog 的 6.2.0 段完成。
 
+### 发布与线上复验
+
+- 提交 `ca40757` 已推送到 `Keng0nion/ecolab-antibiotic-modeling` 的 `main`；Pages workflow [45840356037](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45840356037) 的 build 与 deploy 均成功。
+- GitHub Release [`v6.2.0`](https://github.com/Keng0nion/ecolab-antibiotic-modeling/releases/tag/v6.2.0) 已创建并标记为 Latest，标签指向 `ca40757`；未附加离线压缩包，分发以 Pages 与仓库源码为准。
+- 线上 `https://keng0nion.github.io/ecolab-antibiotic-modeling/src/app/version.js` 返回 `APPLICATION_VERSION = "6.2.0"`；`src/app/research/xlsx-import.js` 返回 HTTP 200；`data/raw/figshare-bw25113-growth-v1/acquisition.json` 返回 404，确认来源清单只留在仓库、不进入发布产物。
+- 未修改 `Keng0nion.github.io` 官网入口：本轮授权范围是仓库、Pages 与 Release。
+
 ### 分析 2.2.0 精度分层（含在 6.2.0 内）
 
 更新：2026-11-26；应用 `6.2.0`，分析 `2.2.0`，教学核心 `2.0.0`，教学模型 `1.0.0`。科学细节见 [parameter-precision.md](./parameter-precision.md)。
