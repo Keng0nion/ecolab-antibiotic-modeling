@@ -45,7 +45,8 @@
 
 ### 6.1.0 发布与线上复验
 
-- 提交 `7cb8de8` 已推送到 `Keng0nion/ecolab-antibiotic-modeling` 的 `main`；Pages workflow [45764449041](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45764449041) 成功，用时约 2 分 1 秒。
+- 提交 `7cb8de8`（功能）、`96e1a47`（发布记录）、`f56a641`（README 拟合状态与轮廓似然说明）已推送到 `Keng0nion/ecolab-antibiotic-modeling` 的 `main`；Pages workflow [45764449041](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45764449041)、[45764906384](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45764906384)、[45767402777](https://github.com/Keng0nion/ecolab-antibiotic-modeling/actions/runs/45767402777) 均成功。
+- GitHub Release [`v6.1.0`](https://github.com/Keng0nion/ecolab-antibiotic-modeling/releases/tag/v6.1.0) 已创建并标记为 Latest，标签指向 `f56a641`；未附加离线压缩包，分发以 Pages 与仓库源码为准。
 - 线上 `https://keng0nion.github.io/ecolab-antibiotic-modeling/` 返回 `APPLICATION_VERSION = "6.1.0"`，页面标题与页脚显示 Ecolab 6.1.0；真实 Chromium 打开研究页并加载内置数据，显示同一 SHA-256 与“精确合约 · 可运行”。
 - `data/examples/*` 不进入 `dist/web`（单文件约 12 MB，超出 5 MiB 单文件预算），因此线上示例 JSON 为 404 属预期；示例通过仓库文件与 README 链接分发。
 - 官网 `Keng0nion.github.io` 的项目条目已更新并推送（提交 `48df8dd`，部署 [45764719908](https://github.com/Keng0nion/Keng0nion.github.io/actions/runs/45764719908) 成功），中英文详情页均显示新的 6.1.0 方法说明。
