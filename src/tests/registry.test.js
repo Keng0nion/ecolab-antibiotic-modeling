@@ -9,6 +9,9 @@ test("registered model resolves with version, evidence and exact source links", 
   assert.equal(resolved.ref.parameterSetVersion, "1.0.0");
   assert.equal(resolved.conditionMatch, "transferred_calibration");
   assert.equal(resolved.capabilityLevel, "L1");
+  assert.equal(resolved.intendedUse, "teaching_calibration_only");
+  assert.equal(resolved.researchFitEligible, false);
+  assert.match(resolved.intendedUseNote["zh-CN"], /不得作为条件匹配的研究估计报告/u);
   assert.deepEqual(resolved.sourceIds, ["bionumbers-111767", "foerster-2016", "regoes-2004"]);
   assert.ok(Object.isFrozen(resolved));
   assert.ok(Object.isFrozen(resolved.parameters.drugs.ciprofloxacin));

@@ -96,7 +96,7 @@ test("web build emits importable Stage 6 assets in a temporary directory with de
   assert.equal(typeof researchApi.runEcolabStage4ResearchWorkflow, "function");
   assert.equal(typeof workerApi.dispatchTask, "function");
   assert.equal(typeof taskClientApi.TaskClient, "function");
-  assert.equal(versionApi.APPLICATION_VERSION, "6.0.0");
+  assert.equal(versionApi.APPLICATION_VERSION, "6.1.0");
   const [upgradeApi, replayApi, growthApi, analysisVersion] = await Promise.all([
     import(`${new URL("src/analysis/research-upgrade.js", web).href}?test=${buildId}`),
     import(`${new URL("src/analysis/research-replay.js", web).href}?test=${buildId}`),
@@ -106,7 +106,7 @@ test("web build emits importable Stage 6 assets in a temporary directory with de
   assert.equal(typeof upgradeApi.runEcolabResearchWorkflow, "function");
   assert.equal(typeof replayApi.inspectResearchPackage, "function");
   assert.equal(typeof growthApi.runGrowthModelComparison, "function");
-  assert.equal(analysisVersion.ANALYSIS_ENGINE_VERSION, "2.0.0");
+  assert.equal(analysisVersion.ANALYSIS_ENGINE_VERSION, "2.1.0");
   assert.equal(analysisVersion.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
   assert.equal(analysisVersion.ANALYSIS_IMPLEMENTATION_ID, "ecolab-research-analysis-v2");
   assert.equal(modelApi.ENGINE_VERSION, "2.0.0");

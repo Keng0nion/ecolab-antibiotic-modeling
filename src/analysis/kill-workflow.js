@@ -17,14 +17,18 @@
 // Units: Ecolab rates are log10-fold/h internally. Foerster-style literature reports
 // use ln/h; divide by ln(10) when comparing. kappa is unit-free; zMIC is mg/L.
 
-import { simulatePiecewise } from "../model.js";
+import { advancePopulationAnalytically, evaluateRegoesNetGrowth, simulatePiecewise } from "../model.js";
 import { importObservationDataset } from "./dataset-import.js";
 import { assessDatasetQuality } from "./dataset-quality.js";
 import { fingerprintJson } from "./fingerprint.js";
 import { createDatasetSplit } from "./split.js";
 import { fitParameters } from "./fitting.js";
 import { censoredGaussianLogLikelihood } from "./likelihood.js";
-import { createRandom } from "./random.js";
+import { createRandom, RNG_ALGORITHM } from "./random.js";
+import {
+  summarizeGaussianMixturePredictions,
+  summarizeTemporalResidualTrends,
+} from "./predictive-diagnostics.js";
 
 export const KILL_WORKFLOW_KIND = "ecolab-kill-workflow";
 export const KILL_MEASUREMENT_TYPE = "log10_cfu_per_ml";
@@ -455,12 +459,426 @@ function validationMetrics(observations, predictions) {
     biasLog10: bias,
     censoredObservationCount: censoredTotal,
     censoredPredictionHitRate: censoredTotal ? censoredHit / censoredTotal : null,
+    temporalResidualDiagnostics: summarizeTemporalResidualTrends({ observations, predictions }),
   };
 }
 
 function percentile(sorted, q) {
   const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))));
   return sorted[index];
+}
+
+const PROFILE_LIKELIHOOD_95_DELTA = 1.920729410347062;
+const PROFILE_MONOTONICITY_TOLERANCE = 0.05;
+
+export function classifyKillProfile(points, tolerance = PROFILE_MONOTONICITY_TOLERANCE) {
+  const usable = points.filter((point) => point.converged !== false)
+    .sort((a, b) => a.value - b.value);
+  if (usable.length < 3) return { status: "lower-unidentified", trend: "insufficient_profile_points", usablePointCount: usable.length };
+  const values = usable.map((point) => point.negativeLogLikelihood);
+  const differences = values.slice(1).map((value, index) => value - values[index]);
+  const nondecreasing = differences.every((difference) => difference >= -tolerance);
+  const nonincreasing = differences.every((difference) => difference <= tolerance);
+  const range = Math.max(...values) - Math.min(...values);
+  const flat = range <= tolerance;
+  const minValue = Math.min(...values);
+  const minima = values.flatMap((value, index) => Math.abs(value - minValue) <= tolerance ? [index] : []);
+  const atLower = minima.includes(0);
+  const atUpper = minima.includes(values.length - 1);
+  if (atLower && nondecreasing) {
+    return { status: "lower-unidentified", trend: flat ? "flat" : "monotone_increasing_from_lower_limit", usablePointCount: usable.length };
+  }
+  if (atUpper && nonincreasing) {
+    return { status: "upper-unidentified", trend: flat ? "flat" : "monotone_decreasing_to_upper_limit", usablePointCount: usable.length };
+  }
+  const interiorMinimum = minima.some((index) => index > 0 && index < values.length - 1);
+  if (interiorMinimum && values[0] - minValue > tolerance && values.at(-1) - minValue > tolerance) {
+    return { status: "identified", trend: "interior_profile_minimum", usablePointCount: usable.length };
+  }
+  return atUpper && !atLower
+    ? { status: "upper-unidentified", trend: "best_supported_at_upper_limit", usablePointCount: usable.length }
+    : { status: "lower-unidentified", trend: "best_supported_at_lower_limit_or_profile_flat", usablePointCount: usable.length };
+}
+
+function profileCutoffBound(points, status, threshold) {
+  const compatible = points.filter((point) => point.deltaNegativeLogLikelihood <= threshold)
+    .sort((a, b) => a.value - b.value);
+  if (!compatible.length) return null;
+  const edge = status === "lower-unidentified" ? compatible.at(-1) : compatible[0];
+  const outside = points.filter((point) => status === "lower-unidentified"
+    ? point.value > edge.value && point.deltaNegativeLogLikelihood > threshold
+    : point.value < edge.value && point.deltaNegativeLogLikelihood > threshold)
+    .sort((a, b) => Math.abs(a.value - edge.value) - Math.abs(b.value - edge.value))[0];
+  if (!outside) return edge.value;
+  const a = edge;
+  const b = outside;
+  const fraction = (threshold - a.deltaNegativeLogLikelihood)
+    / (b.deltaNegativeLogLikelihood - a.deltaNegativeLogLikelihood);
+  return a.value + fraction * (b.value - a.value);
+}
+
+function profileCompatibleRange(points, threshold) {
+  const usable = points.filter((point) => point.converged !== false)
+    .sort((a, b) => a.value - b.value);
+  if (!usable.length) return { lower: null, upper: null, status: "no_converged_profile_points" };
+  const minimumIndex = usable.reduce((best, point, index) =>
+    point.deltaNegativeLogLikelihood < usable[best].deltaNegativeLogLikelihood ? index : best, 0);
+  const crossing = (direction) => {
+    let index = minimumIndex;
+    while (true) {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= usable.length) break;
+      const inside = usable[index];
+      const outside = usable[nextIndex];
+      const insideCompatible = inside.deltaNegativeLogLikelihood <= threshold;
+      const outsideCompatible = outside.deltaNegativeLogLikelihood <= threshold;
+      if (insideCompatible && !outsideCompatible) {
+        const fraction = (threshold - inside.deltaNegativeLogLikelihood)
+          / (outside.deltaNegativeLogLikelihood - inside.deltaNegativeLogLikelihood);
+        return inside.value + fraction * (outside.value - inside.value);
+      }
+      if (!outsideCompatible) return null;
+      index = nextIndex;
+    }
+    return null;
+  };
+  const lowCompatible = usable[0].deltaNegativeLogLikelihood <= threshold;
+  const highCompatible = usable.at(-1).deltaNegativeLogLikelihood <= threshold;
+  return {
+    lower: lowCompatible ? null : crossing(-1),
+    upper: highCompatible ? null : crossing(1),
+    lowerSearchLimitCompatible: lowCompatible,
+    upperSearchLimitCompatible: highCompatible,
+    threshold,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Per-concentration-group net-growth-rate identifiability
+//
+// A kill-curve strain fit shares psiMax, psiMin, zMIC and kappa across all of its
+// concentration groups. That joint fit can be well identified while an individual
+// group carries no information about the *rate* it was run at. The clearest case is
+// a group that reaches the detection limit at the first post-baseline sample and
+// stays there: every later observation is left-censored, so the likelihood is flat
+// for any faster kill and only bounds psi(C) from above. The group then contributes
+// no information about the growth rate, and quoting a point estimate for it makes
+// derived tables (for example a per-strain parameter table) internally inconsistent.
+//
+// The diagnostic below profiles psi(C) itself, conditional on the strain-level N0
+// and residual scale, using the same censored Gaussian likelihood as the fit. It
+// reuses classifyKillProfile so the verdict uses one monotonicity rule for both the
+// strain-level and the group-level profiles.
+// ---------------------------------------------------------------------------
+const UNIT_NET_GROWTH_BOUNDS = Object.freeze([-5, 2]);
+const UNIT_NET_GROWTH_STEP = 0.1;
+const DETECTION_LIMIT_TOLERANCE = 1e-9;
+const MINIMUM_UNCENSORED_POST_BASELINE_OBSERVATIONS = 2;
+const UNIT_IDENTIFIABILITY_CRITERION = "require at least two uncensored post-baseline observations above the detection limit; eligible groups profile psi(C) over [-5, 2] log10-fold/h in 0.1 steps, conditional on the strain-level N0 and residual sigma, with the same monotonicity rule and 0.05 NLL tolerance as the strain-level profiles";
+
+function unitDetectionLimitLog10(observations) {
+  const limits = observations
+    .filter((observation) => observation.censoring === "left")
+    .map((observation) => observation.censoringBounds?.upper)
+    .filter((value) => typeof value === "number" && Number.isFinite(value));
+  return limits.length ? Math.max(...limits) : null;
+}
+
+function observationAtDetectionLimit(observation, limit) {
+  if (limit === null) return false;
+  if (observation.censoring === "left") {
+    const upper = observation.censoringBounds?.upper;
+    return typeof upper !== "number" || upper <= limit + DETECTION_LIMIT_TOLERANCE;
+  }
+  return observation.value <= limit + DETECTION_LIMIT_TOLERANCE;
+}
+
+function unitNetGrowthProfile(observations, options) {
+  const {
+    initialLog10PopulationDensity,
+    sigmaLog10Residual,
+    carryingCapacityLog10,
+    detectionLimit,
+    treatExactAtLimitAsCensored,
+  } = options;
+  const effective = observations.map((observation) => (
+    treatExactAtLimitAsCensored
+      && observation.censoring !== "left"
+      && detectionLimit !== null
+      && observation.value <= detectionLimit + DETECTION_LIMIT_TOLERANCE
+      ? { ...observation, censoring: "left", censoringBounds: { upper: detectionLimit } }
+      : observation
+  ));
+  const points = [];
+  for (let index = 0; ; index += 1) {
+    const psi = UNIT_NET_GROWTH_BOUNDS[0] + index * UNIT_NET_GROWTH_STEP;
+    if (psi > UNIT_NET_GROWTH_BOUNDS[1] + 1e-9) break;
+    let negativeLogLikelihood = 0;
+    for (const observation of effective) {
+      const prediction = observation.timeHours === 0
+        ? initialLog10PopulationDensity
+        : advancePopulationAnalytically(
+          initialLog10PopulationDensity,
+          psi,
+          observation.timeHours,
+          carryingCapacityLog10,
+        );
+      negativeLogLikelihood -= censoredGaussianLogLikelihood(observation, prediction, sigmaLog10Residual);
+    }
+    points.push({
+      value: Number(psi.toFixed(10)),
+      negativeLogLikelihood,
+      converged: true,
+    });
+  }
+  const minimum = Math.min(...points.map((point) => point.negativeLogLikelihood));
+  const profile = points.map((point) => ({
+    ...point,
+    deltaNegativeLogLikelihood: Math.max(0, point.negativeLogLikelihood - minimum),
+  }));
+  const identifiability = classifyKillProfile(profile);
+  const compatibleRange95 = profileCompatibleRange(profile, PROFILE_LIKELIHOOD_95_DELTA);
+  const bestPoint = profile.reduce((best, point) => (
+    point.deltaNegativeLogLikelihood < best.deltaNegativeLogLikelihood ? point : best
+  ));
+  return {
+    status: identifiability.status,
+    trend: identifiability.trend,
+    compatibleRange95,
+    estimate: identifiability.status === "identified" ? bestPoint.value : null,
+    oneSided95Bound: identifiability.status === "identified"
+      ? null
+      : profileCutoffBound(profile, identifiability.status, PROFILE_LIKELIHOOD_95_DELTA),
+  };
+}
+
+/**
+ * Identifiability of the net growth rate psi(C) from one concentration group.
+ *
+ * `context` must supply the strain-level fit (`drugId`, `modelParameters`,
+ * `initialLog10PopulationDensity`, `sigmaLog10Residual`) and the workflow's
+ * `carryingCapacityLog10`. The group's own observations are the only data used to
+ * profile psi(C); the other parameters stay fixed at the strain fit. The verdict is
+ * the conservative combination of the declared censoring and the at-limit reading,
+ * so a value recorded as exact but sitting on the detection limit cannot be used to
+ * claim an identified rate.
+ */
+export function unitGrowthRateIdentifiability(unitObservations, context) {
+  const { drugId, modelParameters, carryingCapacityLog10 } = context;
+  const sorted = [...unitObservations].sort((a, b) => a.timeHours - b.timeHours);
+  const concentration = sorted[0].concentrationMgPerL;
+  const detectionLimit = unitDetectionLimitLog10(sorted);
+  const postBaseline = sorted.filter((observation) => observation.timeHours > 0);
+  const atLimit = postBaseline.filter((observation) => observationAtDetectionLimit(observation, detectionLimit));
+  const exactAtLimitCount = postBaseline.filter((observation) => (
+    observation.censoring !== "left"
+    && detectionLimit !== null
+    && observation.value <= detectionLimit + DETECTION_LIMIT_TOLERANCE
+  )).length;
+  const informativeExactPostBaseline = postBaseline.filter((observation) => (
+    observation.censoring !== "left"
+    && !observationAtDetectionLimit(observation, detectionLimit)
+  ));
+  const allPostBaselineAtLimit = detectionLimit !== null
+    && postBaseline.length > 0
+    && postBaseline.every((observation) => observationAtDetectionLimit(observation, detectionLimit));
+  if (informativeExactPostBaseline.length < MINIMUM_UNCENSORED_POST_BASELINE_OBSERVATIONS) {
+    return {
+      independentUnitId: sorted[0].independentUnitId,
+      concentrationMgPerL: concentration,
+      role: sorted[0].role,
+      observationCount: sorted.length,
+      postBaselineObservationCount: postBaseline.length,
+      uncensoredPostBaselineObservationCount: informativeExactPostBaseline.length,
+      minimumUncensoredPostBaselineObservationCount: MINIMUM_UNCENSORED_POST_BASELINE_OBSERVATIONS,
+      censoredObservationCount: postBaseline.filter((observation) => observation.censoring === "left").length,
+      exactAtDetectionLimitCount: exactAtLimitCount,
+      detectionLimitLog10: detectionLimit,
+      modelNetGrowthRateLog10PerHour: null,
+      status: "NOT_IDENTIFIABLE",
+      basis: allPostBaselineAtLimit ? "all_post_baseline_observations_at_detection_limit" : "insufficient_uncensored_observations",
+      unitProfileEstimateLog10PerHour: null,
+      relation: null,
+      oneSided95Bound: null,
+      compatibleRange95: { lower: null, upper: null },
+      modelWithinUnitSupport95: null,
+      declaredCensoringStatus: "NOT_IDENTIFIABLE",
+      exactAtLimitCensoredStatus: null,
+      criterion: UNIT_IDENTIFIABILITY_CRITERION,
+    };
+  }
+  const profileOptions = {
+    initialLog10PopulationDensity: context.initialLog10PopulationDensity,
+    sigmaLog10Residual: context.sigmaLog10Residual,
+    carryingCapacityLog10,
+    detectionLimit,
+  };
+  const declared = unitNetGrowthProfile(sorted, { ...profileOptions, treatExactAtLimitAsCensored: false });
+  // A value recorded as exact but sitting on the unit's detection limit cannot be
+  // distinguished from a censored observation. The at-limit reading is reported as a
+  // sensitivity, and the conservative verdict is the one carried into `status`.
+  const atLimitCensored = exactAtLimitCount > 0
+    ? unitNetGrowthProfile(sorted, { ...profileOptions, treatExactAtLimitAsCensored: true })
+    : null;
+  const candidates = [declared, atLimitCensored].filter(Boolean);
+  const unresolved = candidates.find((candidate) => candidate.status !== "identified");
+  const status = unresolved ? unresolved.status : "identified";
+  const chosen = unresolved ?? declared;
+  const basis = status === "identified" ? "profile_interior_minimum"
+    : allPostBaselineAtLimit ? "all_post_baseline_observations_at_detection_limit"
+      : exactAtLimitCount > 0 && declared.status === "identified" ? "exact_observation_at_detection_limit"
+        : "profile_without_interior_minimum";
+  const modelNetGrowthRate = evaluateRegoesNetGrowth(modelParameters, drugId, concentration);
+  // Union of both readings: a model value is only called incompatible when neither
+  // reading of the group's own data can accommodate it.
+  const supports = [declared.compatibleRange95, atLimitCensored?.compatibleRange95].filter(Boolean);
+  const support = {
+    lower: supports.some((range) => range.lower === null) ? null : Math.min(...supports.map((range) => range.lower)),
+    upper: supports.some((range) => range.upper === null) ? null : Math.max(...supports.map((range) => range.upper)),
+  };
+  const modelWithinUnitSupport95 = (support.lower === null || modelNetGrowthRate >= support.lower)
+    && (support.upper === null || modelNetGrowthRate <= support.upper);
+  return {
+    independentUnitId: sorted[0].independentUnitId,
+    concentrationMgPerL: concentration,
+    role: sorted[0].role,
+    observationCount: sorted.length,
+    postBaselineObservationCount: postBaseline.length,
+    uncensoredPostBaselineObservationCount: informativeExactPostBaseline.length,
+    minimumUncensoredPostBaselineObservationCount: MINIMUM_UNCENSORED_POST_BASELINE_OBSERVATIONS,
+    censoredObservationCount: postBaseline.filter((observation) => observation.censoring === "left").length,
+    exactAtDetectionLimitCount: exactAtLimitCount,
+    detectionLimitLog10: detectionLimit,
+    modelNetGrowthRateLog10PerHour: modelNetGrowthRate,
+    status,
+    basis,
+    unitProfileEstimateLog10PerHour: chosen.estimate,
+    relation: status === "identified" ? null : status === "lower-unidentified" ? "≤" : "≥",
+    oneSided95Bound: chosen.oneSided95Bound,
+    compatibleRange95: { lower: support.lower, upper: support.upper },
+    modelWithinUnitSupport95,
+    declaredCensoringStatus: declared.status,
+    exactAtLimitCensoredStatus: atLimitCensored?.status ?? null,
+    criterion: UNIT_IDENTIFIABILITY_CRITERION,
+  };
+}
+
+function profileCoordinates(value, transform) {
+  return transform === "log" ? Math.log(value)
+    : transform === "negative_log" ? Math.log(-value)
+      : value;
+}
+
+function profileModelValue(value, transform) {
+  return transform === "log" ? Math.exp(value)
+    : transform === "negative_log" ? -Math.exp(value)
+      : value;
+}
+
+function profileLikelihood(fit, fitOptions, names, targetNames, seed, strain, pointCount) {
+  const profiles = {};
+  for (const targetName of targetNames) {
+    const nuisanceNames = names.filter((name) => name !== targetName);
+    const transform = targetName.endsWith("psiMinLog10PerHour") ? "negative_log" : "log";
+    const [lower, upper] = fit.bounds[targetName];
+    const coordinateLower = profileCoordinates(
+      transform === "negative_log" ? upper : lower,
+      transform,
+    );
+    const coordinateUpper = profileCoordinates(
+      transform === "negative_log" ? lower : upper,
+      transform,
+    );
+    const fittedCoordinate = profileCoordinates(fit.resolvedParameters[targetName], transform);
+    const coordinates = new Set([coordinateLower, coordinateUpper, fittedCoordinate]);
+    for (let index = 1; index < pointCount - 1; index += 1) {
+      coordinates.add(coordinateLower + (coordinateUpper - coordinateLower) * index / (pointCount - 1));
+    }
+    // The full transformed bounds can span many orders of magnitude. Add a
+    // geometric local grid around the optimum so narrow 95% profile crossings
+    // are not reduced to the single fitted point on a coarse global grid.
+    for (const offset of [0.005, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28]) {
+      for (const direction of [-1, 1]) {
+        const coordinate = fittedCoordinate + direction * offset;
+        if (coordinate > Math.min(coordinateLower, coordinateUpper)
+          && coordinate < Math.max(coordinateLower, coordinateUpper)) coordinates.add(coordinate);
+      }
+    }
+    const sortedCoordinates = [...coordinates].sort((a, b) => a - b);
+    const points = sortedCoordinates.map((coordinate, index) => {
+      const value = profileModelValue(coordinate, transform);
+      const refit = fitParameters({
+        ...fitOptions,
+        parameterWhitelist: nuisanceNames,
+        initialParameters: fit.resolvedParameters,
+        fixedParameters: { ...fit.resolvedParameters, [targetName]: value },
+        optimizationTransforms: Object.fromEntries(
+          Object.entries(fitOptions.optimizationTransforms ?? {}).filter(([name]) => name !== targetName),
+        ),
+        restarts: 1,
+        differentialEvolution: { populationSize: 16, maxEvaluations: 1000, tolerance: 1e-3, objectiveTolerance: 1e-4 },
+        nelderMead: { maxEvaluations: 1200 },
+        seed: deriveSeed(seed, "profile", strain, targetName, index),
+      });
+      return {
+        value,
+        negativeLogLikelihood: refit.objectiveValue,
+        converged: refit.converged,
+        terminationReason: refit.optimization?.terminationReason ?? null,
+      };
+    });
+    const minimum = Math.min(...points.map(({ negativeLogLikelihood }) => negativeLogLikelihood));
+    const nonConvergedPointCount = points.filter(({ converged }) => !converged).length;
+    const profileStatus = nonConvergedPointCount === 0 ? "ASSESSED" : "NOT_ASSESSED";
+    const likelihoodProfile = points.map(({ value, negativeLogLikelihood, converged, terminationReason }) => ({
+      value,
+      negativeLogLikelihood,
+      deltaNegativeLogLikelihood: Math.max(0, negativeLogLikelihood - minimum),
+      converged,
+      terminationReason,
+    })).sort((a, b) => a.value - b.value);
+    const classifiedIdentifiability = classifyKillProfile(likelihoodProfile);
+    const identifiability = profileStatus === "ASSESSED"
+      ? classifiedIdentifiability
+      : { status: "NOT_ASSESSED", trend: "profile_refit_nonconvergence", reason: "profile_refits_not_all_converged" };
+    const compatibleRange95 = profileCompatibleRange(likelihoodProfile, PROFILE_LIKELIHOOD_95_DELTA);
+    const endpointsCompatible = likelihoodProfile[0].deltaNegativeLogLikelihood <= PROFILE_LIKELIHOOD_95_DELTA
+      && likelihoodProfile.at(-1).deltaNegativeLogLikelihood <= PROFILE_LIKELIHOOD_95_DELTA;
+    const objectiveAtFitEstimate = likelihoodProfile.reduce((closest, point) =>
+      Math.abs(point.value - fit.resolvedParameters[targetName]) < Math.abs(closest.value - fit.resolvedParameters[targetName])
+        ? point
+        : closest);
+    const profileImprovement = fit.objectiveValue - minimum;
+    profiles[targetName] = {
+      status: profileStatus,
+      ...(profileStatus === "NOT_ASSESSED" ? { reason: "profile_refits_not_all_converged" } : {}),
+      points: likelihoodProfile,
+      mainFitObjective: fit.objectiveValue,
+      profileMinimumObjective: minimum,
+      profileImprovementOverMainFit: profileImprovement,
+      profileObjectiveAtMainEstimate: objectiveAtFitEstimate.negativeLogLikelihood,
+      mainEstimateWithinProfile95: objectiveAtFitEstimate.deltaNegativeLogLikelihood <= PROFILE_LIKELIHOOD_95_DELTA,
+      nonConvergedPointCount,
+      likelihoodRatioThreshold95: PROFILE_LIKELIHOOD_95_DELTA,
+      compatibleValues95: likelihoodProfile
+        .filter(({ deltaNegativeLogLikelihood }) => deltaNegativeLogLikelihood <= PROFILE_LIKELIHOOD_95_DELTA)
+        .map(({ value }) => value),
+      profileCompatibleRange95: compatibleRange95,
+      identifiability: {
+        ...identifiability,
+        criterion: "monotonicity of the converged profile-likelihood points over the full allowed parameter interval; tolerance is 0.05 NLL units",
+        oneSided95Bound: identifiability.status === "identified" || identifiability.status === "NOT_ASSESSED"
+          ? null
+          : profileCutoffBound(likelihoodProfile, identifiability.status, PROFILE_LIKELIHOOD_95_DELTA),
+        likelihoodRatioThreshold95: PROFILE_LIKELIHOOD_95_DELTA,
+      },
+      assessment: profileImprovement > 1e-4
+        ? "profile_refit_found_better_objective_than_main_fit"
+        : nonConvergedPointCount > 0 ? "profile_refits_not_all_converged"
+        : endpointsCompatible ? "weakly_identified_across_fitted_bounds" : "profile_excludes_at_least_one_bound",
+    };
+  }
+  return profiles;
 }
 
 /**
@@ -478,12 +896,17 @@ function bootstrapIntervals(fit, names, training, fitOptions, context, strain) {
     byUnit.get(observation.independentUnitId).push(observation);
   }
   const unitIds = [...byUnit.keys()];
-  const samples = [];
-  let convergedReplicates = 0;
+  const interiorSamples = [];
+  const convergedSamples = [];
+  let optimizerConvergedReplicates = 0;
+  let boundaryReplicates = 0;
   let attemptedReplicates = 0;
   const terminationReasons = {};
-  const maximumAttempts = replicates * 3;
-  for (let b = 0; b < maximumAttempts && samples.length < replicates; b += 1) {
+  const maximumAttemptsMultiplier = Number.isInteger(context.bootstrapMaxAttemptsMultiplier)
+    ? Math.max(3, Math.min(20, context.bootstrapMaxAttemptsMultiplier))
+    : 3;
+  const maximumAttempts = replicates * maximumAttemptsMultiplier;
+  for (let b = 0; b < maximumAttempts && interiorSamples.length < replicates; b += 1) {
     attemptedReplicates += 1;
     const picked = unitIds.map(() => unitIds[Math.floor(rng.next() * unitIds.length)]);
     const obs = picked.flatMap((id) => byUnit.get(id));
@@ -497,32 +920,62 @@ function bootstrapIntervals(fit, names, training, fitOptions, context, strain) {
       seed: deriveSeed(context.seed, "bootstrap", strain, b),
     });
     if (refit.converged) {
-      convergedReplicates += 1;
-      samples.push(refit.resolvedParameters);
+      optimizerConvergedReplicates += 1;
+      convergedSamples.push(refit.resolvedParameters);
+      const atBoundary = names.some((name) => {
+        const [lower, upper] = fit.bounds[name];
+        const tolerance = Math.max((upper - lower) * 1e-5, Number.EPSILON * Math.max(Math.abs(lower), Math.abs(upper)) * 8);
+        const value = refit.resolvedParameters[name];
+        return value <= lower + tolerance || value >= upper - tolerance;
+      });
+      if (atBoundary) boundaryReplicates += 1;
+      else interiorSamples.push(refit.resolvedParameters);
     }
     const reason = refit.optimization?.terminationReason ?? "unknown";
     terminationReasons[reason] = (terminationReasons[reason] ?? 0) + 1;
   }
   const intervals = {};
-  if (samples.length >= replicates) {
+  const boundaryFractions = {};
+  for (const name of names) {
+    const [lower, upper] = fit.bounds[name];
+    const tolerance = Math.max((upper - lower) * 1e-5, Number.EPSILON * Math.max(Math.abs(lower), Math.abs(upper)) * 8);
+    boundaryFractions[name] = convergedSamples.length
+      ? convergedSamples.filter((sample) => sample[name] <= lower + tolerance || sample[name] >= upper - tolerance).length / convergedSamples.length
+      : null;
+  }
+  if (interiorSamples.length >= replicates) {
     for (const name of names) {
-      const values = samples.map((s) => s[name]).sort((a, b) => a - b);
+      const values = interiorSamples.map((s) => s[name]).sort((a, b) => a - b);
       intervals[name] = [percentile(values, 0.025), percentile(values, 0.975)];
     }
   }
+  const convergedInteriorCount = interiorSamples.length;
+  const boundaryFraction = optimizerConvergedReplicates
+    ? boundaryReplicates / optimizerConvergedReplicates
+    : null;
   return {
     requestedReplicates: replicates,
-    replicates: samples.length,
+    replicates: interiorSamples.length,
     attemptedReplicates,
-    convergedReplicates,
-    nonConvergedReplicates: attemptedReplicates - convergedReplicates,
+    convergedReplicates: optimizerConvergedReplicates,
+    optimizerConvergedReplicates,
+    convergedAndIdentifiableReplicates: convergedInteriorCount,
+    boundaryReplicates,
+    boundaryReplicateFraction: boundaryFraction,
+    nonConvergedReplicates: attemptedReplicates - optimizerConvergedReplicates,
     terminationReasons,
-    intervals: samples.length >= replicates ? intervals : null,
+    intervals: interiorSamples.length >= replicates ? intervals : null,
+    boundaryFractions,
+    convergedParameterSamples: convergedSamples,
+    intervalBasis: "optimizer-converged replicates with every fitted parameter strictly inside its allowed bounds; this is a boundary-exclusion rule, while profile identifiability is reported separately",
   };
 }
 
 function fitStrain(strain, strainUnits, observations, facts, context) {
-  const training = observations.filter((o) => facts.units.get(o.independentUnitId).strain === strain && o.role === "training");
+  const strainObservations = observations.filter((o) => facts.units.get(o.independentUnitId).strain === strain);
+  const training = strainObservations
+    .filter((o) => context.fitAllRolesForOracle || o.role === "training")
+    .map((o) => context.fitAllRolesForOracle && o.role !== "training" ? { ...o, role: "training" } : o);
   const validation = observations.filter((o) => facts.units.get(o.independentUnitId).strain === strain && o.role === "validation");
   const drugIds = new Set(strainUnits.map((unit) => unit.drugId));
   if (drugIds.size !== 1) fail("DRUG_MISMATCH_PER_STRAIN", `Strain ${strain} must use a single drug.`, "dataset.observations", [...drugIds]);
@@ -536,7 +989,7 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
   const maxConc = concentrations.at(-1);
   const bounds = {
     psiMaxLog10PerHour: [1e-4, 2],
-    [`drugs.${drugId}.psiMinLog10PerHour`]: [-12, -1e-4],
+    [`drugs.${drugId}.psiMinLog10PerHour`]: [-5, -1e-4],
     [zMicName]: [minConc / 10, maxConc * 10],
     [`drugs.${drugId}.hillKappa`]: [0.05, 10],
     [`initialStates.${KILL_INITIAL_STATE_SERIES}.log10PopulationDensity`]: [1, 9],
@@ -564,6 +1017,13 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     parameterContext: { drugIds: [drugId], initialStateSeriesIds: [KILL_INITIAL_STATE_SERIES] },
     bounds,
     initialParameters,
+    optimizationTransforms: {
+      psiMaxLog10PerHour: "log",
+      [`drugs.${drugId}.psiMinLog10PerHour`]: "negative_log",
+      [zMicName]: "log",
+      [`drugs.${drugId}.hillKappa`]: "log",
+      errorSigmaLog10: "log",
+    },
     method: "censored_gaussian_likelihood",
     sigma: { parameter: "errorSigmaLog10" },
     evaluator,
@@ -573,8 +1033,117 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     nelderMead: { maxEvaluations: 3000 },
   };
   const fit = fitParameters(fitOptions);
+  if (fit.status === "NOT_IDENTIFIABLE") {
+    const reason = fit.fitDiagnostics.identifiability.reason;
+    const profileTargets = {
+      psiMinLog10PerHour: "psiMinLog10PerHour",
+      hillKappa: "hillKappa",
+      zMicMgPerL: "zMicMgPerL",
+    };
+    const profileLikelihoodDiagnostics = Object.fromEntries(Object.entries(profileTargets).map(([key]) => [key, {
+      status: "NOT_ASSESSED",
+      reason,
+      identifiability: { status: "NOT_ASSESSED", reason },
+    }]));
+    const unassessedUnits = strainUnits.map((unit) => {
+      const unitObservations = strainObservations.filter((observation) => observation.independentUnitId === unit.independentUnitId);
+      const postBaseline = unitObservations.filter((observation) => observation.timeHours > 0);
+      const detectionLimit = unitDetectionLimitLog10(unitObservations);
+      const uncensoredPostBaselineObservationCount = postBaseline.filter((observation) => (
+        observation.censoring !== "left" && !observationAtDetectionLimit(observation, detectionLimit)
+      )).length;
+      return {
+        independentUnitId: unit.independentUnitId,
+        concentrationMgPerL: unit.concentration,
+        role: unit.role,
+        observationCount: unitObservations.length,
+        postBaselineObservationCount: postBaseline.length,
+        uncensoredPostBaselineObservationCount,
+        minimumUncensoredPostBaselineObservationCount: MINIMUM_UNCENSORED_POST_BASELINE_OBSERVATIONS,
+        censoredObservationCount: postBaseline.filter((observation) => observation.censoring === "left").length,
+        exactAtDetectionLimitCount: postBaseline.filter((observation) => observation.censoring !== "left"
+          && detectionLimit !== null && observation.value <= detectionLimit + DETECTION_LIMIT_TOLERANCE).length,
+        detectionLimitLog10: detectionLimit,
+        modelNetGrowthRateLog10PerHour: null,
+        status: "NOT_IDENTIFIABLE",
+        basis: "strain_fit_not_identifiable",
+        unitProfileEstimateLog10PerHour: null,
+        relation: null,
+        oneSided95Bound: null,
+        compatibleRange95: { lower: null, upper: null },
+        modelWithinUnitSupport95: null,
+        declaredCensoringStatus: "NOT_ASSESSED",
+        exactAtLimitCensoredStatus: null,
+        criterion: UNIT_IDENTIFIABILITY_CRITERION,
+      };
+    });
+    const unidentifiedUnits = unassessedUnits.map((unit) => unit.independentUnitId);
+    const notAssessedBoundaryDiagnostics = Object.fromEntries(names.map((name) => [name, {
+      estimateAtBound: null,
+      confidenceIntervalTouchesBound: null,
+      bootstrapBoundaryFraction: null,
+      boundaryLimited: null,
+      assessment: "not_assessed",
+    }]));
+    return {
+      strain,
+      drugId,
+      status: "NOT_IDENTIFIABLE",
+      concentrationsMgPerL: concentrations,
+      fittedParameters: null,
+      predictionParameters: null,
+      parameterEstimates: Object.fromEntries(Object.keys(profileTargets).map((key) => [key, {
+        status: "NOT_ASSESSED",
+        pointEstimate: null,
+      }])),
+      identifiabilityStatus: Object.fromEntries(Object.keys(profileTargets).map((key) => [key, "NOT_ASSESSED"])),
+      optimizationCoordinates: null,
+      standardErrors: null,
+      confidenceIntervals95: null,
+      boundaryDiagnostics: notAssessedBoundaryDiagnostics,
+      profileLikelihoodDiagnostics,
+      fitDiagnostics: {
+        identifiability: fit.fitDiagnostics.identifiability,
+        convergence: fit.fitDiagnostics.convergence,
+        boundary: { status: "NOT_ASSESSED", parametersAtBound: [] },
+        sigmaAtLowerBound: null,
+        profileLikelihood: { status: "NOT_ASSESSED", reason },
+      },
+      unitGrowthRateIdentifiability: {
+        unitCount: unassessedUnits.length,
+        identifiedUnitCount: 0,
+        unidentifiedUnitCount: unassessedUnits.length,
+        unidentifiedUnitIds: unidentifiedUnits,
+        units: unassessedUnits,
+        criterion: UNIT_IDENTIFIABILITY_CRITERION,
+        note: "The strain-level fit lacks enough uncensored observations; no model growth rates, point estimates, or profile bounds are reported for its concentration groups.",
+      },
+      bootstrapReplicates: 0,
+      bootstrapConvergence: null,
+      converged: false,
+      terminationReason: null,
+      objectiveValue: null,
+      trainingObservationCount: training.length,
+      validationObservationCount: validation.length,
+      trainingMetrics: null,
+      validationMetrics: null,
+      predictiveDiagnostics: {
+        status: "unavailable",
+        reason: "training_fit_not_identifiable",
+        evidenceLevel: "declared_validation",
+        validationIndependentUnitIds: [...new Set(validation.map((observation) => observation.independentUnitId))].sort(),
+        bootstrapSampleCount: 0,
+      },
+      fitDataScope: context.fitAllRolesForOracle ? "all_roles_oracle_in_sample" : "training_only",
+      oracleMetrics: null,
+      incompleteUnits: strainUnits.filter((unit) => unit.missingTimes?.length)
+        .map((unit) => ({ independentUnitId: unit.independentUnitId, missingTimes: unit.missingTimes })),
+    };
+  }
   const errors = standardErrors(fit, names, training, fitContext);
-  const bootstrap = bootstrapIntervals(fit, names, training, fitOptions, context, strain);
+  const bootstrap = context.fitAllRolesForOracle
+    ? null
+    : bootstrapIntervals(fit, names, training, fitOptions, context, strain);
   const { fittedParameters, standardErrors: reportedErrors } = reportParams(fit.resolvedParameters, errors, drugId);
   const intervalNameMap = {
     psiMaxLog10PerHour: "psiMaxLog10PerHour",
@@ -587,23 +1156,214 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
   const reportedIntervals = bootstrap?.intervals
     ? Object.fromEntries(Object.entries(bootstrap.intervals).map(([name, [lo, hi]]) => [intervalNameMap[name] ?? name, [lo, hi]]))
     : null;
+  const boundaryDiagnostics = Object.fromEntries(names.map((name) => {
+    const [lower, upper] = bounds[name];
+    const tolerance = Math.max((upper - lower) * 1e-5, Number.EPSILON * Math.max(Math.abs(lower), Math.abs(upper)) * 8);
+    const estimateAtLowerBound = fit.resolvedParameters[name] <= lower + tolerance;
+    const estimateAtUpperBound = fit.resolvedParameters[name] >= upper - tolerance;
+    const estimateAtBound = estimateAtLowerBound || estimateAtUpperBound;
+    const interval = bootstrap?.intervals?.[name] ?? null;
+    const confidenceIntervalTouchesBound = interval
+      ? interval[0] <= lower + tolerance || interval[1] >= upper - tolerance
+      : null;
+    const bootstrapBoundaryFraction = bootstrap?.boundaryFractions?.[name] ?? null;
+    const boundaryLimited = estimateAtBound || confidenceIntervalTouchesBound === true || (bootstrapBoundaryFraction ?? 0) > 0;
+    return [intervalNameMap[name] ?? name, {
+      estimateAtBound,
+      estimateAtLowerBound,
+      estimateAtUpperBound,
+      confidenceIntervalTouchesBound,
+      bootstrapBoundaryFraction,
+      boundaryLimited,
+      assessment: boundaryLimited ? "boundary_limited" : "no_boundary_evidence",
+    }];
+  }));
   const validationPredictions = killPredictions(fit.resolvedParameters, validation, fitContext);
   const trainingPredictions = killPredictions(fit.resolvedParameters, training, fitContext);
+  const validationIndependentUnitIds = [...new Set(validation.map((observation) => observation.independentUnitId))].sort();
+  const predictiveBootstrapSamples = bootstrap?.convergedParameterSamples ?? [];
+  const predictiveDiagnostics = !validation.length || !predictiveBootstrapSamples.length
+    ? {
+      status: "unavailable",
+      reason: !validation.length ? "no_validation_observations" : "no_converged_bootstrap_fits",
+      evidenceLevel: "declared_validation",
+      validationIndependentUnitIds,
+      bootstrapSampleCount: predictiveBootstrapSamples.length,
+    }
+    : {
+      ...summarizeGaussianMixturePredictions({
+        observations: validation,
+        samples: predictiveBootstrapSamples.map((parameters) => ({
+          means: killPredictions(parameters, validation, fitContext),
+          sigmas: validation.map(() => parameters.errorSigmaLog10),
+        })),
+        intervalLevel: 0.95,
+      }),
+      evidenceLevel: "declared_validation",
+      validationIndependentUnitIds,
+      bootstrapSampleCount: predictiveBootstrapSamples.length,
+      uncertaintySource: "whole_training_independent_unit_bootstrap_plus_censored_gaussian_residual_model",
+      predictionInterpretation: "Model-based new-observation prediction under the fitted censored-Gaussian observation model; validation coverage is descriptive and does not calibrate the interval.",
+      limitations: [
+        "Validation observations are not used to fit or calibrate this predictive distribution.",
+        "Coverage estimates depend on the observation model and the declared validation units; between-study independence is not established by this result.",
+      ],
+    };
+  const profileTargetNames = {
+    psiMinLog10PerHour: `drugs.${drugId}.psiMinLog10PerHour`,
+    hillKappa: `drugs.${drugId}.hillKappa`,
+    zMicMgPerL: zMicName,
+  };
+  const profileSelected = context.profileLikelihood
+    && (context.profileLikelihoodStrains.size === 0 || context.profileLikelihoodStrains.has(strain));
+  const profileDiagnostics = profileSelected
+    ? profileLikelihood(
+      fit,
+      fitOptions,
+      names,
+      Object.values(profileTargetNames),
+      context.seed,
+      strain,
+      context.profilePoints,
+    )
+    : null;
+  const mappedProfiles = profileDiagnostics
+    ? Object.fromEntries(Object.entries(profileDiagnostics).map(([name, profile]) => [intervalNameMap[name] ?? name, profile]))
+    : Object.fromEntries(Object.keys(profileTargetNames).map((name) => [name, {
+      status: "NOT_ASSESSED",
+      reason: context.profileLikelihood ? "profile_likelihood_not_selected_for_strain" : "profile_likelihood_not_requested",
+      identifiability: {
+        status: "NOT_ASSESSED",
+        reason: context.profileLikelihood ? "profile_likelihood_not_selected_for_strain" : "profile_likelihood_not_requested",
+      },
+    }]));
+  const identifiabilityStatus = Object.fromEntries(Object.entries(mappedProfiles)
+    .map(([name, profile]) => [name, profile.identifiability.status]));
+  const psiMinProfile = mappedProfiles?.psiMinLog10PerHour;
+  const psiMinUnidentified = psiMinProfile && ["lower-unidentified", "upper-unidentified"]
+    .includes(psiMinProfile.identifiability.status);
+  const outputFittedParameters = { ...fittedParameters };
+  const parameterEstimates = {};
+  if (psiMinUnidentified) {
+    const oneSidedBound = psiMinProfile.identifiability.oneSided95Bound;
+    outputFittedParameters.psiMinLog10PerHour = null;
+    parameterEstimates.psiMinLog10PerHour = {
+      status: psiMinProfile.identifiability.status,
+      pointEstimate: null,
+      relation: psiMinProfile.identifiability.status === "lower-unidentified" ? "≤" : "≥",
+      bound95: oneSidedBound,
+      boundDescription: oneSidedBound === null
+        ? "profile is monotonic over the allowed interval; no finite 95% crossing was found"
+        : `data support psiMin ${psiMinProfile.identifiability.status === "lower-unidentified" ? "≤" : "≥"} ${oneSidedBound} log10-fold/h at the 95% profile-likelihood cutoff`,
+      trend: psiMinProfile.identifiability.trend,
+    };
+  } else if (psiMinProfile) {
+    parameterEstimates.psiMinLog10PerHour = psiMinProfile.identifiability.status === "identified"
+      ? {
+        status: "identified",
+        pointEstimate: fittedParameters.psiMinLog10PerHour,
+        profileCompatibleRange95: [
+          psiMinProfile.profileCompatibleRange95.lower,
+          psiMinProfile.profileCompatibleRange95.upper,
+        ],
+      }
+      : {
+        status: "NOT_ASSESSED",
+        pointEstimate: fittedParameters.psiMinLog10PerHour,
+        reason: psiMinProfile.reason ?? psiMinProfile.identifiability.reason,
+      };
+  }
+  const fitted = readParams(fit.resolvedParameters, drugId);
+  const unitObservationsByUnit = new Map();
+  for (const observation of strainObservations) {
+    if (!unitObservationsByUnit.has(observation.independentUnitId)) unitObservationsByUnit.set(observation.independentUnitId, []);
+    unitObservationsByUnit.get(observation.independentUnitId).push(observation);
+  }
+  const unitIdentifiability = [...unitObservationsByUnit.values()].map((observations) => unitGrowthRateIdentifiability(observations, {
+    drugId,
+    modelParameters: syntheticModel(fit.resolvedParameters, drugId, context.carryingCapacityLog10).parameters,
+    carryingCapacityLog10: context.carryingCapacityLog10,
+    initialLog10PopulationDensity: fitted.n0,
+    sigmaLog10Residual: fitted.sigma,
+  }));
+  const unidentifiedUnits = unitIdentifiability.filter((unit) => unit.status !== "identified");
+  const unitIdentifiabilitySummary = {
+    unitCount: unitIdentifiability.length,
+    identifiedUnitCount: unitIdentifiability.length - unidentifiedUnits.length,
+    unidentifiedUnitCount: unidentifiedUnits.length,
+    unidentifiedUnitIds: unidentifiedUnits.map((unit) => unit.independentUnitId),
+    units: unitIdentifiability,
+    criterion: UNIT_IDENTIFIABILITY_CRITERION,
+    note: "psi(C) is profiled for each concentration group with the strain-level N0 and residual scale held fixed. A group whose post-baseline observations all sit on the detection limit cannot bound psi(C) from below; its point estimate is withheld and only the one-sided 95% profile bound is reported. Group-level verdicts do not replace the strain-level parameter profiles.",
+  };
+  const fullDataPredictions = context.fitAllRolesForOracle
+    ? killPredictions(fit.resolvedParameters, strainObservations, fitContext)
+    : null;
+  const parametersAtBound = Object.entries(boundaryDiagnostics).flatMap(([reportedName, diagnostic]) => {
+    if (!diagnostic.estimateAtBound) return [];
+    const name = Object.entries(intervalNameMap).find(([, alias]) => alias === reportedName)?.[0] ?? reportedName;
+    const [lower, upper] = bounds[name];
+    const value = fittedParameters[reportedName];
+    const tolerance = Math.max((upper - lower) * 1e-5, Number.EPSILON * Math.max(Math.abs(lower), Math.abs(upper)) * 8);
+    return [
+      ...(diagnostic.estimateAtLowerBound ? [{ parameter: reportedName, side: "lower", value, bound: lower, tolerance }] : []),
+      ...(diagnostic.estimateAtUpperBound ? [{ parameter: reportedName, side: "upper", value, bound: upper, tolerance }] : []),
+    ];
+  });
+  const profileAssessed = Object.values(mappedProfiles).every((profile) => profile.status === "ASSESSED");
+  const sigmaLower = bounds.errorSigmaLog10[0];
+  const sigmaTolerance = Math.max((bounds.errorSigmaLog10[1] - sigmaLower) * 1e-5, Number.EPSILON * Math.abs(sigmaLower) * 8);
   return {
     strain,
     drugId,
+    status: fit.converged ? "FIT_COMPLETED" : "FIT_NOT_CONVERGED",
     concentrationsMgPerL: concentrations,
-    fittedParameters,
+    fittedParameters: outputFittedParameters,
+    ...(psiMinUnidentified ? {
+      predictionParameters: {
+        ...fittedParameters,
+        psiMinBoundarySubstitute: true,
+        note: "Optimizer boundary value is exposed only as a prediction substitute; it is not a psiMin point estimate.",
+      },
+    } : {}),
+    parameterEstimates,
+    identifiabilityStatus,
+    optimizationCoordinates: fit.optimizationCoordinates,
     standardErrors: reportedErrors,
     confidenceIntervals95: reportedIntervals,
+    boundaryDiagnostics,
+    profileLikelihoodDiagnostics: mappedProfiles,
+    fitDiagnostics: {
+      identifiability: fit.fitDiagnostics.identifiability,
+      convergence: {
+        status: fit.converged ? "CONVERGED" : "NOT_CONVERGED",
+        terminationReason: fit.optimization?.terminationReason ?? null,
+      },
+      boundary: { status: "ASSESSED", parametersAtBound },
+      sigmaAtLowerBound: fit.resolvedParameters.errorSigmaLog10 <= sigmaLower + sigmaTolerance,
+      profileLikelihood: profileAssessed
+        ? { status: "ASSESSED", reason: null }
+        : {
+          status: "NOT_ASSESSED",
+          reason: profileSelected ? "profile_refits_not_all_converged" : context.profileLikelihood
+            ? "profile_likelihood_not_selected_for_strain"
+            : "profile_likelihood_not_requested",
+        },
+    },
+    unitGrowthRateIdentifiability: unitIdentifiabilitySummary,
     bootstrapReplicates: bootstrap?.replicates ?? 0,
     bootstrapConvergence: bootstrap
       ? {
         requestedReplicates: bootstrap.requestedReplicates,
         attemptedReplicates: bootstrap.attemptedReplicates,
         convergedReplicates: bootstrap.convergedReplicates,
+        optimizerConvergedReplicates: bootstrap.optimizerConvergedReplicates,
+        convergedAndIdentifiableReplicates: bootstrap.convergedAndIdentifiableReplicates,
+        boundaryReplicates: bootstrap.boundaryReplicates,
+        boundaryReplicateFraction: bootstrap.boundaryReplicateFraction,
         nonConvergedReplicates: bootstrap.nonConvergedReplicates,
         terminationReasons: bootstrap.terminationReasons,
+        intervalBasis: bootstrap.intervalBasis,
       }
       : null,
     converged: fit.converged,
@@ -612,7 +1372,16 @@ function fitStrain(strain, strainUnits, observations, facts, context) {
     trainingObservationCount: training.length,
     validationObservationCount: validation.length,
     trainingMetrics: validationMetrics(training, trainingPredictions),
-    validationMetrics: validationMetrics(validation, validationPredictions),
+    validationMetrics: context.fitAllRolesForOracle ? null : validationMetrics(validation, validationPredictions),
+    predictiveDiagnostics: context.fitAllRolesForOracle ? {
+      status: "unavailable",
+      reason: "oracle_fit_uses_validation_observations",
+      evidenceLevel: "in_sample_oracle",
+      validationIndependentUnitIds,
+      bootstrapSampleCount: 0,
+    } : predictiveDiagnostics,
+    fitDataScope: context.fitAllRolesForOracle ? "all_roles_oracle_in_sample" : "training_only",
+    oracleMetrics: context.fitAllRolesForOracle ? validationMetrics(strainObservations, fullDataPredictions) : null,
     incompleteUnits: strainUnits
       .filter((unit) => unit.missingTimes?.length)
       .map((unit) => ({ independentUnitId: unit.independentUnitId, missingTimes: unit.missingTimes })),
@@ -672,6 +1441,17 @@ export async function runKillWorkflow(options = {}) {
     bootstrapReplicates: Number.isInteger(options.bootstrapReplicates) && options.bootstrapReplicates >= 0
       ? options.bootstrapReplicates
       : 100,
+    bootstrapMaxAttemptsMultiplier: Number.isInteger(options.bootstrapMaxAttemptsMultiplier)
+      ? Math.max(3, Math.min(20, options.bootstrapMaxAttemptsMultiplier))
+      : 3,
+    profileLikelihood: options.profileLikelihood !== false,
+    profileLikelihoodStrains: new Set(Array.isArray(options.profileLikelihoodStrains)
+      ? options.profileLikelihoodStrains.filter((strain) => typeof strain === "string")
+      : []),
+    profilePoints: Number.isInteger(options.profilePoints) && options.profilePoints >= 5 && options.profilePoints <= 21
+      ? options.profilePoints
+      : 5,
+    fitAllRolesForOracle: options.fitAllRolesForOracle === true,
   };
   const strains = {};
   for (const [strain, strainUnits] of facts.strains) {
@@ -685,6 +1465,24 @@ export async function runKillWorkflow(options = {}) {
   const result = {
     kind: KILL_WORKFLOW_KIND,
     applicationVersion: options.applicationVersion ?? "unknown",
+    status: Object.values(strains).every((row) => row.status === "NOT_IDENTIFIABLE")
+      ? "NOT_IDENTIFIABLE"
+      : Object.values(strains).some((row) => row.status === "NOT_IDENTIFIABLE") ? "PARTIALLY_IDENTIFIABLE" : "FIT_COMPLETED",
+    runMetadata: {
+      applicationVersion: options.applicationVersion ?? "unknown",
+      seed,
+      randomAlgorithm: RNG_ALGORITHM,
+      settings: {
+        restarts,
+        bootstrapReplicates: context.bootstrapReplicates,
+        bootstrapMaxAttemptsMultiplier: context.bootstrapMaxAttemptsMultiplier,
+        profileLikelihood: context.profileLikelihood,
+        profileLikelihoodStrains: [...context.profileLikelihoodStrains].sort(),
+        profilePoints: context.profilePoints,
+        fitAllRolesForOracle: context.fitAllRolesForOracle,
+        carryingCapacityLog10CfuPerMl: carryingCapacityLog10,
+      },
+    },
     measurementType: KILL_MEASUREMENT_TYPE,
     datasetId: dataset.metadata.datasetId,
     datasetTitle: dataset.metadata.title,
@@ -701,8 +1499,18 @@ export async function runKillWorkflow(options = {}) {
     sourceTimeHours: facts.sourceTimes,
     maximumTimeHours: facts.maximumTimeHours,
     strains,
+    crossGroupFitComparison: Object.fromEntries(Object.entries(strains).map(([strain, row]) => [strain, {
+      trainingRmseLog10: row.trainingMetrics?.rmseLog10 ?? null,
+      trainingMaeLog10: row.trainingMetrics?.maeLog10 ?? null,
+      validationRmseLog10: row.validationMetrics?.rmseLog10 ?? null,
+      validationMaeLog10: row.validationMetrics?.maeLog10 ?? null,
+      comparisonMetricPolicy: "RMSE and MAE only; objective values are fit-specific diagnostics and are not compared across groups",
+    }])),
     warnings: [
       ...(imported.warnings ?? []).map((warning) => warning.code ?? String(warning)),
+      ...Object.entries(strains)
+        .filter(([, row]) => row.unitGrowthRateIdentifiability.unidentifiedUnitCount > 0)
+        .map(([strain, row]) => `Growth-rate point estimates are not identifiable for ${row.unitGrowthRateIdentifiability.unidentifiedUnitCount} of ${row.unitGrowthRateIdentifiability.unitCount} independent concentration groups in ${strain}: ${row.unitGrowthRateIdentifiability.unidentifiedUnitIds.join(", ")}. Each group reports its status; a point estimate or one-sided profile bound is included only when supported by the available observations and completed profile.`),
       "Carrying capacity is an educational ceiling (not fitted); latent log10 CFU is reported directly, so the OD observation layer is identity.",
       "Rates inside Ecolab are log10-fold/h; divide by ln(10) to compare with ln/h literature values. kappa and zMIC are unchanged by the conversion.",
     ],

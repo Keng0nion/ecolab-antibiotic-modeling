@@ -13,6 +13,7 @@ import {
   researchExportAvailability,
   researchMethodsText,
   researchPackageJson,
+  researchResultJson,
 } from "../research/export.js";
 import {
   createCatalogFixture,
@@ -55,6 +56,12 @@ test("normalized dataset export preserves scientific columns and protects import
   assert.match(csv, /od600/);
   assert.match(csv, /'=WEBSERVICE/);
   assert.equal(csv.endsWith("\n"), true);
+});
+
+test("source-linked standalone export keeps the development-status disclosure when result is absent", () => {
+  const csv = normalizedDatasetToCsv(createSourceLinkedDataset());
+  assert.match(csv, /previously viewed development curves/);
+  assert.doesNotMatch(csv, /validation uses locked held-out units/);
 });
 
 test("predictions export aligns validation rows and appends training, validation, and baseline metrics", () => {
@@ -103,6 +110,7 @@ test("each export format has independent artifact availability and requires a QC
   const result = createResearchResult();
   const allAvailable = {
     dataset: true,
+    resultJson: true,
     manifest: true,
     package: true,
     predictions: true,
@@ -112,6 +120,7 @@ test("each export format has independent artifact availability and requires a QC
   assert.deepEqual(researchExportAvailability(dataset, result), allAvailable);
   assert.deepEqual(researchExportAvailability(null, result), {
     dataset: false,
+    resultJson: true,
     manifest: false,
     package: false,
     predictions: false,
@@ -120,6 +129,7 @@ test("each export format has independent artifact availability and requires a QC
   });
   assert.deepEqual(researchExportAvailability({ ...dataset, qualityReport: { ...dataset.qualityReport, valid: false } }, result), {
     dataset: false,
+    resultJson: true,
     manifest: false,
     package: false,
     predictions: false,
@@ -131,7 +141,37 @@ test("each export format has independent artifact availability and requires a QC
   assert.equal(researchExportAvailability(dataset, { ...result, researchPackage: null }).package, false);
   assert.equal(researchExportAvailability(dataset, { ...result, methodsSummaryMarkdown: "" }).methods, false);
   assert.equal(researchExportAvailability(dataset, { ...result, validation: { ...result.validation, predictions: [] } }).predictions, false);
-  assert.equal(researchExportAvailability(dataset, { manifest: result.manifest }).svg, true);
+  assert.equal(researchExportAvailability(dataset, { manifest: result.manifest }).svg, false);
+});
+
+test("fit-result JSON and result-linked CSV preserve status, software version, seed, and settings", () => {
+  const result = {
+    kind: "ecolab-kill-workflow",
+    status: "NOT_IDENTIFIABLE",
+    applicationVersion: "6.1.0",
+    runMetadata: {
+      applicationVersion: "6.1.0",
+      seed: 77,
+      seeds: { algorithm: "xoshiro128ss-splitmix32-v1", analysis: 77 },
+      settings: { profileLikelihood: true, profilePoints: 5, restarts: 6 },
+    },
+    strains: { A: { status: "NOT_IDENTIFIABLE", fittedParameters: null } },
+  };
+  const json = researchResultJson(result);
+  assert.deepEqual(JSON.parse(json), result);
+  assert.match(json, /"status": "NOT_IDENTIFIABLE"/);
+  assert.match(json, /"seed": 77/);
+  assert.match(json, /"applicationVersion": "6.1.0"/);
+  const dataset = createDatasetRecord().normalizedDataset;
+  const csv = normalizedDatasetToCsv(dataset, "en", result);
+  assert.match(csv, /# application_version: 6\.1\.0/);
+  assert.match(csv, /# random_seed: 77/);
+  assert.match(csv, /# random_algorithm: xoshiro128ss-splitmix32-v1/);
+  assert.match(csv, /# run_settings_json:/);
+  assert.match(csv, /# fit_status: NOT_IDENTIFIABLE/);
+  assert.equal(researchExportAvailability(createDatasetRecord(), result).resultJson, true);
+  assert.equal(researchExportAvailability(createDatasetRecord(), result).svg, false);
+  assert.throws(() => researchResultJson(null), /fit result is required/);
 });
 
 test("JSON exports serialize only the actual artifacts, independent of locale", () => {

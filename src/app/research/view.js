@@ -101,6 +101,34 @@ function importCard(state, t) {
   </article>`;
 }
 
+function killFitReadiness(record, t) {
+  const observations = record?.normalizedDataset?.observations;
+  if (!record?.killEligible || !Array.isArray(observations)) return "";
+  const byStrain = new Map();
+  const byUnit = new Map();
+  for (const row of observations) {
+    const strain = String(row.conditions?.strain ?? record.normalizedDataset.metadata?.conditions?.strain ?? "unknown");
+    if (!byStrain.has(strain)) byStrain.set(strain, []);
+    byStrain.get(strain).push(row);
+    if (!byUnit.has(row.independentUnitId)) byUnit.set(row.independentUnitId, []);
+    byUnit.get(row.independentUnitId).push(row);
+  }
+  const strainRows = [...byStrain].map(([strain, rows]) => {
+    const exactTrainingCount = rows.filter((row) => row.role === "training" && row.censoring !== "left").length;
+    const ready = exactTrainingCount >= 7;
+    return `<tr><th scope="row">${escapeHtml(strain)}</th><td>${exactTrainingCount} / 7</td><td><span class="research-chip research-chip-${ready ? "success" : "warning"}">${escapeHtml(t(ready ? "research.kill.readiness.fitReady" : "research.kill.readiness.statusOnly"))}</span></td></tr>`;
+  }).join("");
+  const unitRows = [...byUnit].map(([unitId, rows]) => {
+    const postBaseline = rows.filter((row) => row.timeHours > 0);
+    const limits = rows.map((row) => row.censoringBounds?.upper).filter(Number.isFinite);
+    const lod = limits.length ? Math.min(...limits) : null;
+    const exactInformativeCount = postBaseline.filter((row) => row.censoring !== "left" && (lod === null || row.value > lod + 1e-9)).length;
+    const ready = exactInformativeCount >= 2;
+    return `<tr><th scope="row">${escapeHtml(unitId)}</th><td>${exactInformativeCount} / 2</td><td><span class="research-chip research-chip-${ready ? "success" : "warning"}">${escapeHtml(t(ready ? "research.kill.readiness.groupReady" : "research.kill.readiness.statusOnly"))}</span></td></tr>`;
+  }).join("");
+  return `<section class="research-fit-readiness" aria-labelledby="research-fit-readiness-heading"><h3 id="research-fit-readiness-heading">${escapeHtml(t("research.kill.readiness.heading"))}</h3><p class="research-note">${escapeHtml(t("research.kill.readiness.note"))}</p><div class="research-table-scroll"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.kill.readiness.exact"))}</th><th scope="col">${escapeHtml(t("research.table.status"))}</th></tr></thead><tbody>${strainRows}</tbody></table></div><details><summary>${escapeHtml(t("research.kill.readiness.units"))}</summary><div class="research-table-scroll"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.kill.unitGroup"))}</th><th scope="col">${escapeHtml(t("research.kill.readiness.exact"))}</th><th scope="col">${escapeHtml(t("research.table.status"))}</th></tr></thead><tbody>${unitRows}</tbody></table></div></details></section>`;
+}
+
 function qcPanel(state, t) {
   const record = state.selectedDataset;
   if (!record) return `<article class="research-card"><h2>${escapeHtml(t("research.data.selected"))}</h2><p class="research-empty">${escapeHtml(t("research.data.selectPrompt"))}</p></article>`;
@@ -110,7 +138,8 @@ function qcPanel(state, t) {
     <div class="research-card-heading"><div><p class="eyebrow">${escapeHtml(t("research.data.selected"))}</p><h2 id="research-selected-title">${escapeHtml(record.title)}</h2></div>${datasetStatus(record, t)}</div>
     <dl class="research-fact-grid"><div><dt>ID</dt><dd>${escapeHtml(record.normalizedDataset.metadata.datasetId)}</dd></div><div><dt>${escapeHtml(t("research.data.artifactSha256"))}</dt><dd class="research-hash">${escapeHtml(record.contentHash)}</dd></div><div><dt>${escapeHtml(t("research.data.observations"))}</dt><dd>${summary.observationCount}</dd></div><div><dt>${escapeHtml(t("research.data.units"))}</dt><dd>${summary.independentUnitCount}</dd></div><div><dt>${escapeHtml(t("research.data.errors"))}</dt><dd>${quality.summary.errorCount}</dd></div><div><dt>${escapeHtml(t("research.data.warnings"))}</dt><dd>${quality.summary.warningCount + (record.importWarnings?.length ?? 0)}</dd></div></dl>
     <div class="research-two-column"><section><h3>${escapeHtml(t("research.data.qcErrors"))}</h3>${issueList(quality.errors, t("research.data.noErrors"))}</section><section><h3>${escapeHtml(t("research.data.qcWarnings"))}</h3>${issueList([...(record.importWarnings ?? []), ...(quality.warnings ?? [])], t("research.data.noWarnings"))}</section></div>
-    ${record.workflowEligible ? `<p class="research-callout research-callout-success">${escapeHtml(t("research.data.exactContract"))}</p>` : `<div class="research-callout research-callout-warning"><strong>${escapeHtml(t("research.data.workflowDisabled"))}</strong><ul>${record.workflowIneligibilityReasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></div>`}
+    ${record.workflowEligible ? `<p class="research-callout research-callout-success">${escapeHtml(t("research.data.exactContract"))}</p>` : `<div class="research-callout research-callout-warning"><strong>${escapeHtml(t("research.data.workflowDisabled"))}</strong><ul>${(record.workflowIneligibilityReasons ?? []).map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></div>`}
+    ${killFitReadiness(record, t)}
   </article>`;
 }
 
@@ -132,7 +161,11 @@ function renderData(context) {
 function renderDesign(context) {
   const { state, catalog, t } = context;
   const carryingCapacity = catalog.resolvedModel.parameters.carryingCapacityLog10CfuPerMl;
+  const parameterSetNotice = catalog.resolvedModel.researchFitEligible === false
+    ? `<p class="research-callout research-callout-warning">${escapeHtml(t("research.design.parameterSetTeachingOnly"))}</p>`
+    : "";
   return `<section class="research-section" id="research-design-section" aria-labelledby="research-design-heading"><div class="research-section-heading"><p class="eyebrow">02 · ${escapeHtml(t("research.section.design"))}</p><h2 id="research-design-heading" tabindex="-1" data-focus-key="research-section-heading-design">${escapeHtml(t("research.design.heading"))}</h2><p>${escapeHtml(t("research.design.lead"))}</p></div>
+    ${parameterSetNotice}
     <div class="research-grid research-grid-design"><article class="research-card"><h2>${escapeHtml(t("research.design.parameters"))}</h2><dl class="research-definition-list"><div><dt>psiMaxLog10PerHour</dt><dd>${escapeHtml(t("research.design.psi"))}</dd></div><div><dt>initialStates.pooled.log10PopulationDensity</dt><dd>${escapeHtml(t("research.design.initial"))}</dd></div><div><dt>${escapeHtml(t("research.design.capacity"))}</dt><dd>${format(carryingCapacity, 3)} log10 CFU/mL · ${escapeHtml(t("research.design.fixed"))}</dd></div></dl></article>
     <article class="research-card"><h2>${escapeHtml(t("research.design.observationModel"))}</h2><p class="research-equation">OD600 = baselineOd + scaleOd × (N/K)</p><p>${escapeHtml(t("research.design.profiled"))}</p></article></div>
     <article class="research-card"><h2>${escapeHtml(t("research.design.lockedPlan"))}</h2><div class="research-principles"><div><strong>${escapeHtml(t("research.design.trainingOnly"))}</strong><span>${escapeHtml(t("research.design.trainingOnlyBody"))}</span></div><div><strong>${escapeHtml(t("research.design.completeSplit"))}</strong><span>${escapeHtml(t("research.design.completeSplitBody"))}</span></div><div><strong>${escapeHtml(t("research.design.noT0"))}</strong><span>${escapeHtml(t("research.design.noT0Body"))}</span></div><div><strong>${escapeHtml(t("research.design.baseline"))}</strong><span>training-unit-mean-od-by-exact-source-time</span></div><div><strong>${escapeHtml(t("research.design.noAntibiotic"))}</strong><span>${escapeHtml(t("research.design.noAntibioticBody"))}</span></div></div></article>
@@ -173,21 +206,111 @@ function packagePanel(state, t) {
   </article>`;
 }
 
+function renderKillUnitIdentifiability(strains, t) {
+  const rows = strains.flatMap(([strain, entry]) => (entry.unitGrowthRateIdentifiability?.units ?? []).map((unit) => ({ strain, unit })));
+  if (!rows.length) return "";
+  const criterionNotes = strains.flatMap(([strain, entry]) => {
+    const criterion = entry.unitGrowthRateIdentifiability?.criterion;
+    return typeof criterion === "string" && criterion.length
+      ? [`<p class="research-note"><strong>${escapeHtml(t("research.kill.unitCriterion"))}</strong> · ${escapeHtml(strain)}: ${escapeHtml(criterion)}</p>`]
+      : [];
+  }).join("");
+  const unidentified = rows.filter(({ unit }) => unit.status !== "identified");
+  const statusLabel = (status) => t(`research.kill.unitStatus.${status}`);
+  const summary = unidentified.length
+    ? t("research.kill.unitSummary", {
+      unidentified: unidentified.length,
+      units: rows.length,
+      list: unidentified.map(({ strain, unit }) => `${strain} @ ${unit.concentrationMgPerL}`).join("; "),
+    })
+    : t("research.kill.unitAllIdentified", { units: rows.length });
+  const table = `<div class="research-table-scroll"><table class="research-table"><thead><tr>
+      <th scope="col">${escapeHtml(t("research.kill.strain"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitGroup"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitConcentration"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitModelRate"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitStatus"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitBound"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.unitAtLimit"))}</th>
+    </tr></thead><tbody>${rows.map(({ strain, unit }) => {
+    const bound = unit.status === "identified" || !Number.isFinite(unit.oneSided95Bound)
+      ? "—"
+      : `${unit.relation ?? ""} ${format(unit.oneSided95Bound, 3)}`;
+    return `<tr><th scope="row">${escapeHtml(strain)}</th>
+        <td>${escapeHtml(unit.independentUnitId)}</td>
+        <td>${escapeHtml(format(unit.concentrationMgPerL, 6))}</td>
+        <td>${escapeHtml(format(unit.modelNetGrowthRateLog10PerHour, 3))}</td>
+        <td>${escapeHtml(statusLabel(unit.status))}</td>
+        <td>${escapeHtml(bound)}</td>
+        <td>${unit.postBaselineObservationCount
+    ? `${unit.censoredObservationCount + unit.exactAtDetectionLimitCount}/${unit.postBaselineObservationCount}`
+    : "—"}</td></tr>`;
+  }).join("")}</tbody></table></div>`;
+  return `<h3>${escapeHtml(t("research.kill.unitHeading"))}</h3>
+    <p class="research-note">${escapeHtml(t("research.kill.unitNote"))}</p>
+    ${criterionNotes}
+    <p class="research-callout ${unidentified.length ? "research-callout-warning" : "research-note"}">${escapeHtml(summary)}</p>
+    <details><summary>${escapeHtml(t("research.kill.unitTableHeading"))}</summary>${table}</details>`;
+}
+
 function renderKillResult(result, t) {
   const strains = Object.entries(result.strains ?? {});
+  const fitDiagnostics = strains.map(([strain, entry]) => ({ strain, diagnostics: entry.fitDiagnostics ?? {} }));
+  const parameterBoundaryRows = fitDiagnostics.flatMap(({ strain, diagnostics }) => (diagnostics.boundary?.parametersAtBound ?? []).map((hit) => ({ strain, ...hit })))
+    .map((hit) => `<tr><th scope="row">${escapeHtml(hit.strain)}</th><td>${escapeHtml(hit.parameter)}</td><td>${escapeHtml(hit.side)}</td><td>${format(hit.value)}</td><td>${format(hit.bound)}</td></tr>`).join("");
+  const diagnosticSummaryRows = fitDiagnostics.map(({ strain, diagnostics }) => `<tr><th scope="row">${escapeHtml(strain)}</th><td>${escapeHtml(diagnostics.convergence?.status ?? "NOT_ASSESSED")}</td><td>${escapeHtml(diagnostics.profileLikelihood?.status ?? "NOT_ASSESSED")}</td><td>${diagnostics.sigmaAtLowerBound === true ? "true" : diagnostics.sigmaAtLowerBound === false ? "false" : "—"}</td></tr>`).join("");
   const rows = strains.map(([strain, entry]) => {
     const p = entry.fittedParameters ?? {};
     const e = entry.standardErrors ?? {};
     const cell = (v, s) => `${format(v, 4)}${s === null || s === undefined ? "" : ` ± ${format(s, 3)}`}`;
     const val = (m) => (m === null || m === undefined ? "—" : format(m, 4));
     const ci = entry.confidenceIntervals95?.zMicMgPerL;
-    return `<tr><th scope="row">${escapeHtml(strain)}</th><td>${escapeHtml(entry.drugId)}</td>
+    const temporal = entry.validationMetrics?.temporalResidualDiagnostics;
+    const temporalTrend = temporal
+      ? t("research.kill.temporalTrendValue", {
+        flagged: temporal.highMagnitudeTrendTrajectoryCount,
+        evaluated: temporal.evaluatedTrajectoryCount,
+      })
+      : "—";
+    return `<tr><th scope="row">${escapeHtml(strain)}</th><td><span class="research-chip research-chip-${entry.status === "FIT_COMPLETED" ? "success" : "warning"}">${escapeHtml(t(`research.kill.fitStatus.${entry.status}`))}</span></td><td>${escapeHtml(entry.drugId ?? "—")}</td>
       <td>${cell(p.psiMaxLog10PerHour, e.psiMaxLog10PerHour)}</td><td>${cell(p.psiMinLog10PerHour, e.psiMinLog10PerHour)}</td>
       <td>${cell(p.zMicMgPerL, e.zMicMgPerL)}</td><td>${ci ? `[${format(ci[0], 4)}, ${format(ci[1], 4)}]` : "—"}</td><td>${cell(p.hillKappa, e.hillKappa)}</td>
       <td>${cell(p.initialLog10PopulationDensity, e.initialLog10PopulationDensity)}</td><td>${cell(p.sigmaLog10Residual, e.sigmaLog10Residual)}</td>
       <td>${val(entry.trainingMetrics?.rmseLog10)}</td><td>${val(entry.validationMetrics?.rmseLog10)}</td>
-      <td>${entry.validationMetrics?.censoredPredictionHitRate === null || entry.validationMetrics?.censoredPredictionHitRate === undefined ? "—" : `${Math.round(entry.validationMetrics.censoredPredictionHitRate * 100)}%`}</td></tr>`;
+      <td>${entry.validationMetrics?.censoredPredictionHitRate === null || entry.validationMetrics?.censoredPredictionHitRate === undefined ? "—" : `${Math.round(entry.validationMetrics.censoredPredictionHitRate * 100)}%`}</td>
+      <td>${escapeHtml(temporalTrend)}</td></tr>`;
   }).join("");
+  const temporalReference = strains.map(([, entry]) => entry.validationMetrics?.temporalResidualDiagnostics).find(Boolean);
+  const temporalNote = temporalReference
+    ? t("research.kill.temporalTrendNote", {
+      minimum: temporalReference.minimumExactPointCount,
+      threshold: format(temporalReference.strongCorrelationThreshold, 2),
+    })
+    : t("research.kill.temporalTrendNoteDefault");
+  const temporalTrajectoryRows = strains.flatMap(([strain, entry]) => (
+    entry.validationMetrics?.temporalResidualDiagnostics?.trajectories ?? []
+  ).map((trajectory) => {
+    const status = t(`research.kill.temporalTrendStatus.${trajectory.status}`);
+    const signal = trajectory.highMagnitudeTrend ? t("research.kill.temporalTrendSignal") : "—";
+    return `<tr><th scope="row">${escapeHtml(strain)}</th>
+      <td>${escapeHtml(trajectory.independentUnitId ?? "—")}</td>
+      <td>${escapeHtml(String(trajectory.exactObservationCount ?? 0))}</td>
+      <td>${escapeHtml(String(trajectory.leftCensoredObservationCount ?? 0))}</td>
+      <td>${Number.isFinite(trajectory.spearmanRho) ? trajectory.spearmanRho.toFixed(3) : "—"}</td>
+      <td>${escapeHtml(status)}</td><td>${escapeHtml(signal)}</td></tr>`;
+  }));
+  const temporalDetails = temporalTrajectoryRows.length
+    ? `<details><summary>${escapeHtml(t("research.kill.temporalTrendTableHeading"))}</summary>
+      <div class="research-table-scroll"><table class="research-table"><thead><tr>
+        <th scope="col">${escapeHtml(t("research.kill.strain"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendUnit"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendExactCount"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendCensoredCount"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendRho"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendStatusHeading"))}</th>
+        <th scope="col">${escapeHtml(t("research.kill.temporalTrendSignalHeading"))}</th>
+      </tr></thead><tbody>${temporalTrajectoryRows.join("")}</tbody></table></div></details>`
+    : "";
   const ciKeys = [
     ["psiMaxLog10PerHour", "ψmax log10/h"],
     ["psiMinLog10PerHour", "ψmin log10/h"],
@@ -203,19 +326,24 @@ function renderKillResult(result, t) {
       return `<td>${Array.isArray(v) ? `[${format(v[0], 4)}, ${format(v[1], 4)}]` : "—"}</td>`;
     }).join("")}</tr>`;
   }).join("");
-  return `<article class="research-card" aria-labelledby="research-kill-result-title"><div class="research-card-heading"><div><p class="eyebrow">kill workflow</p><h2 id="research-kill-result-title">${escapeHtml(t("research.kill.resultHeading"))}</h2></div><span class="research-chip research-chip-info">${escapeHtml(result.kind)}</span></div>
-    <p class="research-note">${escapeHtml(t("research.kill.resultNote"))}</p>
+  return `<article class="research-card" aria-labelledby="research-kill-result-title"><div class="research-card-heading"><div><p class="eyebrow">kill workflow</p><h2 id="research-kill-result-title">${escapeHtml(t("research.kill.resultHeading"))}</h2></div><span class="research-chip research-chip-${result.status === "FIT_COMPLETED" ? "success" : "warning"}">${escapeHtml(t(`research.kill.fitStatus.${result.status}`))}</span></div>
+    <p class="research-note">${escapeHtml(t("research.kill.resultNote"))}</p><details><summary>${escapeHtml(t("research.kill.runMetadata"))}</summary><pre>${escapeHtml(JSON.stringify(result.runMetadata, null, 2))}</pre></details>
+    <h3>${escapeHtml(t("research.kill.fitDiagnosticHeading"))}</h3><div class="research-table-scroll"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.results.converged"))}</th><th scope="col">${escapeHtml(t("research.results.profileStatusLabel"))}</th><th scope="col">${escapeHtml(t("research.kill.sigmaLowerBound"))}</th></tr></thead><tbody>${diagnosticSummaryRows}</tbody></table></div>
+    <h3>${escapeHtml(t("research.kill.boundaryParameters"))}</h3>${parameterBoundaryRows ? `<div class="research-table-scroll"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.results.parameter"))}</th><th scope="col">${escapeHtml(t("research.results.boundSide"))}</th><th scope="col">${escapeHtml(t("research.results.boundValue"))}</th><th scope="col">${escapeHtml(t("research.results.boundLimit"))}</th></tr></thead><tbody>${parameterBoundaryRows}</tbody></table></div>` : `<p class="research-empty">${escapeHtml(t("research.results.noBoundaryParameters"))}</p>`}
     <div class="research-table-scroll"><table class="research-table"><thead><tr>
-      <th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.kill.drug"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.strain"))}</th><th scope="col">${escapeHtml(t("research.table.status"))}</th><th scope="col">${escapeHtml(t("research.kill.drug"))}</th>
       <th scope="col">ψmax log10/h</th><th scope="col">ψmin log10/h</th><th scope="col">zMIC mg/L</th><th scope="col">zMIC 95% CI</th><th scope="col">κ</th>
       <th scope="col">N0 log10</th><th scope="col">σ</th>
-      <th scope="col">${escapeHtml(t("research.kill.trainRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.valRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.censoredHit"))}</th>
+      <th scope="col">${escapeHtml(t("research.kill.trainRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.valRmse"))}</th><th scope="col">${escapeHtml(t("research.kill.censoredHit"))}</th><th scope="col">${escapeHtml(t("research.kill.temporalTrend"))}</th>
     </tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="research-note">${escapeHtml(temporalNote)}</p>
+    ${temporalDetails}
     <h3>${escapeHtml(t("research.kill.fullCi"))}</h3>
     <div class="research-table-scroll"><table class="research-table"><thead><tr>
       <th scope="col">${escapeHtml(t("research.kill.strain"))}</th>${ciKeys.map(([, label]) => `<th scope="col">${escapeHtml(label)}</th>`).join("")}
     </tr></thead><tbody>${ciRows}</tbody></table></div>
-    ${strains.flatMap(([, entry]) => (entry.incompleteUnits ?? []).map((unit) => `<p class="research-note">${escapeHtml(t("research.kill.incompleteUnit", { unit: unit.independentUnitId, times: unit.missingTimes.join(", ") }))}</p>`)).join("")}</article>`;
+    ${strains.flatMap(([, entry]) => (entry.incompleteUnits ?? []).map((unit) => `<p class="research-note">${escapeHtml(t("research.kill.incompleteUnit", { unit: unit.independentUnitId, times: unit.missingTimes.join(", ") }))}</p>`)).join("")}
+    ${renderKillUnitIdentifiability(strains, t)}</article>`;
 }
 
 function renderAnalysis(context) {
@@ -266,6 +394,37 @@ function assessmentPanel(result, t) {
   return `<article class="research-card"><h2>${escapeHtml(t("research.assessment.heading"))}</h2><dl class="research-fact-grid">${["completed", "converged", "identified", "precisionAssessed"].map((key) => `<div><dt>${escapeHtml(t(`research.assessment.${key}`))}</dt><dd>${booleanText(assessment[key])}</dd></div>`).join("")}</dl><p>${escapeHtml(t("research.assessment.note"))}</p>${jsonDetails(t("research.results.precision"), { convergence: assessment.convergence, identification: assessment.identification, precision: assessment.precision })}</article>`;
 }
 
+function trajectoryPredictionPanel(prediction, t) {
+  if (!prediction) return "";
+  const statusKey = `research.growth.predictionStatus.${prediction.status ?? "unavailable"}`;
+  const fitIds = prediction.fit?.trainingIndependentUnitIds ?? [];
+  const calibrationIds = prediction.calibration?.calibrationIndependentUnitIds ?? [];
+  const bands = Object.entries(prediction.bands ?? {}).map(([level, band]) => ({ level: Number(level), band }));
+  const rows = bands.map(({ level, band }) => `<tr><th scope="row">${format(level * 100, 0)}%</th>
+      <td>${escapeHtml(t(`research.growth.predictionStatus.${band.status}`))}</td>
+      <td>${format(band.radius)}</td><td>${format(band.predictions?.length ?? 0, 0)}</td></tr>`).join("");
+  return `<h3>${escapeHtml(t("research.growth.prediction"))}</h3>
+    <p>${escapeHtml(t("research.growth.predictionNote"))}</p>
+    <p class="research-callout ${prediction.status === "available" ? "research-callout-info" : "research-callout-warning"}"><strong>${escapeHtml(t(statusKey))}</strong>
+      · ${escapeHtml(prediction.fit?.model ?? "—")} · ${escapeHtml(t("research.growth.predictionFitUnits"))}: ${fitIds.length}
+      · ${escapeHtml(t("research.growth.predictionCalibrationUnits"))}: ${calibrationIds.length}</p>
+    <div class="research-table-scroll"><table class="research-table"><thead><tr>
+      <th scope="col">${escapeHtml(t("research.growth.predictionLevel"))}</th>
+      <th scope="col">${escapeHtml(t("research.table.status"))}</th>
+      <th scope="col">${escapeHtml(t("research.growth.predictionRadius"))}</th>
+      <th scope="col">${escapeHtml(t("research.growth.predictionTimeCount"))}</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="research-callout research-callout-warning">${escapeHtml(t("research.growth.predictionLimitation"))}</p>
+    ${jsonDetails(t("research.growth.predictionDetails"), {
+    split: prediction.split,
+    calibrationSelection: prediction.calibrationSelection,
+    fit: prediction.fit,
+    calibration: prediction.calibration,
+    predictionTimeHours: prediction.predictionTimeHours,
+    bands: prediction.bands,
+  })}`;
+}
+
 function growthPanel(result, t) {
   const growth = result.growthComparison;
   if (!growth) return "";
@@ -283,7 +442,8 @@ function growthPanel(result, t) {
     <h3>${escapeHtml(t("research.growth.development"))}</h3><p>${escapeHtml(t("research.development.note"))}</p>
     <div class="research-table-scroll" data-scroll-key="research-growth-development"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.results.metric"))}</th><th scope="col">${escapeHtml(selection?.selectedModel)} · ${escapeHtml(growth.development?.selected?.status)}</th><th scope="col">${escapeHtml(t("research.results.baseline"))} · ${escapeHtml(growth.development?.baseline?.status)}</th></tr></thead><tbody>${metricRows(growth.development?.selected?.metrics).map(([name, value], index) => `<tr><th scope="row">${escapeHtml(name)}</th><td>${format(value)}</td><td>${format(metricRows(growth.development?.baseline?.metrics)[index][1])}</td></tr>`).join("")}</tbody></table></div><p>Δ macro RMSE: ${format(growth.development?.deltaMacroRmseVsBaseline)} · ${escapeHtml(t("research.development.baselineNote"))}</p>
     <h3>${escapeHtml(t("research.growth.bootstrap"))}</h3><dl class="research-fact-grid"><div><dt>${escapeHtml(t("research.growth.refits"))}</dt><dd>${format(bootstrap?.successfulSamples, 0)} / ${format(bootstrap?.requestedSamples, 0)}</dd></div><div><dt>${escapeHtml(t("research.growth.failures"))}</dt><dd>${format(bootstrap?.failures?.length, 0)}</dd></div><div><dt>jointSamplesRetained</dt><dd>${booleanText(bootstrap?.jointSamplesRetained)}</dd></div><div><dt>${escapeHtml(t("research.assessment.precisionAssessed"))}</dt><dd>${booleanText(intervals?.precisionAssessed)}</dd></div><div><dt>tailResolutionAdequate</dt><dd>${booleanText(intervals?.tailResolutionAdequate)}</dd></div></dl>
-    <p class="research-callout research-callout-warning">${escapeHtml(t("research.growth.warning"))}</p>${jsonDetails(t("research.growth.intervals"), intervals)}${issueList([...(growth.warnings ?? []), ...(bootstrap?.warnings ?? [])], t("research.data.noWarnings"))}
+    <p class="research-callout research-callout-warning">${escapeHtml(t("research.growth.warning"))}</p>${jsonDetails(t("research.growth.intervals"), intervals)}
+    ${trajectoryPredictionPanel(growth.trajectoryPrediction, t)}${issueList([...(growth.warnings ?? []), ...(bootstrap?.warnings ?? [])], t("research.data.noWarnings"))}
   </article>`;
 }
 
@@ -335,7 +495,13 @@ function resultSummary(state, t) {
   const nuisance = training.profiledObservationLayer;
   const optimization = training.optimization;
   const comparison = result.validation?.metrics?.baselineComparison;
-  return `<div class="research-results-stack">${!development ? `<p class="research-callout research-callout-warning">${escapeHtml(t("research.results.historical"))}</p>` : ""}${assessmentPanel(result, t)}<article class="research-card research-capability-card"><div><p class="eyebrow">${escapeHtml(t("research.results.runCapability"))}</p><h2>${escapeHtml(result.capability?.level ?? "L3")}</h2></div><p>${escapeHtml(t("research.results.capabilityNote"))}</p><span class="research-chip research-chip-warning">${escapeHtml(t("research.results.l4Ineligible"))}</span></article>
+  const diagnostics = training.fitDiagnostics ?? {};
+  const profileLikelihood = diagnostics.profileLikelihood ?? {};
+  const boundaryHits = diagnostics.boundary?.parametersAtBound ?? [];
+  const fitStatusText = t(`research.results.fitStatus.${result.status ?? training.status ?? "FIT_COMPLETED"}`);
+  const profileStatusText = t(`research.results.profileStatus.${profileLikelihood.status ?? "NOT_ASSESSED"}`);
+  const boundaryRows = boundaryHits.map((hit) => `<tr><th scope="row">${escapeHtml(hit.parameter)}</th><td>${escapeHtml(hit.side)}</td><td>${format(hit.value)}</td><td>${format(hit.bound)}</td></tr>`).join("");
+  return `<div class="research-results-stack"><article class="research-card"><h2>${escapeHtml(t("research.results.diagnosticsHeading"))}</h2><dl class="research-fact-grid"><div><dt>${escapeHtml(t("research.results.fitStatusLabel"))}</dt><dd>${escapeHtml(fitStatusText)}</dd></div><div><dt>${escapeHtml(t("research.results.profileStatusLabel"))}</dt><dd>${escapeHtml(profileStatusText)}</dd></div><div><dt>${escapeHtml(t("research.results.boundaryCount"))}</dt><dd>${boundaryHits.length}</dd></div><div><dt>${escapeHtml(t("research.results.sigmaAtLowerBound"))}</dt><dd>${booleanText(diagnostics.sigmaAtLowerBound)}</dd></div></dl>${boundaryHits.length ? `<h3>${escapeHtml(t("research.results.boundaryParameters"))}</h3><div class="research-table-scroll"><table class="research-table"><thead><tr><th scope="col">${escapeHtml(t("research.results.parameter"))}</th><th scope="col">${escapeHtml(t("research.results.boundSide"))}</th><th scope="col">${escapeHtml(t("research.results.boundValue"))}</th><th scope="col">${escapeHtml(t("research.results.boundLimit"))}</th></tr></thead><tbody>${boundaryRows}</tbody></table></div>` : `<p class="research-empty">${escapeHtml(t("research.results.noBoundaryParameters"))}</p>`}<details><summary>${escapeHtml(t("research.results.profileDetails"))}</summary><pre>${escapeHtml(JSON.stringify(profileLikelihood, null, 2))}</pre></details></article>${!development ? `<p class="research-callout research-callout-warning">${escapeHtml(t("research.results.historical"))}</p>` : ""}${assessmentPanel(result, t)}<article class="research-card research-capability-card"><div><p class="eyebrow">${escapeHtml(t("research.results.runCapability"))}</p><h2>${escapeHtml(result.capability?.level ?? "L3")}</h2></div><p>${escapeHtml(t("research.results.capabilityNote"))}</p><span class="research-chip research-chip-warning">${escapeHtml(t("research.results.l4Ineligible"))}</span></article>
     <article class="research-card"><h2>${escapeHtml(t(evaluationKey("roles", "roles")))}</h2><div class="research-role-grid"><section><span class="research-chip research-chip-info">${escapeHtml(t("research.data.training"))}</span><h3>${escapeHtml(t("research.results.trainingRole"))}</h3><p>${escapeHtml(t(evaluationKey("trainingNote", "trainingRoleNote")))}</p><dl><div><dt>${escapeHtml(t("research.data.observations"))}</dt><dd>${format(training.observationCount, 0)}</dd></div><div><dt>${escapeHtml(t("research.data.units"))}</dt><dd>${format(training.independentUnitCount, 0)}</dd></div></dl></section><section><span class="research-chip research-chip-warning">${escapeHtml(t(development ? "research.development.label" : "research.data.validation"))}</span><h3>${escapeHtml(t(evaluationKey("role", "validationRole")))}</h3><p>${escapeHtml(t(evaluationKey("note", "validationRoleNote")))}</p><dl><div><dt>${escapeHtml(t("research.data.observations"))}</dt><dd>${format(result.validation?.observationCount, 0)}</dd></div><div><dt>${escapeHtml(t("research.data.units"))}</dt><dd>${format(result.validation?.independentUnits?.validation?.length, 0)}</dd></div></dl></section></div></article>
     <article class="research-card"><h2>${escapeHtml(t("research.results.fit"))}</h2><dl class="research-fact-grid"><div><dt>psiMax</dt><dd>${format(psi)} log10/h</dd></div><div><dt>${escapeHtml(t("research.results.doubling"))}</dt><dd>${format(doubling, 2)} min</dd></div><div><dt>${escapeHtml(t("research.results.initial"))}</dt><dd>${format(initial)} log10 CFU/mL</dd></div><div><dt>baselineOd</dt><dd>${format(nuisance.baselineOd)}</dd></div><div><dt>scaleOd</dt><dd>${format(nuisance.scaleOd)}</dd></div><div><dt>${escapeHtml(t("research.results.converged"))}</dt><dd>${escapeHtml(String(training.converged))}</dd></div><div><dt>${escapeHtml(t("research.results.evaluations"))}</dt><dd>${escapeHtml(optimization.evaluationCount)}</dd></div><div><dt>${escapeHtml(t("research.results.termination"))}</dt><dd>${escapeHtml(optimization.terminationReason)}</dd></div></dl><p class="research-note">${escapeHtml(t(evaluationKey("profiled", "profiledTraining")))}</p></article>
     <article class="research-card"><h2>${escapeHtml(t(evaluationKey("metrics", "metrics")))}</h2>${metricsTable(result, t)}<p class="research-note"><strong>${escapeHtml(t("research.results.predeclared"))}:</strong> ${escapeHtml(comparison?.baselineId ?? "training-unit-mean-od-by-exact-source-time")}. ${escapeHtml(t(evaluationKey("baselineNote", "baselineNote")))}</p></article>
@@ -356,6 +522,12 @@ function resultWarnings(state, t) {
 function renderResults(context) {
   const { state, t } = context;
   if (!state.result) return `<section class="research-section" id="research-results-section" aria-labelledby="research-results-heading"><div class="research-section-heading"><p class="eyebrow">04 · ${escapeHtml(t("research.section.results"))}</p><h2 id="research-results-heading" tabindex="-1" data-focus-key="research-section-heading-results">${escapeHtml(t("research.results.heading"))}</h2><p>${escapeHtml(t("research.results.lead"))}</p></div><article class="research-card"><p class="research-empty">${escapeHtml(t("research.results.empty"))}</p></article></section>`;
+  if (state.result.status === "NOT_IDENTIFIABLE" && !state.result.training?.fittedBiologicalParameters) {
+    const result = state.result;
+    const diagnostics = result.training?.fitDiagnostics ?? {};
+    const identifiability = diagnostics.identifiability ?? result.identifiability;
+    return `<section class="research-section" id="research-results-section" aria-labelledby="research-results-heading"><div class="research-section-heading"><p class="eyebrow">04 · ${escapeHtml(t("research.section.results"))}</p><h2 id="research-results-heading" tabindex="-1" data-focus-key="research-section-heading-results">${escapeHtml(t("research.results.heading"))}</h2><p>${escapeHtml(t("research.results.runLabel", { runId: result.runMetadata?.runId ?? "—" }))}</p></div><article class="research-card"><div class="research-card-heading"><h2>${escapeHtml(t("research.results.statusOnly"))}</h2><span class="research-chip research-chip-warning">${escapeHtml(t("research.results.fitStatus.NOT_IDENTIFIABLE"))}</span></div><p class="research-callout research-callout-warning">${escapeHtml(t("research.results.noEstimates"))}</p><dl class="research-fact-grid"><div><dt>${escapeHtml(t("research.results.exactTrainingCount"))}</dt><dd>${format(result.dataset?.exactTrainingObservationCount, 0)}</dd></div><div><dt>${escapeHtml(t("research.results.requiredExactCount"))}</dt><dd>${format(identifiability?.requiredExactObservationCount, 0)}</dd></div><div><dt>${escapeHtml(t("research.results.profileStatus"))}</dt><dd>${escapeHtml(t("research.results.profileStatus.NOT_ASSESSED"))}</dd></div><div><dt>${escapeHtml(t("research.design.seed"))}</dt><dd>${format(result.runMetadata?.seed, 0)}</dd></div><div><dt>${escapeHtml(t("research.export.version"))}</dt><dd>${escapeHtml(result.runMetadata?.applicationVersion ?? result.applicationVersion ?? "unknown")}</dd></div></dl><details><summary>${escapeHtml(t("research.results.diagnosticDetails"))}</summary><pre>${escapeHtml(JSON.stringify({ identifiability, profileLikelihood: diagnostics.profileLikelihood, settings: result.runMetadata?.settings }, null, 2))}</pre></details></article></section>`;
+  }
   return `<section class="research-section" id="research-results-section" aria-labelledby="research-results-heading"><div class="research-section-heading"><p class="eyebrow">04 · ${escapeHtml(t("research.section.results"))}</p><h2 id="research-results-heading" tabindex="-1" data-focus-key="research-section-heading-results">${escapeHtml(t("research.results.heading"))}</h2><p>${escapeHtml(t("research.results.runLabel", { runId: state.result.reproducibility?.runId ?? state.selectedAnalysis?.id ?? "—" }))}</p></div>${resultSummary(state, t)}${growthPanel(state.result, t)}${sensitivityPanel(state.result, t)}${objectiveSlicesPanel(state.result, t)}${resultCharts(state, t)}${resultWarnings(state, t)}</section>`;
 }
 
@@ -369,7 +541,14 @@ export function renderResearchWorkspace({ state, catalog, registryRecord, source
       : state.activeSection === "analysis"
         ? renderAnalysis(context)
         : renderResults(context);
-  return `<main class="research-workspace" id="main-content" aria-labelledby="research-page-heading"><div class="research-hero"><div><p class="eyebrow">${escapeHtml(t("research.eyebrow"))}</p><h1 id="research-page-heading" tabindex="-1" data-focus-key="page-heading-research">${escapeHtml(t("research.title"))}</h1><p>${escapeHtml(t("research.subtitle"))}</p></div><div class="research-hero-status">${datasetStatus(state.selectedDataset, t)}${state.result ? `<span class="research-chip research-chip-success">${escapeHtml(t("research.results.capability", { level: state.result.capability?.level ?? "L3" }))}</span>` : ""}</div></div>${sectionNavigation(state, t)}${section}</main>`;
+  const resultStatus = state.result?.status;
+  const resultStatusChip = !state.result ? ""
+    : resultStatus === "NOT_IDENTIFIABLE" || resultStatus === "FIT_NOT_CONVERGED"
+      ? `<span class="research-chip research-chip-warning">${escapeHtml(t(`research.results.fitStatus.${resultStatus}`))}</span>`
+      : resultStatus === "FIT_COMPLETED" || !resultStatus
+        ? `<span class="research-chip research-chip-success">${escapeHtml(t("research.results.capability", { level: state.result.capability?.level ?? "L3" }))}</span>`
+        : `<span class="research-chip research-chip-warning">${escapeHtml(resultStatus)}</span>`;
+  return `<main class="research-workspace" id="main-content" aria-labelledby="research-page-heading"><div class="research-hero"><div><p class="eyebrow">${escapeHtml(t("research.eyebrow"))}</p><h1 id="research-page-heading" tabindex="-1" data-focus-key="page-heading-research">${escapeHtml(t("research.title"))}</h1><p>${escapeHtml(t("research.subtitle"))}</p></div><div class="research-hero-status">${datasetStatus(state.selectedDataset, t)}${resultStatusChip}</div></div>${sectionNavigation(state, t)}${section}</main>`;
 }
 
 export { escapeHtml };

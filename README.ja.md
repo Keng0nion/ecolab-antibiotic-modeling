@@ -6,7 +6,7 @@
 - [英語](README.en.md)
 - [日本語](README.ja.md)
 
-# Ecolab 6.0.0
+# Ecolab 6.1.0
 
 ![Ecolab 学習界面のスクリーンショット](./docs/screenshot.png)
 
@@ -37,12 +37,12 @@ Ecolab は、ローカル優先・監査可能・再現可能な *E. coli*–抗
 
 ## バージョン契約
 
-- アプリ：`6.0.0`
+- アプリ：`6.1.0`
 - 科学コア：`2.0.0`（教育ダイナミクスは不変）
-- 分析エンジン：`2.0.0`（数値修正、OD モデル比較、同バージョンリプレイ）
+- 分析エンジン：`2.1.0`（フィット同定可能性ゲート、プロファイル診断、結果ステータス監査）
 - モデル：`ecolab.single-population.regoes-logistic@1.0.0`
 
-ルートの `package.json` はアプリリリースバージョンの権威あるソースです。新版は教育用の Regoes/Logistic モデルを保持し、直接 OD スケールの Logistic/Gompertz、訓練データでの曲線全体の交差検証、曲線全体の結合 bootstrap、チェックサム検証付きの研究パッケージ同バージョンリプレイを新増しました。元の留保データは閲覧済みで、新しい結果は開発セット比較として明示的に標示され、未接触のテストセットや外部検証ではありません。
+ルートの `package.json` はアプリリリースバージョンの権威あるソースです。新版は教育用の Regoes/Logistic モデルを保持し、直接 OD スケールの Logistic/Gompertz、訓練データでの曲線全体の交差検証、曲線全体の結合 bootstrap、独立した訓練曲線による split-conformal 予測バンド、チェックサム検証付きの研究パッケージ同バージョンリプレイを新増しました。元の留保データは閲覧済みで、新しい結果は開発セット比較として明示的に標示され、未接触のテストセットや外部検証ではありません。
 
 実際の `small` 例では、訓練交差検証が時間ごとの平均基線を選び、開発セットの macro RMSE は `0.00304756`。元の潜在個体群モデルは `0.00833386` で、依然基線に劣ります。パラメータモデルが収束しなかったこと、同定可能性と統計精度が不足している警告はすべて保持されています。未処理の OD600 データは 5 種の抗生物質の薬効を検証できず、絶対 CFU も特定できません。
 
@@ -71,7 +71,7 @@ npm run ecolab -- help
 
 ## コードの仕組み
 
-以下は現在の `6.0.0` ソースに基づき、実際のデータフロー、数学的計算、工学的制約を説明します。リンクは具体的な実装を指し、論文は方法の根拠を説明するものであり、本プロジェクトの条件マッチング実験検証の代替にはなりません。アプリは React、サードパーティオプティマイザー、遠隔計算サービスに依存せず、ネイティブの JavaScript ES Modules、DOM/SVG、Web Worker、IndexedDB を使用します。
+以下は現在の `6.1.0` ソースに基づき、実際のデータフロー、数学的計算、工学的制約を説明します。リンクは具体的な実装を指し、論文は方法の根拠を説明するものであり、本プロジェクトの条件マッチング実験検証の代替にはなりません。アプリは React、サードパーティオプティマイザー、遠隔計算サービスに依存せず、ネイティブの JavaScript ES Modules、DOM/SVG、Web Worker、IndexedDB を使用します。
 
 ### 1. 階層構造と呼び出しチェーン
 
@@ -313,7 +313,7 @@ MAE         = ΣuΣj |euj| / Σu nu
 
 固定 `small`、種子 `123456789` の実際の記録：CV は平均基線を選択。開発 macro RMSE は **0.00304756 OD**、MAE は **0.00239205 OD**。元の潜在モデルの macro RMSE は **0.00833386 OD** で、未収束。直接 Logistic/Gompertz も各 CV 折で未収束のため、これは新しいモデルが予測精度を向上させた証拠ではありません。
 
-ソース：[CV と凍結比較](./src/analysis/growth-comparison.js)、[指標集計](./src/analysis/metrics.js)、[バージョン化された実際の結果](./data/examples/ecolab-stage6-research-6.0.0.md)。
+ソース：[CV と凍結比較](./src/analysis/growth-comparison.js)、[指標集計](./src/analysis/metrics.js)、[バージョン化された実際の結果](./data/examples/ecolab-stage6-research-6.1.0.md)。
 
 ### 5. パラメータスキャンと感度分析
 
@@ -448,7 +448,7 @@ UI インポートは inspect のみ行い、ユーザーが明示的にリプ�
 
 したがって区別が必要です：**完全性通過 ≠ 出所が本物。再計算可能 ≠ リプレイマッチ。リプレイマッチ ≠ 科学的に有効、またはパラメータが同定済み。** `replayable` は試行可能を意味するだけで、`matched` が規定の比較ルール下で結果が一致することを意味します。
 
-ブラウザでバージョン化された例をインポートする際は、[6.0.0 例 JSON](./data/examples/ecolab-stage6-research-6.0.0.json) 内の `researchPackage` を使用し、外層の例ラッパーではありません。ブラウザ自身がエクスポートした研究パッケージは直接インポートできます。
+ブラウザでバージョン化された例をインポートする際は、[6.1.0 例 JSON](./data/examples/ecolab-stage6-research-6.1.0.json) 内の `researchPackage` を使用し、外層の例ラッパーではありません。ブラウザ自身がエクスポートした研究パッケージは直接インポートできます。
 
 ソース：[厳格検査、互換判定、リプレイ比較](./src/analysis/research-replay.js)、[閉じた数値警告テンプレート](./src/analysis/replay-warning-equivalence.js)。
 
@@ -488,7 +488,8 @@ UI インポートは inspect のみ行い、ユーザーが明示的にリプ�
 
 ## ドキュメント
 
-- [今回の詳細更新説明](./docs/release-notes-6.0.0.md)
+- [今回の詳細更新説明](./docs/release-notes-6.1.0.md)
+- [6.0.0 の履歴リリースノート](./docs/release-notes-6.0.0.md)
 - [プロジェクト概要](./docs/project-overview.md)
 - [システムアーキテクチャ](./docs/architecture.md)
 - [科学コア](./docs/scientific-core.md)
@@ -509,8 +510,10 @@ Ecolab 自有のコードは [MIT License](./LICENSE) で公開され、著作�
 
 バージョン化された生成サンプル：
 
-- [Current 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
-- [Current 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
+- [Current 6.1.0 Markdown](./data/examples/ecolab-stage6-research-6.1.0.md)
+- [Current 6.1.0 JSON](./data/examples/ecolab-stage6-research-6.1.0.json)
+- [Historical 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
+- [Historical 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
 - [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)
 - [Frozen historical 5.0.0 JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
 

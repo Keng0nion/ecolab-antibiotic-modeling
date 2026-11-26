@@ -475,6 +475,169 @@ function profiledTrainingEvaluation(resolvedModel, biologicalParameters, observa
   });
 }
 
+function profileGrid(lower, upper, estimate, pointCount) {
+  const values = Array.from({ length: pointCount }, (_, index) => lower + ((upper - lower) * index) / (pointCount - 1));
+  const interiorIndexes = values.map((_, index) => index).filter((index) => index > 0 && index < pointCount - 1);
+  const nearest = interiorIndexes.reduce((best, index) => (
+    Math.abs(values[index] - estimate) < Math.abs(values[best] - estimate) ? index : best
+  ), interiorIndexes[0]);
+  values[nearest] = Math.min(upper, Math.max(lower, estimate));
+  const unique = [...new Set(values)].sort((a, b) => a - b);
+  while (unique.length < pointCount) {
+    let largestGap = -1;
+    let largestGapIndex = 0;
+    for (let index = 0; index < unique.length - 1; index += 1) {
+      const gap = unique[index + 1] - unique[index];
+      if (gap > largestGap) { largestGap = gap; largestGapIndex = index; }
+    }
+    unique.splice(largestGapIndex + 1, 0, (unique[largestGapIndex] + unique[largestGapIndex + 1]) / 2);
+  }
+  return unique;
+}
+
+function profileCrossing(points, threshold, direction) {
+  const ordered = direction === "upper" ? [...points].reverse() : points;
+  for (let index = 0; index < ordered.length - 1; index += 1) {
+    const first = ordered[index];
+    const second = ordered[index + 1];
+    if (first.deltaNegativeLogLikelihood > threshold && second.deltaNegativeLogLikelihood <= threshold) {
+      const fraction = (threshold - first.deltaNegativeLogLikelihood)
+        / (second.deltaNegativeLogLikelihood - first.deltaNegativeLogLikelihood);
+      return first.value + (second.value - first.value) * fraction;
+    }
+  }
+  return null;
+}
+
+async function profileLeastSquaresLikelihood({
+  fit,
+  observations,
+  resolvedModel,
+  maximumTimeHours,
+  bounds,
+  config,
+  computation,
+  seed,
+  checkpoint,
+  onProgress,
+}) {
+  const threshold = 1.920729410347062;
+  const method = "profile_likelihood_gaussian_ssr_sigma_profiled";
+  const profileTargets = {};
+  let completed = 0;
+  const total = PARAMETER_NAMES.length * config.profileLikelihoodPoints;
+  for (const targetName of PARAMETER_NAMES) {
+    const [lower, upper] = bounds[targetName];
+    const profileValues = profileGrid(lower, upper, fit.fittedParameters[targetName], config.profileLikelihoodPoints);
+    const freeNames = PARAMETER_NAMES.filter((name) => name !== targetName);
+    const fitPoints = [];
+    for (let index = 0; index < profileValues.length; index += 1) {
+      await checkpoint();
+      const value = profileValues[index];
+      let refit;
+      if (Math.abs(value - fit.fittedParameters[targetName]) <= 1e-12 * Math.max(1, Math.abs(value))) {
+        refit = {
+          objectiveValue: fit.objectiveValue,
+          converged: fit.converged,
+          status: fit.status,
+          terminationReason: fit.optimization?.terminationReason ?? null,
+        };
+      } else {
+        refit = fitParameters({
+          observations,
+          parameterPolicy: "scientific",
+          parameterWhitelist: freeNames,
+          parameterContext: { initialStateSeriesIds: ["pooled"], drugIds: [] },
+          bounds,
+          initialParameters: fit.fittedParameters,
+          fixedParameters: { [targetName]: value },
+          method: "least_squares",
+          seed: deriveSeed(seed, "profile-likelihood", targetName, index),
+          restarts: config.optimizerRestarts,
+          differentialEvolution: {
+            ...computation.differentialEvolution,
+            populationSize: config.populationSize,
+            maxEvaluations: config.differentialEvolutionMaxEvaluations,
+          },
+          nelderMead: { ...computation.nelderMead, maxEvaluations: config.nelderMeadMaxEvaluations },
+          evaluator: (biologicalParameters, rows) => profiledTrainingEvaluation(
+            resolvedModel,
+            biologicalParameters,
+            rows,
+            maximumTimeHours,
+          ).predictions,
+          observationModel: (profiledOdPrediction) => profiledOdPrediction,
+        });
+      }
+      const sumSquares = refit.objectiveValue;
+      const negativeLogLikelihood = Number.isFinite(sumSquares) && sumSquares >= 0
+        ? (observations.length / 2) * Math.log(Math.max(sumSquares / observations.length, Number.MIN_VALUE))
+        : null;
+      fitPoints.push({
+        value,
+        sumSquaredError: sumSquares,
+        negativeLogLikelihood,
+        converged: refit.converged === true,
+        fitStatus: refit.status,
+        terminationReason: refit.terminationReason ?? refit.optimization?.terminationReason ?? null,
+      });
+      completed += 1;
+      onProgress?.({ completed, total, parameter: targetName });
+    }
+    const usable = fitPoints.filter((point) => Number.isFinite(point.negativeLogLikelihood));
+    const minimum = usable.length ? Math.min(...usable.map((point) => point.negativeLogLikelihood)) : null;
+    const points = fitPoints.map((point) => ({
+      ...point,
+      deltaNegativeLogLikelihood: Number.isFinite(point.negativeLogLikelihood) && Number.isFinite(minimum)
+        ? Math.max(0, point.negativeLogLikelihood - minimum)
+        : null,
+    }));
+    const failures = points.filter((point) => !point.converged || !Number.isFinite(point.deltaNegativeLogLikelihood)).length;
+    const allPointsAssessed = fit.converged && failures === 0 && points.length >= 3;
+    const leftOpen = allPointsAssessed && points[0].deltaNegativeLogLikelihood <= threshold;
+    const rightOpen = allPointsAssessed && points.at(-1).deltaNegativeLogLikelihood <= threshold;
+    const status = !allPointsAssessed ? "NOT_ASSESSED"
+      : leftOpen && rightOpen ? "NOT_IDENTIFIABLE"
+        : leftOpen ? "lower-unidentified"
+          : rightOpen ? "upper-unidentified" : "identified";
+    const lowerCrossing = allPointsAssessed && !leftOpen ? profileCrossing(points, threshold, "lower") : null;
+    const upperCrossing = allPointsAssessed && !rightOpen ? profileCrossing(points, threshold, "upper") : null;
+    const reason = !fit.converged ? "main_fit_not_converged"
+      : failures ? "profile_refit_nonconvergence_or_invalid_objective"
+        : points.length < 3 ? "insufficient_profile_points" : null;
+    profileTargets[targetName] = {
+      status: allPointsAssessed ? "ASSESSED" : "NOT_ASSESSED",
+      ...(reason ? { reason } : {}),
+      method,
+      profilePointCount: points.length,
+      convergedPointCount: points.length - failures,
+      nonConvergedPointCount: failures,
+      profileMinimumNegativeLogLikelihood: minimum,
+      likelihoodRatioThreshold95: threshold,
+      profileCompatibleRange95: { lower: lowerCrossing, upper: upperCrossing },
+      identifiability: {
+        status,
+        trend: allPointsAssessed ? status === "identified" ? "bounded_profile_support" : status === "NOT_IDENTIFIABLE" ? "profile_support_spans_parameter_bounds" : `profile_open_at_${status === "lower-unidentified" ? "lower" : "upper"}_bound` : "profile_not_assessed",
+        reason,
+        criterion: "95% profile-likelihood support under a homoscedastic Gaussian residual model with residual scale profiled analytically; all other biological and OD nuisance parameters are reoptimized",
+        oneSided95Bound: status === "lower-unidentified" ? upperCrossing
+          : status === "upper-unidentified" ? lowerCrossing : null,
+        likelihoodRatioThreshold95: threshold,
+      },
+      points,
+    };
+  }
+  const status = Object.values(profileTargets).every((profile) => profile.status === "ASSESSED") ? "ASSESSED" : "NOT_ASSESSED";
+  return {
+    status,
+    method,
+    reason: status === "NOT_ASSESSED" ? "one_or_more_profile_refits_or_the_main_fit_did_not_converge" : null,
+    pointCount: config.profileLikelihoodPoints,
+    likelihoodRatioThreshold95: threshold,
+    parameters: profileTargets,
+  };
+}
+
 function trainingBaseline(trainingObservations, validationObservations, sourceTimes, trainingUnitIds) {
   const byTime = new Map(sourceTimes.map((time) => [canonicalTimeKey(time), []]));
   for (const observation of trainingObservations) {
@@ -652,6 +815,13 @@ export function researchWorkflowConfiguration(options) {
       3,
       11,
     ),
+    profileLikelihoodPoints: integerOption(
+      options.profileLikelihoodPoints,
+      5,
+      "profileLikelihoodPoints",
+      5,
+      11,
+    ),
     sobolBootstrapReplicates: integerOption(options.sobolBootstrapReplicates, 200, "sobolBootstrapReplicates", 0, 2000),
     sobolConfidenceLevel: finite(options.sobolConfidenceLevel ?? 0.95, "sobolConfidenceLevel"),
     sobolPrecisionTolerance: finite(options.sobolPrecisionTolerance ?? 0.2, "sobolPrecisionTolerance"),
@@ -680,6 +850,14 @@ export function researchWorkflowComputationSettings(options) {
     observationLayer: { minimumScaleOd: 1e-12, profilingRole: "training" },
     differentialEvolution: { mutationFactor: 0.8, crossoverRate: 0.9, tolerance: 1e-7, objectiveTolerance: 1e-10 },
     nelderMead: { initialStep: 0.05, tolerance: 1e-8, objectiveTolerance: 1e-12 },
+    profileLikelihood: {
+      method: "profile_likelihood_gaussian_ssr_sigma_profiled",
+      points: config.profileLikelihoodPoints,
+      likelihoodRatioThreshold95: 1.920729410347062,
+      nuisanceParametersReoptimized: ["baselineOd", "scaleOd"],
+      otherBiologicalParametersReoptimized: true,
+      errorScaleProfiledAnalytically: true,
+    },
     identifiability: {
       relativeStep: 1e-4, rankTolerance: 1e-8, boundaryTolerance: 0.01,
       conditionWarning: 1e6, correlationWarning: 0.95,
@@ -844,6 +1022,72 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       ).predictions,
     observationModel: (profiledOdPrediction) => profiledOdPrediction,
   });
+  if (fit.status === "NOT_IDENTIFIABLE") {
+    emit(progress, "training_fit", 1, 1);
+    const applicationVersion = metadata?.applicationVersion ?? options.applicationVersion ?? "unknown";
+    const runId = metadata?.runId ?? options.runId ?? null;
+    const statusResult = {
+      schemaVersion: "1.0.0",
+      kind: "ecolab-stage4-real-data-research-workflow",
+      status: "NOT_IDENTIFIABLE",
+      dataset: {
+        id: dataset.metadata.datasetId,
+        observationCount: dataset.observations.length,
+        trainingObservationCount: trainingObservations.length,
+        exactTrainingObservationCount: fit.fitDiagnostics.identifiability.exactObservationCount,
+        validationObservationCount: validationObservations.length,
+        normalizedDatasetFingerprint: datasetFingerprint,
+        sourceArtifactSha256,
+      },
+      training: {
+        status: fit.status,
+        observationCount: trainingObservations.length,
+        parameterSetUse: {
+          intendedUse: resolvedModel.intendedUse ?? "unspecified",
+          researchFitEligible: resolvedModel.researchFitEligible ?? null,
+          fittedEstimatesRecomputedFromTrainingDataset: true,
+        },
+        fittedBiologicalParameters: null,
+        objectiveValue: null,
+        parameterWhitelist: [...PARAMETER_NAMES],
+        fitDiagnostics: {
+          ...fit.fitDiagnostics,
+          profileLikelihood: {
+            status: "NOT_ASSESSED",
+            method: "profile_likelihood_gaussian_ssr_sigma_profiled",
+            reason: "training_fit_not_identifiable",
+            parameters: Object.fromEntries(PARAMETER_NAMES.map((name) => [name, {
+              status: "NOT_ASSESSED",
+              reason: "training_fit_not_identifiable",
+              points: [],
+            }])),
+          },
+        },
+      },
+      identifiability: fit.fitDiagnostics.identifiability,
+      validation: { status: "NOT_RUN", reason: "training_fit_not_identifiable" },
+      runMetadata: {
+        applicationVersion,
+        runId,
+        seed,
+        seeds: { algorithm: RNG_ALGORITHM, ...seeds },
+        settings: {
+          preset: options.preset ?? null,
+          workflowConfiguration: config,
+          computationSettings: computation,
+          minimumExactObservations: PARAMETER_NAMES.length + 1,
+          baseParameterSetIntendedUse: resolvedModel.intendedUse ?? "unspecified",
+          baseParameterSetResearchFitEligible: resolvedModel.researchFitEligible ?? null,
+        },
+      },
+      warnings: [
+        "No parameter estimates are reported because the least-squares training fit is not locally identifiable from the exact OD observations.",
+        ...(resolvedModel.researchFitEligible === false ? ["The resolved base parameter set is marked for teaching calibration only; its values are not condition-matched research estimates."] : []),
+      ],
+    };
+    emit(progress, "complete", 1, 1);
+    return jsonSafe(statusResult);
+  }
   const fittedBiologicalParameters = Object.fromEntries(
     PARAMETER_NAMES.map((name) => [name, fit.fittedParameters[name]]),
   );
@@ -891,7 +1135,25 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     profileLikelihood: false,
     interpretation: "One biological parameter is scanned with other biological parameters fixed; OD observation-layer nuisance parameters are reoptimized on training data at each point. This is a nuisance-profiled objective slice, not a profile likelihood or confidence interval; endpoints are not confidence limits.",
   }));
-  const identifiability = jsonSafe({ ...identifiabilityRaw, objectiveSlices: slices, profiles: slices });
+  const profileLikelihood = await profileLeastSquaresLikelihood({
+    fit,
+    observations: trainingObservations,
+    resolvedModel,
+    maximumTimeHours: datasetFacts.maximumTimeHours,
+    bounds,
+    config,
+    computation,
+    seed: seeds.optimizer,
+    checkpoint: runtime.checkpoint,
+    onProgress: ({ completed, total }) => emit(progress, "profile_likelihood", completed, total),
+  });
+  const identifiability = jsonSafe({
+    ...identifiabilityRaw,
+    objectiveSlices: slices,
+    profiles: slices,
+    profileLikelihoodDiagnostics: profileLikelihood,
+  });
+  const fitDiagnostics = { ...fit.fitDiagnostics, profileLikelihood };
   emit(progress, "identifiability", 1, 1);
 
   await runtime.checkpoint();
@@ -1133,6 +1395,16 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
       severity: "info",
       message: "The protocol is constant no-drug exposure and no treatment or antibiotic parameter is inferred.",
     },
+      ...(resolvedModel.researchFitEligible === false ? [{
+        code: "TEACHING_PARAMETER_SET_ONLY",
+        severity: "warning",
+        message: "The resolved base parameter set is marked for teaching calibration only. Fitted values in this result are re-estimated from the declared training dataset; the transferred base values are not condition-matched research estimates.",
+      }] : []),
+    ...(profileLikelihood.status === "NOT_ASSESSED" ? [{
+      code: "PROFILE_LIKELIHOOD_NOT_ASSESSED",
+      severity: "warning",
+      message: "One or more profile refits did not converge; their likelihood-based identifiability status is NOT_ASSESSED.",
+    }] : []),
     {
       code: "EXPLORATORY_PARAMETER_INTERVALS",
       severity: "warning",
@@ -1199,10 +1471,17 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   emit(progress, "capability", 1, 1);
 
   const training = {
+    status: fit.status,
+    fitDiagnostics,
     role: fit.role,
     fittedOnThisData: fit.fittedOnThisData,
     eligibleAsValidationEvidence: fit.eligibleAsValidationEvidence,
     calibrationOnly: true,
+    parameterSetUse: {
+      intendedUse: resolvedModel.intendedUse ?? "unspecified",
+      researchFitEligible: resolvedModel.researchFitEligible ?? null,
+      fittedEstimatesRecomputedFromTrainingDataset: true,
+    },
     observationRoleUsed: "training",
     observationCount: fit.observationCount,
     independentUnitCount: trainingUnitIds.length,
@@ -1290,6 +1569,9 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
           nuisanceLockedBeforeValidation: true,
           validationOptimization: false,
           sensitivityOutputTimeHours: SCALAR_OUTPUT_TIME_HOURS,
+          profileLikelihoodMethod: computation.profileLikelihood.method,
+          profileLikelihoodPoints: config.profileLikelihoodPoints,
+          profileLikelihoodNuisanceReoptimized: true,
           computationSettings: computation,
         },
       },
@@ -1417,6 +1699,7 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
   const result = {
     schemaVersion: "1.0.0",
     kind: "ecolab-stage4-real-data-research-workflow",
+    status: fit.status,
     pureWorkflow: true,
     dataset: {
       id: dataset.metadata.datasetId,
@@ -1453,6 +1736,20 @@ export async function runEcolabStage4ResearchWorkflow(options = {}) {
     split,
     parameterSpace,
     seeds: { algorithm: RNG_ALGORITHM, ...seeds },
+    runMetadata: {
+      applicationVersion: metadata?.applicationVersion ?? options.applicationVersion ?? "unknown",
+      runId: metadata?.runId ?? options.runId ?? null,
+      seed,
+      seeds: { algorithm: RNG_ALGORITHM, ...seeds },
+      settings: {
+        preset: options.preset ?? null,
+        workflowConfiguration: config,
+        computationSettings: computation,
+        baseParameterSetIntendedUse: resolvedModel.intendedUse ?? "unspecified",
+        baseParameterSetResearchFitEligible: resolvedModel.researchFitEligible ?? null,
+        profileLikelihoodPoints: config.profileLikelihoodPoints,
+      },
+    },
     training,
     identifiability,
     lockedPlan,

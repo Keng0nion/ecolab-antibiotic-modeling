@@ -70,7 +70,7 @@ test("quality report enumerates duplicate IDs, invalid values, inconsistent seri
       independentUnitId: "unit-1",
       role: "validation",
       timeHours: -1,
-      measurementType: "od600",
+      measurementType: "cfu_per_ml",
       value: -0.2,
       drugId: "ciprofloxacin",
       concentrationMgPerL: -1,
@@ -95,6 +95,17 @@ test("quality report enumerates duplicate IDs, invalid values, inconsistent seri
   assert.ok(codes.has("INDEPENDENT_UNIT_ROLE_LEAKAGE"));
   const leakage = report.errors.find(({ code }) => code === "INDEPENDENT_UNIT_ROLE_LEAKAGE");
   assert.deepEqual(leakage.details.roles, ["training", "validation"]);
+});
+
+test("quality report preserves negative OD as a source-processing warning", () => {
+  const report = assessDatasetQuality(dataset([
+    observation({ measurementType: "od600", value: -0.006 }),
+  ]));
+  assert.equal(report.valid, true);
+  assert.equal(report.errors.some(({ code }) => code === "NEGATIVE_MEASUREMENT_VALUE"), false);
+  const warning = report.warnings.find(({ code }) => code === "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED");
+  assert.ok(warning);
+  assert.equal(warning.details.actual, -0.006);
 });
 
 test("dataset-level conditions satisfy only explicitly documented missing condition fields", () => {

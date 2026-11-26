@@ -1,6 +1,6 @@
 # 终端前端 CLI / Terminal front end
 
-Ecolab 6.0.0 除了浏览器应用，还提供终端前端 `ecolab`，让整个应用都可以在终端运行，方便 agent 与脚本直接调用。它不新增任何科学语义：所有计算都复用浏览器应用使用的同一份科学核心、分析引擎、任务协议与导出函数。详见 [Learn / Sandbox](./interactive-app.md) 与 [Research Workspace](./research-workspace.md) 了解浏览器端对应功能。agent 速览见仓库根目录的 [AGENTS.md](../AGENTS.md)。
+Ecolab 6.1.0 除了浏览器应用，还提供终端前端 `ecolab`，让整个应用都可以在终端运行，方便 agent 与脚本直接调用。它不新增任何科学语义：所有计算都复用浏览器应用使用的同一份科学核心、分析引擎、任务协议与导出函数。详见 [Learn / Sandbox](./interactive-app.md) 与 [Research Workspace](./research-workspace.md) 了解浏览器端对应功能。agent 速览见仓库根目录的 [AGENTS.md](../AGENTS.md)。
 
 ## 中文
 
@@ -93,7 +93,7 @@ node bin/ecolab.js replay --package run.research-package.json             # 只�
 node bin/ecolab.js replay --package run.research-package.json --execute   # 显式复算并比较
 ```
 
-默认只做离线检查（安全 JSON、结构、inventory、字节与交叉引用），不执行数值任务；`--execute` 才在精确兼容的内置实现上复算，并同时比较科学投影与完整分析 manifest。输入若含顶层 `researchPackage` 字段（例如 6.0.0 示例包装文件），CLI 会自动取该字段并在输出中标注。`replay.matched` 为 false 表示复算发现差异；这属于结果而非错误，退出码仍为 0。
+默认只做离线检查（安全 JSON、结构、inventory、字节与交叉引用），不执行数值任务；`--execute` 才在精确兼容的内置实现上复算，并同时比较科学投影与完整分析 manifest。输入若含顶层 `researchPackage` 字段（例如 6.1.0 当前示例或 6.0.0 历史示例包装文件），CLI 会自动取该字段并在输出中标注。`replay.matched` 为 false 表示复算发现差异；这属于结果而非错误，退出码仍为 0。
 
 ### task：原始任务协议
 

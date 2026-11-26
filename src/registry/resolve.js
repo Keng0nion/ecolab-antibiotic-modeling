@@ -234,6 +234,9 @@ export function resolveModel({ definition, parameterSet, sourceRegistry }) {
     evidenceLevel: parameterSet.evidenceLevel,
     conditionMatch: parameterSet.conditionMatch,
     capabilityLevel: parameterSet.capabilityLevel,
+    intendedUse: parameterSet.intendedUse ?? "unspecified",
+    researchFitEligible: parameterSet.researchFitEligible ?? null,
+    intendedUseNote: cloneJson(parameterSet.intendedUseNote ?? null),
     warnings,
   });
 }

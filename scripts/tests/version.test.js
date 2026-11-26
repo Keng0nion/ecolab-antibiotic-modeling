@@ -19,8 +19,8 @@ test("version gate rejects stale application/analysis identities and changes to 
     await cp(resolve(rootPath, path), resolve(fixturePath, path));
   }));
   for (const [path, oldText, newText, message] of [
-    ["src/app/version.js", '"6.0.0"', '"5.0.0"', /Application version mismatch/],
-    ["src/analysis/version.js", '"2.0.0"', '"1.0.0"', /analysis.*2\.0\.0/i],
+    ["src/app/version.js", '"6.1.0"', '"6.0.0"', /Application version mismatch/],
+    ["src/analysis/version.js", '"2.1.0"', '"2.0.0"', /analysis.*2\.1\.0/i],
     ["src/analysis/version.js", '"ecolab.stage4.analysis"', '"ecolab.stage6.analysis"', /stable.*ecolab\.stage4\.analysis/i],
     ["src/analysis/version.js", '"ecolab-research-analysis-v2"', '"ecolab-stage4-analysis-v1"', /implementation.*ecolab-research-analysis-v2/i],
     ["src/model/version.js", '"2.0.0"', '"3.0.0"', /core.*2\.0\.0/i],

@@ -6,7 +6,7 @@
 - [英文版](README.en.md)
 - [日文版](README.ja.md)
 
-# Ecolab 6.0.0
+# Ecolab 6.1.0
 
 ![Ecolab 学习界面截图](./docs/screenshot.png)
 
@@ -37,12 +37,12 @@ Ecolab 是一个本地优先、可审计、可复现的 *E. coli*–抗生素种
 
 ## 版本契约
 
-- 应用：`6.0.0`
+- 应用：`6.1.0`
 - 科学核心：`2.0.0`（教学动力学不变）
-- 分析引擎：`2.0.0`（数值修复、OD 模型比较和同版回放）
+- 分析引擎：`2.1.0`（拟合识别性门槛、轮廓诊断与结果状态审计）
 - 模型：`ecolab.single-population.regoes-logistic@1.0.0`
 
-根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
+根 `package.json` 是应用发布版本权威来源。新版保留教学 Regoes/Logistic 模型，新增直接 OD 尺度 Logistic/Gompertz、训练整曲线交叉验证、联合整曲线 bootstrap、独立整曲线 split-conformal 预测带，以及带校验和的研究包同版复算。原留出数据已被查看，新结果明确标为开发集比较，不是未触碰测试集或外部验证。
 
 实际 `small` 示例中，训练交叉验证选中逐时间均值基线，开发集 macro RMSE 为 `0.00304756`；原潜在种群模型为 `0.00833386`，仍差于基线。参数模型未收敛、独立性与统计精度不足的警告均保留。未处理 OD600 数据不能验证五种抗生素药效，也不能识别绝对 CFU。
 
@@ -71,7 +71,7 @@ npm run ecolab -- help
 
 ## 代码原理
 
-以下按当前 `6.0.0` 源码解释实际数据流、数学计算和工程约束。链接指向具体实现；论文说明方法依据，不能替代本项目的条件匹配实验验证。应用不依赖 React、第三方优化器或远端计算服务，而是使用原生 JavaScript ES Modules、DOM/SVG、Web Worker 与 IndexedDB。
+以下按当前 `6.1.0` 源码解释实际数据流、数学计算和工程约束。链接指向具体实现；论文说明方法依据，不能替代本项目的条件匹配实验验证。应用不依赖 React、第三方优化器或远端计算服务，而是使用原生 JavaScript ES Modules、DOM/SVG、Web Worker 与 IndexedDB。
 
 ### 1. 分层结构与调用链
 
@@ -104,7 +104,8 @@ runEcolabResearchWorkflow()                  research-upgrade.js
   │    → 冻结开发比较 → 参数扫描 → MC → 局部 / Morris / Sobol
   ├─ runGrowthModelComparison()             growth-comparison.js
   │    训练整轨迹 CV → 选模 → 全训练集重拟合
-  │    → 选中模型整轨迹 bootstrap → 冻结开发比较
+  │    → 选中模型整轨迹 bootstrap
+  │    → 独立训练曲线 split-conformal 校准 → 冻结开发比较
   └─ 汇总证据状态、warnings、manifest 和研究包
 ```
 
@@ -311,9 +312,11 @@ MAE         = ΣuΣj |euj| / Σu nu
 
 冻结选择后，候选在全部训练轨迹上重拟合；对选中模型做 bootstrap，最后与训练均值基线一起评价开发数据。源码保留历史 `validation` 角色字段，但当前结果明确为 `previously_viewed_development_only`，不是未触碰测试集。
 
+新轨迹预测带另做一个由根种子确定的 60/40 训练曲线拆分：40% 校准曲线不参加该预测分支的选模或拟合，分数是每条完整曲线上最大绝对 OD 残差。有限样本秩给出同时带；校准单元不足的覆盖率显示为不可用。内置数据有 8 条训练曲线，校准组为 4 条，因此 80% 可分辨，而 90% 与 95% 不可分辨。预测带对应校准分支的模型，不是全训练集模型；覆盖率仍依赖独立曲线可交换与相似时间支持，不能当作外部验证。
+
 固定 `small`、种子 `123456789` 的实际记录：CV 选中均值基线，开发 macro RMSE 为 **0.00304756 OD**、MAE 为 **0.00239205 OD**；原潜在模型 macro RMSE 为 **0.00833386 OD**，且未收敛。直接 Logistic/Gompertz 也未在各 CV 折收敛，因此这不是新模型提高预测精度的证据。
 
-源码：[CV 与冻结比较](./src/analysis/growth-comparison.js)、[指标汇总](./src/analysis/metrics.js)、[版本化实际结果](./data/examples/ecolab-stage6-research-6.0.0.md)。
+源码：[CV 与冻结比较](./src/analysis/growth-comparison.js)、[指标汇总](./src/analysis/metrics.js)、[版本化实际结果](./data/examples/ecolab-stage6-research-6.1.0.md)。
 
 ### 5. 参数扫描与敏感性分析
 
@@ -346,6 +349,8 @@ Sobol 拒绝相关输入；这里使用伪随机抽样，不是 Sobol 低差异�
 **Sobol 配对 bootstrap** 估计给定输入分布和 evaluator 下的 Monte Carlo 指数抽样误差，不覆盖数据误差或模型误设。
 
 **整训练轨迹 bootstrap** 则有放回抽取完整轨迹，保留每条曲线内时间—观测配对及重复抽中的次数，对固定的已选模型重新拟合。保存联合参数向量、均值曲线、种子、收敛情况和失败；仅有限、收敛且预测完整的重拟合进入 R7 百分位区间。区间是固定模型、边界与成功重拟合条件下的探索结果，不包含选模不确定性和新观测噪声，不是同时置信带。
+
+**整轨迹 split-conformal 预测带** 是另一种分析：先在独立拟合曲线上完成交叉验证选模与拟合，再在从未参与此分支拟合的校准曲线上计算每条轨迹跨全部观测时间的最大绝对残差。有限样本秩不足时返回 `radius: null`，不外推高覆盖率。覆盖声明依赖轨迹独立、可交换且未来时间支持相似；当前来源没有证实这些条件。
 
 选中无参数均值基线时，参数区间为空；至少有两次成功且预测支持完整的 bootstrap 重拟合时，仍可生成逐点均值曲线区间。禁用 bootstrap 或成功样本不足时，不生成区间。当前示例 bootstrap 20 次，在 95% 区间下每尾期望样本仅 0.5；即使 20/20 成功，也不能声称可靠置信覆盖率。曲线独立性尚未充分确认，联合参数样本也不能拆成独立边际后冒充 Sobol 输入。
 
@@ -450,7 +455,7 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 
 因此必须区分：**完整性通过 ≠ 来源真实；可复算 ≠ 复算匹配；复算匹配 ≠ 科学有效或参数已识别。** `replayable` 只表示可尝试，`matched` 才表示规定比较规则下的结果相符。
 
-浏览器导入版本化示例时，应使用 [6.0.0 示例 JSON](./data/examples/ecolab-stage6-research-6.0.0.json) 内的 `researchPackage`，而不是外层示例 wrapper；浏览器自己导出的研究包可直接导入。
+浏览器导入版本化示例时，应使用 [6.1.0 示例 JSON](./data/examples/ecolab-stage6-research-6.1.0.json) 内的 `researchPackage`，而不是外层示例 wrapper；浏览器自己导出的研究包可直接导入。
 
 源码：[严格检查、兼容判定和复算比较](./src/analysis/research-replay.js)、[封闭数值警告模板](./src/analysis/replay-warning-equivalence.js)。
 
@@ -490,7 +495,8 @@ UI 导入仅进行 inspect，用户再显式点击复算。包预览与当前数
 
 ## 文档
 
-- [本次详细更新说明](./docs/release-notes-6.0.0.md)
+- [本次详细更新说明](./docs/release-notes-6.1.0.md)
+- [6.0.0 历史更新说明](./docs/release-notes-6.0.0.md)
 - [项目概览](./docs/project-overview.md)
 - [系统架构](./docs/architecture.md)
 - [科学核心](./docs/scientific-core.md)
@@ -511,8 +517,10 @@ Ecolab 自有代码以 [MIT License](./LICENSE) 发布，版权所有 © 2026 Ke
 
 版本化生成示例：
 
-- [Current 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
-- [Current 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
+- [Current 6.1.0 Markdown](./data/examples/ecolab-stage6-research-6.1.0.md)
+- [Current 6.1.0 JSON](./data/examples/ecolab-stage6-research-6.1.0.json)
+- [Historical 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
+- [Historical 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
 - [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)
 - [Frozen historical 5.0.0 JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
 

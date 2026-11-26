@@ -1,0 +1,1886 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "dataset": "10.6084/m9.figshare.28342064.v1",
+    "article": "10.1038/s41597-025-05356-3",
+    "title": "Bacterial growth profiles across one-thousand chemical-defined media",
+    "license": "CC-BY-4.0",
+    "verifiedFiles": [
+      {
+        "name": "BW25113_Growth_Round01.xlsx",
+        "bytes": 1004441,
+        "md5": "c24e2d5b0b54c79a55b11d8868e73ad8",
+        "sha256": "d81c738fdf7885195203de9b8b28bc221cf81992dffe1288c42b81aa6876d921"
+      },
+      {
+        "name": "BW25113_Medium composition.xlsx",
+        "bytes": 2693064,
+        "md5": "eab20d0936d82546e073e41005f313a9",
+        "sha256": "e3d82236c0f9a65cff55bebf1d5478b15a0972111422c32a3395deb5c5509cdd"
+      },
+      {
+        "name": "BW25113_GrowthDataEvaluation.xlsx",
+        "bytes": 769714,
+        "md5": "6df4248797486cb5ecbafd598fb7d28e",
+        "sha256": "2ae299c04f6a4de7401d3896413030db050b28691764be7940da471f351e03b1"
+      }
+    ],
+    "curveCount": 2628,
+    "metadataJoinCount": 2628,
+    "uniqueConditionCount": 177,
+    "sourceQualityFlagCounts": {
+      "pass": 2425,
+      "fail": 203
+    },
+    "eligibleConditionCountExcludingLargeCohort": 23,
+    "sourceTimepointCount": 97
+  },
+  "selection": {
+    "method": "source-quality-passing curves; condition IDs evenly spaced after minimum shared time support; exact curves are retained in the adjacent CSV",
+    "selectedConditionIds": [
+      "Cond00042",
+      "Cond00045",
+      "Cond00054",
+      "Cond00057",
+      "Cond00070",
+      "Cond00072",
+      "Cond00090",
+      "Cond00092",
+      "Cond00097",
+      "Cond00126",
+      "Cond00130",
+      "Cond00137"
+    ],
+    "cohortCounts": {
+      "conditions": 12,
+      "trajectoriesPerCondition": 12,
+      "trainingPerCondition": 8,
+      "developmentPerCondition": 4,
+      "sharedTimepointsPerCondition": 48
+    },
+    "splitMethod": "deterministic seeded random assignment of whole curves before fitting",
+    "largeCondition": {
+      "conditionId": "Cond00003",
+      "excludedPreviouslyAnalyzedLabels": [
+        "Curve00025",
+        "Curve00026",
+        "Curve00027",
+        "Curve00028",
+        "Curve00029",
+        "Curve00030",
+        "Curve00031",
+        "Curve00032",
+        "Curve00033",
+        "Curve00034",
+        "Curve00035",
+        "Curve00036"
+      ],
+      "training": 48,
+      "development": 12,
+      "sharedTimepoints": 36
+    }
+  },
+  "configuration": {
+    "seed": 3817,
+    "bounds": {
+      "baselineOd": [
+        0,
+        0.3
+      ],
+      "amplitudeOd": [
+        0.001,
+        1
+      ],
+      "ratePerHour": [
+        0.001,
+        4
+      ],
+      "timingHours": [
+        0,
+        30
+      ]
+    },
+    "optimizer": {
+      "restarts": 1,
+      "populationSize": 64,
+      "differentialEvolutionMaxEvaluations": 1200,
+      "nelderMeadMaxEvaluations": 1200,
+      "tolerance": 1e-7,
+      "objectiveTolerance": 1e-12
+    },
+    "independentUnit": "complete curve",
+    "conditionCohortTimeSupportHours": [
+      0.5,
+      24
+    ],
+    "largeConditionTimeSupportHours": [
+      0.5,
+      18
+    ]
+  },
+  "conditionResults": [
+    {
+      "conditionId": "Cond00042",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.004168331251998712
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.007620448022536976
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.009750969420420174
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00553",
+              "rmse": 0.009477563967075091
+            },
+            {
+              "curveLabel": "Curve00557",
+              "rmse": 0.010555224318633254
+            },
+            {
+              "curveLabel": "Curve00558",
+              "rmse": 0.0028534062247309515
+            },
+            {
+              "curveLabel": "Curve00559",
+              "rmse": 0.005237211607016342
+            }
+          ],
+          "macroRmse": 0.00703085152936391,
+          "pooledRmse": 0.007694272084912694
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00553",
+              "rmse": 0.009477563967075091
+            },
+            {
+              "curveLabel": "Curve00557",
+              "rmse": 0.010555224318633254
+            },
+            {
+              "curveLabel": "Curve00558",
+              "rmse": 0.0028534062247309515
+            },
+            {
+              "curveLabel": "Curve00559",
+              "rmse": 0.005237211607016342
+            }
+          ],
+          "macroRmse": 0.00703085152936391,
+          "pooledRmse": 0.007694272084912694
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.013000000000000012,
+            "pointCount": 192,
+            "pointCoverage": 0.953125,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.5,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00045",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.010854681606467322
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.012340100545801876
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.012025355797010308
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00603",
+              "rmse": 0.006875142043987165
+            },
+            {
+              "curveLabel": "Curve00605",
+              "rmse": 0.008092040520886357
+            },
+            {
+              "curveLabel": "Curve00608",
+              "rmse": 0.011432404374918981
+            },
+            {
+              "curveLabel": "Curve00609",
+              "rmse": 0.007218096110355789
+            }
+          ],
+          "macroRmse": 0.008404420762537073,
+          "pooledRmse": 0.00859577627626887
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00603",
+              "rmse": 0.006875142043987165
+            },
+            {
+              "curveLabel": "Curve00605",
+              "rmse": 0.008092040520886357
+            },
+            {
+              "curveLabel": "Curve00608",
+              "rmse": 0.011432404374918981
+            },
+            {
+              "curveLabel": "Curve00609",
+              "rmse": 0.007218096110355789
+            }
+          ],
+          "macroRmse": 0.008404420762537073,
+          "pooledRmse": 0.00859577627626887
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.026999999999999996,
+            "pointCount": 192,
+            "pointCoverage": 0.984375,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.75,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00054",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.004267590405646345
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.009217931946908873
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.011409184422803092
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00736",
+              "rmse": 0.0017638034482806379
+            },
+            {
+              "curveLabel": "Curve00740",
+              "rmse": 0.005195306625936523
+            },
+            {
+              "curveLabel": "Curve00743",
+              "rmse": 0.004293474032858866
+            },
+            {
+              "curveLabel": "Curve00744",
+              "rmse": 0.003365969786579584
+            }
+          ],
+          "macroRmse": 0.003654638473413903,
+          "pooledRmse": 0.003868652395106939
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00736",
+              "rmse": 0.0017638034482806379
+            },
+            {
+              "curveLabel": "Curve00740",
+              "rmse": 0.005195306625936523
+            },
+            {
+              "curveLabel": "Curve00743",
+              "rmse": 0.004293474032858866
+            },
+            {
+              "curveLabel": "Curve00744",
+              "rmse": 0.003365969786579584
+            }
+          ],
+          "macroRmse": 0.003654638473413903,
+          "pooledRmse": 0.003868652395106939
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.017499999999999988,
+            "pointCount": 192,
+            "pointCoverage": 0.9947916666666666,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.75,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00057",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.007601615013672876
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.012711644774308074
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.015310309000940683
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00781",
+              "rmse": 0.004465908187311952
+            },
+            {
+              "curveLabel": "Curve00785",
+              "rmse": 0.007754807816498952
+            },
+            {
+              "curveLabel": "Curve00788",
+              "rmse": 0.002550850042142815
+            },
+            {
+              "curveLabel": "Curve00792",
+              "rmse": 0.013594252864262163
+            }
+          ],
+          "macroRmse": 0.007091454727553971,
+          "pooledRmse": 0.008236988634861242
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00781",
+              "rmse": 0.004465908187311952
+            },
+            {
+              "curveLabel": "Curve00785",
+              "rmse": 0.007754807816498952
+            },
+            {
+              "curveLabel": "Curve00788",
+              "rmse": 0.002550850042142815
+            },
+            {
+              "curveLabel": "Curve00792",
+              "rmse": 0.013594252864262163
+            }
+          ],
+          "macroRmse": 0.007091454727553971,
+          "pooledRmse": 0.008236988634861242
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.02675000000000005,
+            "pointCount": 192,
+            "pointCoverage": 0.9791666666666666,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.5,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00070",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.03206235619811862
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.03309472245559244
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.03429082738864628
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00999",
+              "rmse": 0.03169157292200615
+            },
+            {
+              "curveLabel": "Curve01000",
+              "rmse": 0.01496616191961609
+            },
+            {
+              "curveLabel": "Curve01003",
+              "rmse": 0.033696586784680446
+            },
+            {
+              "curveLabel": "Curve01006",
+              "rmse": 0.01985918035244238
+            }
+          ],
+          "macroRmse": 0.025053375494686267,
+          "pooledRmse": 0.026259230767881107
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve00999",
+              "rmse": 0.03169157292200615
+            },
+            {
+              "curveLabel": "Curve01000",
+              "rmse": 0.01496616191961609
+            },
+            {
+              "curveLabel": "Curve01003",
+              "rmse": 0.033696586784680446
+            },
+            {
+              "curveLabel": "Curve01006",
+              "rmse": 0.01985918035244238
+            }
+          ],
+          "macroRmse": 0.025053375494686267,
+          "pooledRmse": 0.026259230767881107
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "logistic",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.13131564060979684,
+            "pointCount": 192,
+            "pointCoverage": 1,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 1,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00072",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.004782155386821547
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.009555521962858485
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.012060279809145443
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01036",
+              "rmse": 0.007008272641433588
+            },
+            {
+              "curveLabel": "Curve01040",
+              "rmse": 0.0016882714286117226
+            },
+            {
+              "curveLabel": "Curve01041",
+              "rmse": 0.004183455758500773
+            },
+            {
+              "curveLabel": "Curve01043",
+              "rmse": 0.004625703775282915
+            }
+          ],
+          "macroRmse": 0.0043764259009572495,
+          "pooledRmse": 0.0047661458048756005
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01036",
+              "rmse": 0.007008272641433588
+            },
+            {
+              "curveLabel": "Curve01040",
+              "rmse": 0.0016882714286117226
+            },
+            {
+              "curveLabel": "Curve01041",
+              "rmse": 0.004183455758500773
+            },
+            {
+              "curveLabel": "Curve01043",
+              "rmse": 0.004625703775282915
+            }
+          ],
+          "macroRmse": 0.0043764259009572495,
+          "pooledRmse": 0.0047661458048756005
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.04000000000000001,
+            "pointCount": 192,
+            "pointCoverage": 1,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 1,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00090",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.009232710139712693
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.012807884809136381
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.014137942561389744
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01303",
+              "rmse": 0.014273098968572552
+            },
+            {
+              "curveLabel": "Curve01305",
+              "rmse": 0.05534604679499099
+            },
+            {
+              "curveLabel": "Curve01306",
+              "rmse": 0.018542251863424432
+            },
+            {
+              "curveLabel": "Curve01307",
+              "rmse": 0.04786795531285343
+            }
+          ],
+          "macroRmse": 0.03400733823496035,
+          "pooledRmse": 0.03841244101850337
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01303",
+              "rmse": 0.014273098968572552
+            },
+            {
+              "curveLabel": "Curve01305",
+              "rmse": 0.05534604679499099
+            },
+            {
+              "curveLabel": "Curve01306",
+              "rmse": 0.018542251863424432
+            },
+            {
+              "curveLabel": "Curve01307",
+              "rmse": 0.04786795531285343
+            }
+          ],
+          "macroRmse": 0.03400733823496035,
+          "pooledRmse": 0.03841244101850337
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.11149999999999999,
+            "pointCount": 192,
+            "pointCoverage": 0.9427083333333334,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.5,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00092",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.016342278013571365
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.01812612528308575
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.019035700023355983
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01334",
+              "rmse": 0.006178707979154434
+            },
+            {
+              "curveLabel": "Curve01341",
+              "rmse": 0.05288021423265671
+            },
+            {
+              "curveLabel": "Curve01343",
+              "rmse": 0.054341314997200796
+            },
+            {
+              "curveLabel": "Curve01344",
+              "rmse": 0.0087416254566871
+            }
+          ],
+          "macroRmse": 0.03053546566642476,
+          "pooledRmse": 0.03828801385823419
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01334",
+              "rmse": 0.006178707979154434
+            },
+            {
+              "curveLabel": "Curve01341",
+              "rmse": 0.05288021423265671
+            },
+            {
+              "curveLabel": "Curve01343",
+              "rmse": 0.054341314997200796
+            },
+            {
+              "curveLabel": "Curve01344",
+              "rmse": 0.0087416254566871
+            }
+          ],
+          "macroRmse": 0.03053546566642476,
+          "pooledRmse": 0.03828801385823419
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.05475000000000002,
+            "pointCount": 192,
+            "pointCoverage": 0.9322916666666666,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.5,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00097",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.01675269691066932
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.018796444974267135
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.020422492184908887
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01407",
+              "rmse": 0.02342336379246513
+            },
+            {
+              "curveLabel": "Curve01409",
+              "rmse": 0.019475620777975215
+            },
+            {
+              "curveLabel": "Curve01414",
+              "rmse": 0.013627783068209115
+            },
+            {
+              "curveLabel": "Curve01416",
+              "rmse": 0.006404572951220082
+            }
+          ],
+          "macroRmse": 0.015732835147467386,
+          "pooledRmse": 0.01699035610341447
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01407",
+              "rmse": 0.02342336379246513
+            },
+            {
+              "curveLabel": "Curve01409",
+              "rmse": 0.019475620777975215
+            },
+            {
+              "curveLabel": "Curve01414",
+              "rmse": 0.013627783068209115
+            },
+            {
+              "curveLabel": "Curve01416",
+              "rmse": 0.006404572951220082
+            }
+          ],
+          "macroRmse": 0.015732835147467386,
+          "pooledRmse": 0.01699035610341447
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.12025,
+            "pointCount": 192,
+            "pointCoverage": 1,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 1,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00126",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.005270916937494478
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.009419808583308008
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.011595304797679534
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01837",
+              "rmse": 0.010641102993424419
+            },
+            {
+              "curveLabel": "Curve01839",
+              "rmse": 0.003384823666012752
+            },
+            {
+              "curveLabel": "Curve01841",
+              "rmse": 0.0059689954138028925
+            },
+            {
+              "curveLabel": "Curve01843",
+              "rmse": 0.003677599704064242
+            }
+          ],
+          "macroRmse": 0.0059181304443260765,
+          "pooledRmse": 0.006592490993547115
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01837",
+              "rmse": 0.010641102993424419
+            },
+            {
+              "curveLabel": "Curve01839",
+              "rmse": 0.003384823666012752
+            },
+            {
+              "curveLabel": "Curve01841",
+              "rmse": 0.0059689954138028925
+            },
+            {
+              "curveLabel": "Curve01843",
+              "rmse": 0.003677599704064242
+            }
+          ],
+          "macroRmse": 0.0059181304443260765,
+          "pooledRmse": 0.006592490993547115
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.028000000000000025,
+            "pointCount": 192,
+            "pointCoverage": 1,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 1,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00130",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.004457015695463577
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.0069679511318863655
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.009245597834651783
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01903",
+              "rmse": 0.003488448198459218
+            },
+            {
+              "curveLabel": "Curve01905",
+              "rmse": 0.003267182144703084
+            },
+            {
+              "curveLabel": "Curve01906",
+              "rmse": 0.005837424160820703
+            },
+            {
+              "curveLabel": "Curve01907",
+              "rmse": 0.006500600933759892
+            }
+          ],
+          "macroRmse": 0.004773413859435725,
+          "pooledRmse": 0.004979384583794802
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve01903",
+              "rmse": 0.003488448198459218
+            },
+            {
+              "curveLabel": "Curve01905",
+              "rmse": 0.003267182144703084
+            },
+            {
+              "curveLabel": "Curve01906",
+              "rmse": 0.005837424160820703
+            },
+            {
+              "curveLabel": "Curve01907",
+              "rmse": 0.006500600933759892
+            }
+          ],
+          "macroRmse": 0.004773413859435725,
+          "pooledRmse": 0.004979384583794802
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.017500000000000016,
+            "pointCount": 192,
+            "pointCoverage": 1,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 1,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    },
+    {
+      "conditionId": "Cond00137",
+      "timepointCount": 48,
+      "trainingTrajectoryCount": 8,
+      "developmentTrajectoryCount": 4,
+      "selectedModel": "training_mean",
+      "candidates": {
+        "training_mean": {
+          "eligible": true,
+          "macroRmse": 0.0034838164261132595
+        },
+        "logistic": {
+          "eligible": true,
+          "macroRmse": 0.010092866242519736
+        },
+        "gompertz": {
+          "eligible": true,
+          "macroRmse": 0.01236804972186474
+        }
+      },
+      "development": {
+        "selected": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve02009",
+              "rmse": 0.002576941016011034
+            },
+            {
+              "curveLabel": "Curve02010",
+              "rmse": 0.00425428705347127
+            },
+            {
+              "curveLabel": "Curve02013",
+              "rmse": 0.006308063622591857
+            },
+            {
+              "curveLabel": "Curve02014",
+              "rmse": 0.002155419526062929
+            }
+          ],
+          "macroRmse": 0.003823677804534272,
+          "pooledRmse": 0.004158638098384292
+        },
+        "trainingMean": {
+          "perCurve": [
+            {
+              "curveLabel": "Curve02009",
+              "rmse": 0.002576941016011034
+            },
+            {
+              "curveLabel": "Curve02010",
+              "rmse": 0.00425428705347127
+            },
+            {
+              "curveLabel": "Curve02013",
+              "rmse": 0.006308063622591857
+            },
+            {
+              "curveLabel": "Curve02014",
+              "rmse": 0.002155419526062929
+            }
+          ],
+          "macroRmse": 0.003823677804534272,
+          "pooledRmse": 0.004158638098384292
+        }
+      },
+      "trajectoryPrediction": {
+        "status": "available",
+        "model": "training_mean",
+        "calibrationCount": 4,
+        "bands": {
+          "0.8": {
+            "status": "available",
+            "radius": 0.010249999999999981,
+            "pointCount": 192,
+            "pointCoverage": 0.9739583333333334,
+            "completeTrajectoryCount": 4,
+            "completeTrajectoryCoverage": 0.25,
+            "calibrationCount": 4
+          },
+          "0.9": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          },
+          "0.95": {
+            "status": "insufficient_finite_sample_resolution",
+            "count": 0,
+            "coverage": null
+          }
+        }
+      },
+      "warningCodes": [
+        "DEVELOPMENT_ALREADY_VIEWED",
+        "EXPLORATORY_CONDITIONAL_INTERVALS",
+        "LOW_BOOTSTRAP_SAMPLE_COUNT",
+        "OD600_NOT_CFU",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "OPTIMIZER_STAGE_NOT_CONVERGED",
+        "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+      ]
+    }
+  ],
+  "largeConditionResult": {
+    "conditionId": "Cond00003",
+    "timepointCount": 36,
+    "trainingTrajectoryCount": 48,
+    "developmentTrajectoryCount": 12,
+    "selectedModel": "training_mean",
+    "candidates": {
+      "training_mean": {
+        "eligible": true,
+        "macroRmse": 0.009313073580024414
+      },
+      "logistic": {
+        "eligible": true,
+        "macroRmse": 0.01187795270883127
+      },
+      "gompertz": {
+        "eligible": true,
+        "macroRmse": 0.013768361534239174
+      }
+    },
+    "development": {
+      "selected": {
+        "perCurve": [
+          {
+            "curveLabel": "Curve00526",
+            "rmse": 0.004195328215853254
+          },
+          {
+            "curveLabel": "Curve00639",
+            "rmse": 0.004182895190184402
+          },
+          {
+            "curveLabel": "Curve00761",
+            "rmse": 0.0049628332657787105
+          },
+          {
+            "curveLabel": "Curve00908",
+            "rmse": 0.00563615898444975
+          },
+          {
+            "curveLabel": "Curve01029",
+            "rmse": 0.005454575988021882
+          },
+          {
+            "curveLabel": "Curve01263",
+            "rmse": 0.0028140834877046004
+          },
+          {
+            "curveLabel": "Curve01501",
+            "rmse": 0.006913325240126594
+          },
+          {
+            "curveLabel": "Curve01687",
+            "rmse": 0.010767807866327365
+          },
+          {
+            "curveLabel": "Curve01808",
+            "rmse": 0.005698346181929002
+          },
+          {
+            "curveLabel": "Curve01865",
+            "rmse": 0.004785209769951393
+          },
+          {
+            "curveLabel": "Curve01989",
+            "rmse": 0.003268301907298832
+          },
+          {
+            "curveLabel": "Curve02402",
+            "rmse": 0.028175234415959885
+          }
+        ],
+        "macroRmse": 0.007237841709465472,
+        "pooledRmse": 0.009801358850701058
+      },
+      "trainingMean": {
+        "perCurve": [
+          {
+            "curveLabel": "Curve00526",
+            "rmse": 0.004195328215853254
+          },
+          {
+            "curveLabel": "Curve00639",
+            "rmse": 0.004182895190184402
+          },
+          {
+            "curveLabel": "Curve00761",
+            "rmse": 0.0049628332657787105
+          },
+          {
+            "curveLabel": "Curve00908",
+            "rmse": 0.00563615898444975
+          },
+          {
+            "curveLabel": "Curve01029",
+            "rmse": 0.005454575988021882
+          },
+          {
+            "curveLabel": "Curve01263",
+            "rmse": 0.0028140834877046004
+          },
+          {
+            "curveLabel": "Curve01501",
+            "rmse": 0.006913325240126594
+          },
+          {
+            "curveLabel": "Curve01687",
+            "rmse": 0.010767807866327365
+          },
+          {
+            "curveLabel": "Curve01808",
+            "rmse": 0.005698346181929002
+          },
+          {
+            "curveLabel": "Curve01865",
+            "rmse": 0.004785209769951393
+          },
+          {
+            "curveLabel": "Curve01989",
+            "rmse": 0.003268301907298832
+          },
+          {
+            "curveLabel": "Curve02402",
+            "rmse": 0.028175234415959885
+          }
+        ],
+        "macroRmse": 0.007237841709465472,
+        "pooledRmse": 0.009801358850701058
+      }
+    },
+    "trajectoryPrediction": {
+      "status": "available",
+      "model": "training_mean",
+      "calibrationCount": 20,
+      "bands": {
+        "0.8": {
+          "status": "available",
+          "radius": 0.03153571428571422,
+          "pointCount": 432,
+          "pointCoverage": 0.9907407407407407,
+          "completeTrajectoryCount": 12,
+          "completeTrajectoryCoverage": 0.9166666666666666,
+          "calibrationCount": 20
+        },
+        "0.9": {
+          "status": "available",
+          "radius": 0.07203571428571431,
+          "pointCount": 432,
+          "pointCoverage": 0.9976851851851852,
+          "completeTrajectoryCount": 12,
+          "completeTrajectoryCoverage": 0.9166666666666666,
+          "calibrationCount": 20
+        },
+        "0.95": {
+          "status": "available",
+          "radius": 0.09103571428571433,
+          "pointCount": 432,
+          "pointCoverage": 0.9976851851851852,
+          "completeTrajectoryCount": 12,
+          "completeTrajectoryCoverage": 0.9166666666666666,
+          "calibrationCount": 20
+        }
+      }
+    },
+    "warningCodes": [
+      "DEVELOPMENT_ALREADY_VIEWED",
+      "EXPLORATORY_CONDITIONAL_INTERVALS",
+      "LOW_BOOTSTRAP_SAMPLE_COUNT",
+      "OD600_NOT_CFU",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "OPTIMIZER_STAGE_NOT_CONVERGED",
+      "TRAJECTORY_INDEPENDENCE_UNVERIFIED"
+    ]
+  },
+  "outputs": {
+    "observationsCsv": "observations.csv",
+    "observationsCsvSha256": "6acd89a649223e4db9e7f741761d359f4c1473289b4c1cde322805a1b34f3d10",
+    "modelScoresCsv": "model-scores.csv",
+    "modelScoresCsvSha256": "4e4060212f2dd574d5eec07a739f055621206a35020d9309d4d9fb3cf330c947",
+    "heldoutTrajectoriesCsv": "heldout-trajectories.csv",
+    "heldoutTrajectoriesCsvSha256": "be2c0364ded7920301f2ceb34cbc03c3b6f7d8a24d4c0c141ed8d814c4cd3030"
+  }
+}

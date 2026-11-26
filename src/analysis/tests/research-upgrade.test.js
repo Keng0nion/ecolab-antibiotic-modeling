@@ -65,7 +65,7 @@ test("development mode reaches legacy snapshots, capability and methods before p
   const input = await options();
   const result = await runEcolabStage4ResearchWorkflow({
     ...input, growthComparison: undefined, developmentComparison: true,
-    applicationVersion: "6.0.0", contentHash: sha256HexFallback(input.datasetInput),
+    applicationVersion: "6.1.0", contentHash: sha256HexFallback(input.datasetInput),
   });
   assert.equal(result.validation.role, "development_comparison");
   assert.equal(result.validation.untouched, false);
@@ -98,12 +98,12 @@ test("new wrapper builds strict replay artifacts and deterministic scientific pr
   assert.equal(replay.kind, "ecolab-research-replay-input");
   assert.equal(replay.implementationId, upgrade.RESEARCH_WORKFLOW_IMPLEMENTATION_ID);
   assert.deepEqual(replay.versions, {
-    application: "6.0.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID,
+    application: "6.1.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID,
   });
   assert.equal(replay.options.datasetInput, input.datasetInput);
   assert.deepEqual(replay.options.resolvedModel, input.resolvedModel);
   assert.equal(replay.options.contentHash, sha256HexFallback(input.datasetInput));
-  assert.equal(replay.options.applicationVersion, "6.0.0");
+  assert.equal(replay.options.applicationVersion, "6.1.0");
   assert.equal(replay.options.developmentComparison, true);
   for (const key of ["datasetFormat", "packageId", "planId", "uncertaintyRangeFraction", "morrisLevels", "includeMonteCarloSamples", "returnedMonteCarloSamples", "scalarOutputTimeHours", "computationSettings", "seeds"]) {
     assert.ok(Object.hasOwn(replay.options, key), key);
@@ -167,7 +167,7 @@ test("development OD changes cannot alter any fitted training/growth/bootstrap o
   for (const row of dataset.observations) if (row.role === "validation") row.value += 3;
   const second = await upgrade.runEcolabResearchWorkflow({ ...input, datasetInput: JSON.stringify(dataset) });
   for (const key of ["training", "identifiability", "analyses", "seeds"]) assert.deepEqual(second[key], first[key], key);
-  for (const key of ["configuration", "trainingFits", "crossValidation", "selection", "bootstrap"]) assert.deepEqual(second.growthComparison[key], first.growthComparison[key], key);
+  for (const key of ["configuration", "trainingFits", "crossValidation", "selection", "bootstrap", "trajectoryPrediction"]) assert.deepEqual(second.growthComparison[key], first.growthComparison[key], key);
   assert.notDeepEqual(second.validation.metrics, first.validation.metrics);
 });
 
@@ -269,18 +269,31 @@ test("app defaults and fixed growth rules are explicit, detached and reject cont
   }
 });
 
-test("synthetic single-time training support preserves null rank-deficient covariance through artifacts", async () => {
+test("single-time training support is not identifiable and returns a status-only result without estimates or comparison", async () => {
   const input = await options();
   const dataset = JSON.parse(input.datasetInput);
   dataset.observations = dataset.observations.filter(({ timeHours }) => timeHours === 10);
   for (const row of dataset.observations) row.value = row.role === "training" ? 0.125 : 0.15;
   const result = await upgrade.runEcolabResearchWorkflow({ ...input, datasetInput: dataset });
-  assert.ok(result.identifiability.rank < result.identifiability.parameterNames.length);
-  assert.equal(result.identifiability.covarianceApproximation, null);
-  assert.equal(result.manifest.diagnostics.identifiability.covarianceApproximation, null);
-  assert.equal(artifact(result, "scientific-result").identifiability.covarianceApproximation, null);
+  assert.equal(result.status, "NOT_IDENTIFIABLE");
+  assert.equal(result.kind, "ecolab-development-research-workflow");
+  assert.equal(result.implementationId, upgrade.RESEARCH_WORKFLOW_IMPLEMENTATION_ID);
+  assert.equal(result.training.fittedBiologicalParameters, null);
+  assert.equal(result.training.objectiveValue, null);
+  const identifiability = result.training.fitDiagnostics.identifiability;
+  assert.equal(identifiability.status, "NOT_IDENTIFIABLE");
+  assert.equal(identifiability.rank, 0);
+  assert.ok(identifiability.exactObservationCount >= identifiability.requiredExactObservationCount);
+  assert.ok(identifiability.warningCodes.includes("PARAMETER_COVARIANCE_UNAVAILABLE"));
+  assert.ok(identifiability.warningCodes.includes("RANK_DEFICIENT_JACOBIAN"));
+  assert.equal(result.training.fitDiagnostics.profileLikelihood.status, "NOT_ASSESSED");
+  assert.equal(result.growthComparison, null);
   assert.equal(result.researchAssessment.identified, false);
-  assert.ok(result.warnings.some(({ code }) => code === "PARAMETER_COVARIANCE_UNAVAILABLE"));
+  assert.equal(result.researchAssessment.precisionAssessed, false);
+  assert.equal(result.researchAssessment.validationEvidence, "not_computed");
+  assert.equal(result.researchPackage, undefined);
+  assert.equal(result.manifest, undefined);
+  assert.ok(result.warnings.some((warning) => /not locally identifiable/i.test(typeof warning === "string" ? warning : warning.message)));
 });
 
 test("scientific projection includes only declared scientific fields and recursively omits timestamps", () => {

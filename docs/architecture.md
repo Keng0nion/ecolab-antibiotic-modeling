@@ -7,7 +7,7 @@
 - **本地优先**：浏览器应用、IndexedDB、静态部署，无账户或后端要求。
 - **科学语义集中**：UI 不复制方程；模型、注册表、实验清单和分析层保持独立。
 - **可审计输入输出**：版本、来源、数据哈希、随机种子、参数边界、指标和警告进入 manifest 或研究包。
-- **发布与科学版本分离**：应用 `6.0.0`、科学核心 `2.0.0`、分析引擎 `2.0.0` 各自表达不同契约。
+- **发布与科学版本分离**：应用 `6.1.0`、科学核心 `2.0.0`、分析引擎 `2.1.0` 各自表达不同契约。
 
 ```mermaid
 flowchart TD
@@ -15,7 +15,7 @@ flowchart TD
     APP --> WORKER[Module Web Worker]
     APP --> STORAGE[IndexedDB or memory fallback]
     APP --> EXPORT[JSON CSV Markdown SVG export]
-    WORKER --> ANALYSIS[Analysis engine 2.0.0]
+    WORKER --> ANALYSIS[Analysis engine 2.1.0]
     ANALYSIS --> GROWTH[Direct OD CV and joint bootstrap]
     WORKER --> REPLAY[Inspect then explicit built-in replay]
     REPLAY --> ANALYSIS
@@ -77,7 +77,7 @@ dist/web/    deployable static application
 - **Local-first**: browser application, IndexedDB, and static hosting, with no account or backend requirement.
 - **Centralized scientific semantics**: the UI does not duplicate equations; model, registry, experiment-manifest, and analysis layers remain separate.
 - **Auditable inputs and outputs**: versions, provenance, data hashes, seeds, parameter bounds, metrics, and warnings enter manifests or research packages.
-- **Separate release and scientific versions**: application `6.0.0`, scientific core `2.0.0`, and analysis engine `2.0.0` express different contracts.
+- **Separate release and scientific versions**: application `6.1.0`, scientific core `2.0.0`, and analysis engine `2.1.0` express different contracts.
 
 The browser UI delegates analysis and exact-version replay to same-origin module Workers. Training-only direct-OD comparison is separate from the unchanged teaching core. Imported packages cannot supply executable code or fetch dependencies. Replay compares both scientific output and the full manifest; a memory-only preview never replaces saved analyses. IndexedDB restoration checks dataset ID, revision and content hash. Initialization fallback is volatile; runtime storage failures remain explicit.
 

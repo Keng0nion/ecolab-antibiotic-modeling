@@ -212,8 +212,12 @@ test("normalization rejects missing units/semantics, silent trimming, unknown fi
 });
 
 test("normalization validates measurement domains and exact censoring-bound shape", () => {
+  const correctedOd = normalizeObservationDataset(dataset({
+    observations: [observation({ measurementType: "od600", value: -0.001 })],
+  }));
+  assert.equal(correctedOd.observations[0].value, -0.001);
   assert.throws(
-    () => normalizeObservationDataset(dataset({ observations: [observation({ measurementType: "od600", value: -0.1 })] })),
+    () => normalizeObservationDataset(dataset({ observations: [observation({ measurementType: "cfu_per_ml", value: -0.1 })] })),
     { code: "NEGATIVE_MEASUREMENT" },
   );
   assert.throws(

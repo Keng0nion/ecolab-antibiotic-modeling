@@ -2,7 +2,7 @@
 
 ## 定位与版本
 
-Ecolab `6.0.0` 在 `#/research` 提供本地优先的真实数据工作区。分析引擎为 `2.0.0`，implementation `ecolab-research-analysis-v2`，稳定 ID 仍为 `ecolab.stage4.analysis`；教学科学核心 `2.0.0`、模型 `1.0.0` 不变。
+Ecolab `6.1.0` 在 `#/research` 提供本地优先的真实数据工作区。分析引擎为 `2.1.0`，implementation `ecolab-research-analysis-v2`，稳定 ID 仍为 `ecolab.stage4.analysis`；教学科学核心 `2.0.0`、模型 `1.0.0` 不变。
 
 新版保留现有潜在种群模型的 OD 校准，增加直接 OD Logistic/Gompertz 比较、整训练轨迹交叉验证及联合 bootstrap、严格研究包检查与同版显式复算。原留出曲线已在此前版本中查看，因此本版一律称**开发集比较**，不是未触碰测试或外部验证。功能完成、优化收敛、参数可识别性与统计精度分开报告。
 
@@ -56,13 +56,21 @@ npm run preview
 
 主线程只接收进度、结构化错误和结果；取消通过终止对应 Worker 保证，部分结果不会保存为完成分析。回放任务与当前分析状态隔离。
 
+#### 拟合识别性与诊断状态
+
+- 所有入口统一要求未删失精确训练点不少于 `自由参数数 + 1`。不足时返回 `NOT_IDENTIFIABLE`，不生成拟合数字、预测、残差或验证分数。满足数量仍需检查最优点处的局部预测 Jacobian 秩。
+- 已完成的拟合分别报告优化器收敛、参数命中边界、残差尺度 σ 是否命中下界，以及 profile likelihood 状态；profile 未运行或任一重拟合失败为 `NOT_ASSESSED`。
+- OD 最小二乘 profile 固定被扫描参数，重拟合其他生物参数和 OD nuisance 参数；在同方差 Gaussian 残差下对误差尺度作解析剖析。轮廓区间是条件似然诊断，不是无需假设的通用置信区间。
+- 杀菌流程保留删失 Gaussian likelihood 的参数 profile；`psiMin` 下界统一为 −5 log10/h，浓度组 ψ(C) 的 profile 范围记录为 `[-5, 2]` log10/h。
+- 导入预检、拟合结果、导出菜单和结果 JSON 暴露状态。结果文件记录软件版本、随机种子、RNG 算法和实际拟合设置；应用重新打开会按已有研究工作区逻辑恢复用户保留的 seed 和分析记录。
+
 随机算法为 `xoshiro128ss-splitmix32-v1`；根种子与各任务子流种子、算法预算进入 manifest 和完整回放输入。工程三角范围 Monte Carlo 不是统计置信区间；Morris 全边界与 Sobol 独立三角范围不同，不能混为同一排名。整曲线 bootstrap 保留联合结构，不能拆成独立参数边际用于敏感性。
 
 ### 4. Results：如实展示结果
 
 结果页展示训练 / 开发观测与预测、基线、残差、参数扫描、不确定性、三类敏感性、OD 模型比较以及数值和统计诊断。残差为 `observed - predicted`；macro RMSE 先逐轨迹计算再等权平均，pooled RMSE / MAE 则汇总全部观测点。轨迹汇总标识本身不认证生物学独立性。
 
-`objectiveSlices` 固定其他生物参数、重新优化 OD 干扰参数，不是真 profile likelihood，不将端点解释为置信限。秩亏 covariance 为 `null`，伪逆仅是几何诊断。
+历史结果中的 `objectiveSlices` 固定其他生物参数、重新优化 OD 干扰参数，不是真 profile likelihood，不将端点解释为置信限。当前 `profileLikelihoodDiagnostics` 才是重拟合其余参数的 likelihood profile；若未评估，会显式标为 `NOT_ASSESSED`。秩亏 covariance 为 `null`，伪逆仅是几何诊断。
 
 本版固定种子 `small` 实际案例中，训练 CV 选择训练均值基线；开发 macro RMSE 为 `0.003047562725247655`，原潜在模型为 `0.008333855238427267`，后者更差且未收敛。整体 `completed=true`，但 `converged=false`、`identified=false`、`precisionAssessed=false`。准确预算、CV 分数、敏感性结果与解释见 [作品集案例](./portfolio-case-study.md)。
 
@@ -120,7 +128,7 @@ CSV 防电子表格公式注入，不承诺任意文本的字节级无损往返�
 
 数据自包含不等于独立可执行；精确依赖仍必需。旧包缺输入或版本不兼容时只检查查看，拒绝复算。哈希不证明来源真实性；`replayable` 表示允许尝试复算，不表示已经确认科学结论一致。
 
-生成示例的 JSON 是 wrapper，不是研究包 schema；若从 [6.0.0 示例](../data/examples/ecolab-stage6-research-6.0.0.json) 导入，使用其中 `researchPackage` 字段。
+生成示例的 JSON 是 wrapper，不是研究包 schema；若从 [6.1.0 当前示例](../data/examples/ecolab-stage6-research-6.1.0.json) 或 [6.0.0 历史示例](../data/examples/ecolab-stage6-research-6.0.0.json) 导入，使用其中 `researchPackage` 字段。
 
 ## 复现与验证
 

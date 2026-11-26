@@ -15,12 +15,12 @@ if (!match) throw new Error("src/app/version.js must export a literal APPLICATIO
 if (match[1] !== packageJson.version) {
   throw new Error(`Application version mismatch: package.json=${packageJson.version}, src/app/version.js=${match[1]}.`);
 }
-if (packageJson.version !== "6.0.0") {
-  throw new Error(`Stage 6 requires application version 6.0.0; found ${packageJson.version}.`);
+if (packageJson.version !== "6.1.0") {
+  throw new Error(`Stage 6.1 requires application version 6.1.0; found ${packageJson.version}.`);
 }
 
-if (analysis.ANALYSIS_ENGINE_VERSION !== "2.0.0") {
-  throw new Error(`Stage 6 requires analysis 2.0.0; found ${analysis.ANALYSIS_ENGINE_VERSION}.`);
+if (analysis.ANALYSIS_ENGINE_VERSION !== "2.1.0") {
+  throw new Error(`Stage 6.1 requires analysis 2.1.0; found ${analysis.ANALYSIS_ENGINE_VERSION}.`);
 }
 if ([analysis.ANALYSIS_ENGINE_ID, analysis.ANALYSIS_ENGINE_STABLE_ID, analysis.ANALYSIS_STABLE_ID]
   .some((id) => id !== "ecolab.stage4.analysis")) {

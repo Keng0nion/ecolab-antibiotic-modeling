@@ -15,7 +15,10 @@ import { createCatalogFixture, createDatasetRecord } from "./research-test-fixtu
 const root = new URL("../../../", import.meta.url);
 const json = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
 
-test("browser small preset works with actual v2 API, bilingual presentation and exact package replay", { timeout: 30000 }, async () => {
+// Runs the full small-preset workflow plus an exact replay, so the wall clock follows
+// host contention. Budget only; all assertions still run. Isolated: ~12 s, ~50 s under
+// heavy external load with the rest of the suite in flight.
+test("browser small preset works with actual v2 API, bilingual presentation and exact package replay", { timeout: 120_000 }, async () => {
   const [sourceText, modelRegistry, parameterRegistry, sourceRegistry] = await Promise.all([
     readFile(new URL("data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json", root), "utf8"),
     json("data/registry/model-definitions.json"), json("data/registry/parameter-sets.json"), json("data/registry/sources.json"),
@@ -26,7 +29,7 @@ test("browser small preset works with actual v2 API, bilingual presentation and 
     parameterSetRef: { id: "ecolab.bw25113-m9-regoes-transferred", version: "1.0.0" },
   });
   const dataset = createDatasetRecord({ sourceText, contentHash: sha256HexFallback(sourceText), normalizedDataset: JSON.parse(sourceText) });
-  const run = captureResearchRun({ dataset, seed: 9127, preset: "small", applicationVersion: "6.0.0", now: () => new Date("2026-09-07T12:00:00Z") });
+  const run = captureResearchRun({ dataset, seed: 9127, preset: "small", applicationVersion: "6.1.0", now: () => new Date("2026-09-07T12:00:00Z") });
   const options = buildResearchWorkflowOptions({ run, dataset, resolvedModel });
   const phases = new Set();
   const result = await runEcolabResearchWorkflow({ ...options, runtime: { yieldControl: async () => {} }, onProgress: ({ phase }) => phases.add(phase.replace(/[-:]/g, "_")) });

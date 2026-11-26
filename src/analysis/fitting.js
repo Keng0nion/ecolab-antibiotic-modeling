@@ -1,4 +1,5 @@
 import { censoredGaussianLogLikelihood } from "./likelihood.js";
+import { analyzeIdentifiability } from "./identifiability.js";
 import { optimizeBounded } from "./optimizers.js";
 import { parseParameterName } from "./parameter-space.js";
 import { computeResiduals } from "./residuals.js";
@@ -183,6 +184,55 @@ function normalizeFixedParameters(options, names) {
   return result;
 }
 
+function normalizeOptimizationTransforms(source, names, bounds) {
+  if (source === undefined) return {};
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    fail("INVALID_OPTIMIZATION_TRANSFORMS", "optimizationTransforms must be a parameter-keyed object.");
+  }
+  const result = {};
+  for (const [name, transform] of Object.entries(source)) {
+    if (!names.includes(name)) {
+      fail("UNKNOWN_OPTIMIZATION_TRANSFORM", `optimizationTransforms.${name} is not a fitted parameter.`);
+    }
+    if (transform !== "log" && transform !== "negative_log") {
+      fail("INVALID_OPTIMIZATION_TRANSFORM", `optimizationTransforms.${name} must be log or negative_log.`);
+    }
+    const [lower, upper] = bounds[name];
+    if ((transform === "log" && lower <= 0) || (transform === "negative_log" && upper >= 0)) {
+      fail("INVALID_OPTIMIZATION_TRANSFORM_BOUNDS", `bounds.${name} are incompatible with ${transform}.`);
+    }
+    result[name] = transform;
+  }
+  return result;
+}
+
+function toOptimizationCoordinates(parameters, transforms) {
+  return Object.fromEntries(Object.entries(parameters).map(([name, value]) => [
+    name,
+    transforms[name] === "log" ? Math.log(value)
+      : transforms[name] === "negative_log" ? Math.log(-value)
+        : value,
+  ]));
+}
+
+function toModelCoordinates(parameters, transforms) {
+  return Object.fromEntries(Object.entries(parameters).map(([name, value]) => [
+    name,
+    transforms[name] === "log" ? Math.exp(value)
+      : transforms[name] === "negative_log" ? -Math.exp(value)
+        : value,
+  ]));
+}
+
+function transformBounds(bounds, transforms) {
+  return Object.fromEntries(Object.entries(bounds).map(([name, [lower, upper]]) => [
+    name,
+    transforms[name] === "log" ? [Math.log(lower), Math.log(upper)]
+      : transforms[name] === "negative_log" ? [Math.log(-upper), Math.log(-lower)]
+        : [lower, upper],
+  ]));
+}
+
 function measurementKind(observation) {
   return String(
     observation.measurementType ??
@@ -231,20 +281,20 @@ function createPredictionFunction(options, observations) {
     );
   }
 
-  return (parameters) => {
+  return (parameters, targetObservations = observations) => {
     let rawPredictions;
     if (typeof evaluator === "function") {
-      rawPredictions = evaluator(parameters, observations);
-      if (!Array.isArray(rawPredictions) || rawPredictions.length !== observations.length) {
+      rawPredictions = evaluator(parameters, targetObservations);
+      if (!Array.isArray(rawPredictions) || rawPredictions.length !== targetObservations.length) {
         fail("INVALID_EVALUATOR_RESULT", "evaluator must return one prediction per observation.");
       }
     } else {
-      rawPredictions = observations.map((observation, index) =>
+      rawPredictions = targetObservations.map((observation, index) =>
         predictor(parameters, observation, index),
       );
     }
     return rawPredictions.map((rawPrediction, index) => {
-      const observation = observations[index];
+      const observation = targetObservations[index];
       if (isOpticalDensity(observation)) {
         return predictionNumber(
           observationModel(rawPrediction, observation, parameters, index),
@@ -259,6 +309,60 @@ function createPredictionFunction(options, observations) {
       }
       return predictionNumber(rawPrediction, `prediction ${index}`);
     });
+  };
+}
+
+function parameterBoundaryDiagnostics(parameters, bounds, names) {
+  const parametersAtBound = [];
+  for (const name of names) {
+    const [lower, upper] = bounds[name];
+    const tolerance = Math.max((upper - lower) * 1e-5, Number.EPSILON * Math.max(Math.abs(lower), Math.abs(upper)) * 8);
+    if (parameters[name] <= lower + tolerance) {
+      parametersAtBound.push({ parameter: name, side: "lower", value: parameters[name], bound: lower, tolerance });
+    }
+    if (parameters[name] >= upper - tolerance) {
+      parametersAtBound.push({ parameter: name, side: "upper", value: parameters[name], bound: upper, tolerance });
+    }
+  }
+  return { status: "ASSESSED", parametersAtBound };
+}
+
+function notIdentifiableResult({ method, parameterPolicy: policy, names, bounds, fixedParameters, observations, exactObservationCount, reason }) {
+  const requiredExactObservationCount = names.length + 1;
+  return {
+    role: "training_calibration",
+    fittedOnThisData: true,
+    eligibleAsValidationEvidence: false,
+    status: "NOT_IDENTIFIABLE",
+    method,
+    parameterPolicy: policy,
+    parameterWhitelist: names,
+    bounds: clone(bounds),
+    fittedParameters: null,
+    fixedParameters: clone(fixedParameters),
+    resolvedParameters: null,
+    parameters: null,
+    objectiveValue: null,
+    predictions: null,
+    residuals: null,
+    observationCount: observations.length,
+    optimization: null,
+    optimizationCoordinates: null,
+    converged: false,
+    fitDiagnostics: {
+      identifiability: {
+        status: "NOT_IDENTIFIABLE",
+        method: "uncensored_observation_count",
+        exactObservationCount,
+        requiredExactObservationCount,
+        freeParameterCount: names.length,
+        reason,
+      },
+      convergence: { status: "NOT_RUN", terminationReason: null },
+      boundary: { status: "NOT_ASSESSED", parametersAtBound: [] },
+      sigmaAtLowerBound: null,
+      profileLikelihood: { status: "NOT_ASSESSED", reason: "profile_likelihood_not_run_by_shared_fitter" },
+    },
   };
 }
 
@@ -341,6 +445,11 @@ export function fitParameters(options) {
     names,
     bounds,
   );
+  const optimizationTransforms = normalizeOptimizationTransforms(options.optimizationTransforms, names, bounds);
+  const optimizationBounds = transformBounds(bounds, optimizationTransforms);
+  const optimizationStart = initialParameters
+    ? toOptimizationCoordinates(initialParameters, optimizationTransforms)
+    : undefined;
   const fixedParameters = normalizeFixedParameters(options, names);
   const resolveParameters = (fitted) => ({ ...fixedParameters, ...fitted });
   const method = normalizeMethod(options);
@@ -356,7 +465,23 @@ export function fitParameters(options) {
     );
   }
 
-  const objective = (fitted) => {
+  const exactObservations = observations.filter((observation) => censoringType(observation) === "exact");
+  const requiredExactObservationCount = names.length + 1;
+  if (exactObservations.length < requiredExactObservationCount) {
+    return notIdentifiableResult({
+      method,
+      parameterPolicy: parameterPolicy(options),
+      names,
+      bounds,
+      fixedParameters,
+      observations,
+      exactObservationCount: exactObservations.length,
+      reason: "insufficient_uncensored_observations",
+    });
+  }
+
+  const objective = (coordinates) => {
+    const fitted = toModelCoordinates(coordinates, optimizationTransforms);
     const parameters = resolveParameters(fitted);
     const predictions = predictAll(parameters);
     if (method === "exact_log10_least_squares") {
@@ -380,14 +505,17 @@ export function fitParameters(options) {
 
   const optimization = optimizeBounded({
     objective,
-    bounds,
-    start: initialParameters,
+    bounds: optimizationBounds,
+    start: optimizationStart,
     seed: options.seed ?? 0,
     restarts: options.restarts ?? 3,
     differentialEvolution: options.differentialEvolution,
     nelderMead: options.nelderMead,
   });
-  const fittedParameters = optimization.bestParameters;
+  const optimizerBestParameters = optimization.bestParameters;
+  const fittedParameters = toModelCoordinates(optimizerBestParameters, optimizationTransforms);
+  optimization.coordinateSpace = Object.keys(optimizationTransforms).length > 0 ? "transformed" : "model";
+  optimization.modelSpaceBestParameters = clone(fittedParameters);
   const resolvedParameters = resolveParameters(fittedParameters);
   const predictions = predictAll(resolvedParameters);
   const residuals = computeResiduals(observations, predictions, {
@@ -397,10 +525,82 @@ export function fitParameters(options) {
         : undefined,
   });
 
+  const localIdentifiability = method === "exact_log10_least_squares"
+    ? analyzeIdentifiability({
+      parameters: fittedParameters,
+      parameterWhitelist: names,
+      bounds,
+      observations: exactObservations,
+      evaluator: (candidate, exactRows) => predictAll(resolveParameters(candidate), exactRows),
+    })
+    : null;
+  const localRank = localIdentifiability?.rank;
+  const parametersAtBound = parameterBoundaryDiagnostics(fittedParameters, bounds, names).parametersAtBound;
+  const sigmaParameterName = names.find((name) => /(?:^|\.)(?:errorSigmaLog10|sigma(?:Log10)?|sigmaLog10Residual)$/iu.test(name)) ?? null;
+  const sigmaAtLowerBound = sigmaParameterName
+    ? parametersAtBound.some((hit) => hit.parameter === sigmaParameterName && hit.side === "lower")
+    : null;
+  const identifiability = method === "exact_log10_least_squares"
+    ? {
+      status: localRank === names.length ? "ASSESSED_FULL_RANK_LOCAL" : "NOT_IDENTIFIABLE",
+      method: "local_prediction_jacobian",
+      exactObservationCount: exactObservations.length,
+      requiredExactObservationCount,
+      rank: localRank,
+      parameterCount: names.length,
+      conditionNumber: localIdentifiability.conditionNumber,
+      warningCodes: localIdentifiability.warnings.map((warning) => warning.code),
+    }
+    : {
+      status: "NOT_ASSESSED",
+      method: "uncensored_observation_count",
+      exactObservationCount: exactObservations.length,
+      requiredExactObservationCount,
+      reason: "likelihood_profile_required_for_parameter_identifiability",
+    };
+  const fitStatus = localIdentifiability && localRank < names.length
+    ? "NOT_IDENTIFIABLE"
+    : optimization.converged ? "FIT_COMPLETED" : "FIT_NOT_CONVERGED";
+  const diagnostics = {
+    identifiability,
+    convergence: {
+      status: optimization.converged ? "CONVERGED" : "NOT_CONVERGED",
+      terminationReason: optimization.terminationReason ?? null,
+    },
+    boundary: { status: "ASSESSED", parametersAtBound },
+    sigmaAtLowerBound,
+    profileLikelihood: { status: "NOT_ASSESSED", reason: "profile_likelihood_not_run_by_shared_fitter" },
+  };
+  if (fitStatus === "NOT_IDENTIFIABLE") {
+    return {
+      role: "training_calibration",
+      fittedOnThisData: true,
+      eligibleAsValidationEvidence: false,
+      status: fitStatus,
+      method,
+      parameterPolicy: parameterPolicy(options),
+      parameterWhitelist: names,
+      bounds: clone(bounds),
+      fittedParameters: null,
+      fixedParameters: clone(fixedParameters),
+      resolvedParameters: null,
+      parameters: null,
+      objectiveValue: null,
+      predictions: null,
+      residuals: null,
+      observationCount: observations.length,
+      optimization: null,
+      optimizationCoordinates: null,
+      converged: optimization.converged,
+      fitDiagnostics: diagnostics,
+    };
+  }
+
   return {
     role: "training_calibration",
     fittedOnThisData: true,
     eligibleAsValidationEvidence: false,
+    status: fitStatus,
     method,
     parameterPolicy: parameterPolicy(options),
     parameterWhitelist: names,
@@ -414,7 +614,13 @@ export function fitParameters(options) {
     residuals,
     observationCount: observations.length,
     optimization,
+    optimizationCoordinates: {
+      transforms: clone(optimizationTransforms),
+      bounds: clone(optimizationBounds),
+      bestParameters: clone(optimizerBestParameters),
+    },
     converged: optimization.converged,
+    fitDiagnostics: diagnostics,
   };
 }
 

@@ -15,6 +15,12 @@
       "capabilityLevel": "L1",
       "evidenceLevel": "E2",
       "conditionMatch": "transferred_calibration",
+      "intendedUse": "teaching_calibration_only",
+      "researchFitEligible": false,
+      "intendedUseNote": {
+        "en": "Transferred parameters support teaching and exploratory demonstrations only. Do not report them as condition-matched research estimates; research outputs must be estimated from the study dataset and validated under matching conditions.",
+        "zh-CN": "迁移参数仅用于教学和探索演示。不得作为条件匹配的研究估计报告；研究结果应由研究数据重新估计，并在匹配条件下验证。"
+      },
       "conditions": {
         "target": {
           "organism": "Escherichia coli",

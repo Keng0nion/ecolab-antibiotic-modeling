@@ -167,14 +167,19 @@ async function auditPortfolioExample(packageVersion) {
   const historical = [
     ["data/examples/ecolab-stage5-small-research-5.0.0.json", "f3365e5c616597c042aa87eb76040b620955f4ea9e8865c77b83e5245acc41b8"],
     ["data/examples/ecolab-stage5-small-research-5.0.0.md", "05ca4c25a2327f81119ee7af609d2536c1ec7072f35a4532f32319406f416bbd"],
+    ["data/examples/ecolab-stage6-research-6.0.0.json", "f5929dae8d22c9b6bc6839abb19d5e92dfa458566e9dd31cb2f82175e5c1d41f"],
+    ["data/examples/ecolab-stage6-research-6.0.0.md", "2b451d5bd26add57098e0a6a7eabcc2a531bd945b710dd104b735a12efec1527"],
   ];
   assert(Array.isArray(artifact.historicalArtifacts) && artifact.historicalArtifacts.length === historical.length,
-    "Example historical references must retain both frozen Stage 5 artifacts.");
+    "Example historical references must retain every frozen historical artifact.");
   for (const [historicalPath, expectedHash] of historical) {
     const actualHash = sha256(await readFile(resolve(rootPath, historicalPath)));
     assertSame(actualHash, expectedHash, `Example historical bytes ${historicalPath}`);
     assertSame(artifact.historicalArtifacts.find((entry) => entry.path === historicalPath), {
-      path: historicalPath, artifactVersion: "5.0.0", sha256: actualHash, status: "frozen_historical_record_not_regenerated",
+      path: historicalPath,
+      artifactVersion: /-(\d+\.\d+\.\d+)\.(?:json|md)$/u.exec(historicalPath)?.[1],
+      sha256: actualHash,
+      status: "frozen_historical_record_not_regenerated",
     }, `Example historical reference ${historicalPath}`);
   }
 
@@ -257,7 +262,7 @@ const [packageJson, corePackageJson, sourceVersion, builtVersion, headers, markd
   auditMarkdownLinks(),
   auditInlineHandlers(),
 ]);
-assert(packageJson.version === "6.0.0", `Stage 6 release must be 6.0.0, found ${packageJson.version}.`);
+assert(packageJson.version === "6.1.0", `Stage 6.1 release must be 6.1.0, found ${packageJson.version}.`);
 assert(sourceVersion.APPLICATION_VERSION === packageJson.version, "Source application version differs from package.json.");
 assert(builtVersion.APPLICATION_VERSION === packageJson.version, "Built application version differs from package.json.");
 assert(corePackageJson.version === packageJson.version, "Built core package version differs from package.json.");
@@ -272,9 +277,9 @@ const [modelVersion, analysisVersion] = await Promise.all([
   import(`${pathToFileURL(resolve(webPath, "src/analysis/version.js")).href}?audit=${Date.now()}`),
 ]);
 assert(ENGINE_VERSION === "2.0.0" && modelVersion.ENGINE_VERSION === ENGINE_VERSION, "Scientific core engine must remain at 2.0.0 in Stage 6.");
-assert(ANALYSIS_ENGINE_VERSION === "2.0.0" && analysisVersion.ANALYSIS_ENGINE_VERSION === ANALYSIS_ENGINE_VERSION, "Stage 6 analysis engine must be 2.0.0.");
+assert(ANALYSIS_ENGINE_VERSION === "2.1.0" && analysisVersion.ANALYSIS_ENGINE_VERSION === ANALYSIS_ENGINE_VERSION, "Stage 6.1 analysis engine must be 2.1.0.");
 assert(ANALYSIS_ENGINE_ID === "ecolab.stage4.analysis" && analysisVersion.ANALYSIS_ENGINE_ID === ANALYSIS_ENGINE_ID, "The stable analysis engine ID must remain ecolab.stage4.analysis.");
-assert(ANALYSIS_IMPLEMENTATION_ID === "ecolab-research-analysis-v2" && analysisVersion.ANALYSIS_IMPLEMENTATION_ID === ANALYSIS_IMPLEMENTATION_ID, "Stage 6 must use the ecolab-research-analysis-v2 implementation.");
+assert(ANALYSIS_IMPLEMENTATION_ID === "ecolab-research-analysis-v2" && analysisVersion.ANALYSIS_IMPLEMENTATION_ID === ANALYSIS_IMPLEMENTATION_ID, "Stage 6.1 must use the ecolab-research-analysis-v2 implementation.");
 
 const [coreInventory, webInventory] = await Promise.all([
   fileInventory(corePath, "core"),

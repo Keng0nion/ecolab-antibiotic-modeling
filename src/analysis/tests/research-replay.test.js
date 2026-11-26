@@ -79,6 +79,19 @@ test("inspector synchronously verifies a genuine legacy inventory but never clai
   assert.deepEqual(inspect(JSON.stringify(researchPackage)), inspected);
 });
 
+test("packages using the prior OD comparison implementation remain inspectable but cannot be replayed as current", async () => {
+  const previousPackage = clone((await currentFixture()).researchPackage);
+  const replayInput = previousPackage.contents.artifacts["research-replay-input"];
+  replayInput.options.computationSettings.growthComparison.implementationId = "direct-od-growth-comparison-v1";
+  previousPackage.contents.analysisManifest.algorithm.settings.computationSettings.growthComparison.implementationId = "direct-od-growth-comparison-v1";
+  rehash(previousPackage, "research-replay-input");
+  rehash(previousPackage, "analysis-manifest");
+  const inspected = inspect(previousPackage);
+  assert.equal(inspected.replayable, false);
+  assert.equal(inspected.status, "inspect_only");
+  assert.ok(inspected.reasons.some(({ code }) => code === "UNSUPPORTED_GROWTH_COMPARISON_IMPLEMENTATION"));
+});
+
 test("all inventory bytes use UTF-8 for strings and canonical JSON for object artifacts", async () => {
   const { researchPackage } = await fixture();
   const pkg = buildResearchPackage({
@@ -214,7 +227,7 @@ async function currentFixture() {
   currentFixturePromise ??= (async () => {
     const { options } = await fixture();
     return runEcolabResearchWorkflow({
-      ...options, applicationVersion: "6.0.0", runId: "replay-current-test",
+      ...options, applicationVersion: "6.1.0", runId: "replay-current-test",
       optimizer: { restarts: 1, populationSize: 4, differentialEvolutionMaxEvaluations: 8, nelderMeadMaxEvaluations: 8 },
       sobolBootstrapReplicates: 4, sobolBootstrapSeed: 73, sobolConfidenceLevel: 0.8, sobolPrecisionTolerance: 0.15,
       growthComparison: {

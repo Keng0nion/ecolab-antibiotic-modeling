@@ -20,12 +20,21 @@ for (let index = 0; index < args.length; index += 1) {
   const value = argument.includes("=") ? argument.slice(name.length + 1) : args[++index];
   if (!value?.trim() || value.startsWith("--")) throw new Error(`${name} requires a path.`);
 }
-const jsonPath = resolveFileOption(args, "--json-out", "data/examples/ecolab-stage6-research-6.0.0.json", rootPath);
-const markdownPath = resolveFileOption(args, "--markdown-out", "data/examples/ecolab-stage6-research-6.0.0.md", rootPath);
+const packageJson = JSON.parse(await readFile(new URL("package.json", rootUrl), "utf8"));
+const jsonPath = resolveFileOption(args, "--json-out", `data/examples/ecolab-stage6-research-${packageJson.version}.json`, rootPath);
+const markdownPath = resolveFileOption(args, "--markdown-out", `data/examples/ecolab-stage6-research-${packageJson.version}.md`, rootPath);
 const historicalPaths = [
   "data/examples/ecolab-stage5-small-research-5.0.0.json",
   "data/examples/ecolab-stage5-small-research-5.0.0.md",
+  "data/examples/ecolab-stage6-research-6.0.0.json",
+  "data/examples/ecolab-stage6-research-6.0.0.md",
 ];
+
+function historicalArtifactVersion(path) {
+  const version = /-(\d+\.\d+\.\d+)\.(?:json|md)$/u.exec(basename(path))?.[1];
+  if (!version) throw new Error(`Cannot derive a historical artifact version from ${path}`);
+  return version;
+}
 
 async function canonicalPath(path) {
   try {
@@ -75,8 +84,7 @@ async function readJson(path) {
 
 const datasetPath = "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json";
 const checksumsPath = "data/datasets/figshare-bw25113-growth-v1/checksums.json";
-const [packageJson, datasetText, checksumsText, modelRegistry, parameterRegistry, sourceRegistry, historicalBytes] = await Promise.all([
-  readJson("package.json"),
+const [datasetText, checksumsText, modelRegistry, parameterRegistry, sourceRegistry, historicalBytes] = await Promise.all([
   readFile(new URL(datasetPath, rootUrl), "utf8"),
   readFile(new URL(checksumsPath, rootUrl), "utf8"),
   readJson("data/registry/model-definitions.json"),
@@ -99,11 +107,12 @@ const result = await runEcolabResearchWorkflow({
   datasetInput: datasetText,
   resolvedModel,
   applicationVersion: packageJson.version,
-  runId: "ecolab-stage6-research-6.0.0",
+  runId: `ecolab-stage6-research-${packageJson.version}`,
   createdAt: "2026-09-07T12:00:00.000Z",
   datasetVersion: checksums.datasetVersion,
   contentHash,
   seed: 123456789,
+  preset,
   ...researchPreset(preset),
 });
 const researchPackage = result.researchPackage;
@@ -148,7 +157,7 @@ const artifact = {
     workbookHashStatus: "Original workbook hashes are provenance declarations copied from checksums.json, not recomputed by this generator. Original XLSX bytes are not embedded or needed for replay of the normalized input.",
   },
   historicalArtifacts: historicalPaths.map((path, index) => ({
-    path, artifactVersion: "5.0.0", sha256: sha256(historicalBytes[index]),
+    path, artifactVersion: historicalArtifactVersion(path), sha256: sha256(historicalBytes[index]),
     status: "frozen_historical_record_not_regenerated",
   })),
   scientificResultRef: { artifactId: scientificReference.artifactId, sha256: scientificReference.sha256 },
@@ -235,7 +244,7 @@ const markdown = [
   "## Warnings",
   ...result.warnings.map(({ code, message }) => `- \`${code}\`: ${message}`),
   "## Frozen historical artifacts",
-  "These Stage 5 files remain byte-for-byte historical records, not current-method outputs or new validation evidence. This command never regenerates them, even when passed their paths explicitly.",
+  "These historical files remain byte-for-byte frozen records, not current-method outputs or new validation evidence. This command never regenerates them, even when passed their paths explicitly.",
   ...artifact.historicalArtifacts.map(({ path, sha256: hash }) => `- \`${path}\`; SHA-256 \`${hash}\`.`),
   `The unmodified research package, actual scientific fields and replay inputs are in [the companion JSON](${companionLink(jsonPath)}).`,
 ].join("\n\n") + "\n";

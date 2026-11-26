@@ -193,6 +193,7 @@ export function buildResearchWorkflowOptions({ run, dataset, resolvedModel }) {
     datasetVersion: run.datasetVersion,
     contentHash: run.contentHash,
     seed: run.seed,
+    preset: run.preset,
     ...budgets,
   };
 }

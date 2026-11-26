@@ -43,22 +43,22 @@ function contrastRatio(first, second) {
 
 test("application version is consistent with the root package source of truth", async () => {
   const { stdout } = await runNode(["scripts/check-version.js"]);
-  assert.match(stdout, /6\.0\.0/);
-  assert.match(stdout, /analysis 2\.0\.0/i);
+  assert.match(stdout, /6\.1\.0/);
+  assert.match(stdout, /analysis 2\.1\.0/i);
   assert.match(stdout, /ecolab-research-analysis-v2/);
   assert.match(stdout, /core 2\.0\.0.*model 1\.0\.0/);
 });
 
-test("Stage 6 advances application and analysis versions without renaming the stable engine or teaching core", async () => {
+test("Stage 6.1 advances application and analysis versions without renaming the stable engine or teaching core", async () => {
   const [application, analysis, model, packageText] = await Promise.all([
     import("../../src/app/version.js"),
     import("../../src/analysis/version.js"),
     import("../../src/model/version.js"),
     readFile(resolve(rootPath, "package.json"), "utf8"),
   ]);
-  assert.equal(JSON.parse(packageText).version, "6.0.0");
-  assert.equal(application.APPLICATION_VERSION, "6.0.0");
-  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.0.0");
+  assert.equal(JSON.parse(packageText).version, "6.1.0");
+  assert.equal(application.APPLICATION_VERSION, "6.1.0");
+  assert.equal(analysis.ANALYSIS_ENGINE_VERSION, "2.1.0");
   assert.equal(analysis.ANALYSIS_ENGINE_ID, "ecolab.stage4.analysis");
   assert.equal(analysis.ANALYSIS_ENGINE_STABLE_ID, analysis.ANALYSIS_ENGINE_ID);
   assert.equal(analysis.ANALYSIS_STABLE_ID, analysis.ANALYSIS_ENGINE_ID);
@@ -105,7 +105,11 @@ test("release audit checks temporary products and writes a sorted SHA-256 manife
   assert.ok(paths.includes("web/_headers"));
 });
 
-test("Stage 6 release audit verifies actual replay science and rejects rehashed claims without requiring a winner", { timeout: 120_000 }, async (t) => {
+// This test regenerates the current example, builds Core/Web twice and replays the
+// package, so its wall clock scales with host contention. The budget is a harness
+// guard only; every assertion below still runs. Isolated: ~60 s idle host, ~126 s
+// under heavy external load; the full concurrent suite can double that again.
+test("Stage 6 release audit verifies actual replay science and rejects rehashed claims without requiring a winner", { timeout: 600_000 }, async (t) => {
   const fixture = await mkdtemp(resolve(tmpdir(), "ecolab-example-audit-test-"));
   t.after(() => rm(fixture, { recursive: true, force: true }));
   await Promise.all(["package.json", "index.html", "scripts", "src", "schemas", "data/registry", "data/datasets", "data/examples"].map(async (path) => {
@@ -119,7 +123,7 @@ test("Stage 6 release audit verifies actual replay science and rejects rehashed 
   await run(["scripts/generate-example-research.js"]);
   await run(["scripts/build-core.js", "--out-dir", "products/core"]);
   await run(["scripts/build-web.js", "--out-dir", "products/web"]);
-  const examplePath = resolve(fixture, "data/examples/ecolab-stage6-research-6.0.0.json");
+  const examplePath = resolve(fixture, "data/examples/ecolab-stage6-research-6.1.0.json");
   const originalText = await readFile(examplePath, "utf8");
   const original = JSON.parse(originalText);
   const manifestPath = resolve(fixture, "products/release-manifest.sha256");
@@ -136,7 +140,7 @@ test("Stage 6 release audit verifies actual replay science and rejects rehashed 
   }
   await t.test("accepts the actual new example and reports successful scientific replay", async () => {
     const { stdout } = await audit();
-    assert.match(stdout, /Release audit passed for application 6\.0\.0/);
+    assert.match(stdout, /Release audit passed for application 6\.1\.0/);
     assert.match(stdout, /strict package.*scientific replay matched/i);
     assert.ok(stdout.includes(`preset=${original.generatedFrom.preset}`));
     await access(manifestPath);
@@ -175,7 +179,7 @@ test("Stage 6 release audit verifies actual replay science and rejects rehashed 
       a.researchPackage.contents.analysisManifest.diagnostics.metrics.training.macroRmse += 0.01;
       rehash(a, "analysis-manifest");
     }, /Example manifest.*training/],
-    ["historical reference hash", (a) => { a.historicalArtifacts[0].sha256 = "0".repeat(64); }, /Example historical/],
+    ["historical reference hash", (a) => { a.historicalArtifacts.at(-1).sha256 = "0".repeat(64); }, /Example historical/],
   ]) {
     await t.test(`rejects ${name}`, async () => {
       const changed = structuredClone(original); mutate(changed);

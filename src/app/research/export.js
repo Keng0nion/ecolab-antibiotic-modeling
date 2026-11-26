@@ -88,22 +88,30 @@ function csvDisclosurePreamble(dataset, locale, result) {
     ? disclosureRows(locale, result).filter(([key]) => key !== "license").map(([key, value]) => [
       key,
       // Standalone source exports disclose current evidence status, not a historical run's role.
-      key === "validation_limitation" && result === undefined ? developmentValidationDisclosure(locale) : value,
+      key === "validation_limitation" && result == null ? developmentValidationDisclosure(locale) : value,
     ])
     : [];
   if (sourceIds.length) rows.push(["source_ids", sourceIds]);
   if (metadata.license) rows.push(["license", metadata.license]);
+  const runMetadata = result?.runMetadata;
+  if (runMetadata) {
+    rows.push(["application_version", runMetadata.applicationVersion ?? result.applicationVersion ?? "unknown"]);
+    rows.push(["random_seed", runMetadata.seed ?? ""]);
+    rows.push(["random_algorithm", runMetadata.seeds?.algorithm ?? result.seeds?.algorithm ?? ""]);
+    rows.push(["run_settings_json", runMetadata.settings ?? {}]);
+    rows.push(["fit_status", result.status ?? ""]);
+  }
   return rows.map(([key, value]) => `# ${key}: ${csvCell(value)}\n`).join("");
 }
 
-export function normalizedDatasetToCsv(dataset, locale = "en") {
+export function normalizedDatasetToCsv(dataset, locale = "en", result = null) {
   if (!dataset?.observations || !Array.isArray(dataset.observations)) {
     throw new TypeError("A normalized observation dataset is required.");
   }
   const rows = dataset.observations.map((observation) => OBSERVATION_HEADERS
     .map((header) => csvCell(observation[header]))
     .join(","));
-  return `${csvDisclosurePreamble(dataset, locale)}${OBSERVATION_HEADERS.join(",")}\n${rows.join("\n")}\n`;
+  return `${csvDisclosurePreamble(dataset, locale, result)}${OBSERVATION_HEADERS.join(",")}\n${rows.join("\n")}\n`;
 }
 
 function validationRows(dataset, result) {
@@ -227,6 +235,13 @@ export function researchPackageJson(result) {
   return JSON.stringify(result.researchPackage, null, 2);
 }
 
+export function researchResultJson(result) {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("A completed or status-only fit result is required.");
+  }
+  return JSON.stringify(result, null, 2);
+}
+
 export function researchMethodsText(result, locale = "en") {
   if (!result?.methodsSummaryMarkdown) throw new Error("No completed Research methods summary is available.");
   const heading = locale === "zh-CN" ? "## 必须保留的来源与限制" : "## Required provenance and limitations";
@@ -241,11 +256,13 @@ export function researchExportAvailability(datasetRecord, result) {
   const residuals = result?.validation?.residuals;
   return {
     dataset,
+    resultJson: Boolean(result && typeof result === "object"),
     manifest: Boolean(dataset && result?.manifest),
     package: Boolean(dataset && result?.researchPackage),
     predictions: Boolean(dataset && Array.isArray(predictions) && Array.isArray(residuals) && predictions.length === validationCount && residuals.length === validationCount),
     methods: Boolean(dataset && result?.methodsSummaryMarkdown),
-    svg: Boolean(dataset && result),
+    svg: Boolean(dataset && result && result.kind !== "ecolab-kill-workflow"
+      && Array.isArray(result.validation?.predictions) && Array.isArray(result.validation?.residuals)),
   };
 }
 

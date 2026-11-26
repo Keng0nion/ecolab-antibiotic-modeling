@@ -1,6 +1,6 @@
 # Ecolab 项目介绍与真实结果 / Portfolio case study
 
-当前案例：应用 `6.0.0`，分析引擎 `2.0.0`；2026-09-07。
+当前案例：应用 `6.1.0`，分析引擎 `2.1.0`；2026-11-26。6.0.0 示例（应用 `6.0.0` / 分析 `2.0.0`，2026-09-07）保留为历史工件，不代表当前方法输出。
 
 ## 可用于简历 / 作品集的三条介绍草稿
 
@@ -102,8 +102,9 @@ eligibleForL4=false
 
 ## 可复现工件与个人贡献核对
 
-- [当前 JSON](../data/examples/ecolab-stage6-research-6.0.0.json)；[当前自动生成的方法/结果](../data/examples/ecolab-stage6-research-6.0.0.md)。
-- 科学结果 canonical SHA-256：`6c4657779363edb4d9d3cbe33c15520378eb5a62469f9caff7b52da54cafb84e`。
+- [当前 6.1.0 JSON](../data/examples/ecolab-stage6-research-6.1.0.json)；[当前 6.1.0 自动生成的方法/结果](../data/examples/ecolab-stage6-research-6.1.0.md)。
+- 当前示例科学结果 canonical SHA-256：`1f261285e1d4d597451b33110c277f726f73eae36cfa56659ec1e34c5904d9c8`。
+- [历史 6.0.0 JSON](../data/examples/ecolab-stage6-research-6.0.0.json) 与 [历史 6.0.0 Markdown](../data/examples/ecolab-stage6-research-6.0.0.md) 保持生成时字节，不随当前方法重写；其科学结果 SHA-256 为 `6c4657779363edb4d9d3cbe33c15520378eb5a62469f9caff7b52da54cafb84e`。
 - JSON 是示例 wrapper；浏览器研究包导入应使用其中 `researchPackage`，不是整个 wrapper。研究包数据自包含，但依赖精确兼容的内置软件；哈希只证明完整性，不证明真实性。
 - [历史 5.0.0 JSON](../data/examples/ecolab-stage5-small-research-5.0.0.json) 与 [历史 Markdown](../data/examples/ecolab-stage5-small-research-5.0.0.md) 原样保留；旧文案仅代表当时记录，不延续为本版的未触碰验证声明。
 

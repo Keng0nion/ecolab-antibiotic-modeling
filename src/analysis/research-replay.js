@@ -2,7 +2,11 @@ import { ENGINE_VERSION } from "../model.js";
 import { validateAnalysisPlan } from "./analysis-plan.js";
 import { importObservationDataset, normalizeObservationDataset, parseJsonStrict } from "./dataset-import.js";
 import { canonicalJson, sha256HexFallback } from "./fingerprint.js";
-import { GROWTH_COMPARISON_LIMITS } from "./growth-comparison.js";
+import {
+  GROWTH_COMPARISON_IMPLEMENTATION_ID,
+  GROWTH_COMPARISON_LIMITS,
+  GROWTH_TRAJECTORY_CALIBRATION,
+} from "./growth-comparison.js";
 import { deriveSeed, RNG_ALGORITHM } from "./random.js";
 import { hasCanonicalNumericWarningMessage } from "./replay-warning-equivalence.js";
 import { researchWorkflowComputationSettings, researchWorkflowConfiguration, researchWorkflowRuntime } from "./research-workflow.js";
@@ -18,7 +22,7 @@ const MAX_PATH_LENGTH = 512;
 const ENCODER = new TextEncoder();
 const UNSAFE_KEYS = new Set(["__proto__", "prototype", "constructor", "toJSON"]);
 const HASH = /^[0-9a-f]{64}$/;
-const VERSIONS = Object.freeze({ application: "6.0.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID });
+const VERSIONS = Object.freeze({ application: "6.1.0", core: ENGINE_VERSION, analysis: ANALYSIS_ENGINE_VERSION, analysisImplementationId: ANALYSIS_IMPLEMENTATION_ID });
 const MODEL = Object.freeze({ id: "ecolab.single-population.regoes-logistic", version: "1.0.0", implementationId: "regoes-logistic-piecewise-analytic-v1" });
 const REQUIRED_ARTIFACTS = ["normalized-observation-dataset", "dataset-split", "locked-analysis-plan", "resolved-model-snapshot", "research-replay-input", "scientific-result"];
 const OPTIMIZER_KEYS = ["restarts", "populationSize", "differentialEvolutionMaxEvaluations", "nelderMeadMaxEvaluations"];
@@ -351,18 +355,19 @@ function verifyAssociations(pkg) {
   return { dataset, split, model, plan };
 }
 
-function validateReplayInput(input) {
+function validateReplayInput(input, trainingTrajectoryCount) {
   shape(input, ["schemaVersion", "kind", "implementationId", "versions", "options"], [], INPUT_PATH);
   schema(input.schemaVersion === "1.0.0" && input.kind === "ecolab-research-replay-input", INPUT_PATH);
   string(input.implementationId, `${INPUT_PATH}.implementationId`);
   shape(input.versions, Object.keys(VERSIONS), [], `${INPUT_PATH}.versions`); strings(input.versions, Object.keys(VERSIONS), `${INPUT_PATH}.versions`);
   const o = input.options; const p = `${INPUT_PATH}.options`;
-  shape(o, OPTION_KEYS, [], p);
+  shape(o, OPTION_KEYS, ["preset"], p);
   strings(o, ["datasetInput", "datasetFormat", "applicationVersion", "runId", "datasetVersion", "contentHash", "packageId", "planId"], p);
   timestamp(o.createdAt, `${p}.createdAt`); digest(o.contentHash, `${p}.contentHash`);
   schema(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(o.datasetVersion), `${p}.datasetVersion`);
   schema(["json", "csv"].includes(o.datasetFormat), `${p}.datasetFormat`);
   for (const key of ["includeMonteCarloSamples", "developmentComparison"]) schema(typeof o[key] === "boolean", `${p}.${key}`);
+  if (Object.hasOwn(o, "preset")) schema(o.preset === null || typeof o.preset === "string", `${p}.preset`, "Expected a preset name or null.");
   number(o.scalarOutputTimeHours, `${p}.scalarOutputTimeHours`);
   for (const key of ["seed", "sobolBootstrapSeed"]) number(o[key], `${p}.${key}`, 0, 0xffff_ffff, true);
   for (const key of ["resolvedModel", "computationSettings"]) object(o[key], `${p}.${key}`);
@@ -400,7 +405,14 @@ function validateReplayInput(input) {
   number(g.crossValidation.tieTolerance, `${gp}.crossValidation.tieTolerance`, 0);
   shape(g.bootstrap, ["samples", "intervalLevel"], [], `${gp}.bootstrap`);
   number(g.bootstrap.samples, `${gp}.bootstrap.samples`, 0, limits.maximumBootstrapSamples, true); number(g.bootstrap.intervalLevel, `${gp}.bootstrap.intervalLevel`, Number.MIN_VALUE, 1 - Number.EPSILON);
-  const evaluations = g.optimizer.restarts * (g.optimizer.differentialEvolutionMaxEvaluations + g.optimizer.nelderMeadMaxEvaluations) * (2 * (g.crossValidation.folds.length + 1) + g.bootstrap.samples);
+  const growthImplementationId = o.computationSettings.growthComparison?.implementationId;
+  const hasTrajectoryCalibration = growthImplementationId === GROWTH_COMPARISON_IMPLEMENTATION_ID;
+  const calibrationCount = Math.max(1, Math.ceil(trainingTrajectoryCount * GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction));
+  const calibrationFitCount = trainingTrajectoryCount - calibrationCount;
+  const calibrationFits = hasTrajectoryCalibration && calibrationFitCount >= 2 ? 3 * calibrationFitCount + 1 : 0;
+  const originalFits = hasTrajectoryCalibration ? 3 * (g.crossValidation.folds.length + 1) : 2 * (g.crossValidation.folds.length + 1);
+  const evaluations = g.optimizer.restarts * (g.optimizer.differentialEvolutionMaxEvaluations + g.optimizer.nelderMeadMaxEvaluations)
+    * (originalFits + g.bootstrap.samples + calibrationFits);
   if (evaluations > limits.maximumTotalEvaluations) fail("RESEARCH_PACKAGE_LIMIT", "Growth computation budget exceeds built-in limit.", gp);
 }
 
@@ -452,11 +464,12 @@ function verifyBuiltInSettings(input, manifest) {
   // These rules are pinned to RESEARCH_WORKFLOW_IMPLEMENTATION_ID. They describe
   // built-in code only; imported settings never choose code or dependency locations.
   settings.growthComparison = {
-    implementationId: "direct-od-growth-comparison-v1", developmentRole: "validation",
+    implementationId: GROWTH_COMPARISON_IMPLEMENTATION_ID, developmentRole: "validation",
     objective: "mean_trajectory_mse_od600", crossValidationMetric: "macroRmse", tieOrder: ["training_mean", "logistic", "gompertz"],
     optimizerConstants: { mutationFactor: 0.8, crossoverRate: 0.9, initialStep: 0.05 },
     quantileMethod: "R7", minimumExpectedTailSamples: 5, intervalRefits: "finite_converged_only",
-    seedDerivation: "deriveSeed(root, direct-od-growth-comparison-v1, phase, model, index); restart and stage substreams",
+    seedDerivation: "Existing CV/training/bootstrap retain the direct-od-growth-comparison-v1 seed namespace; trajectory calibration uses the v2 named substreams recorded in trajectoryCalibration.",
+    trajectoryCalibration: GROWTH_TRAJECTORY_CALIBRATION,
     resamplingUnit: "whole_training_trajectory", independentParameterMarginalsForSensitivity: false,
   };
   same(o.computationSettings, settings, `${p}.computationSettings`);
@@ -480,13 +493,16 @@ export function inspectResearchPackage(input) {
   if (isNew) {
     for (const id of REQUIRED_ARTIFACTS) integrity(Object.hasOwn(artifacts, id) && pkg.replay.artifactIds.includes(id), `${ARTIFACT_PATH}.${id}`, "Versioned replay requires this embedded and declared artifact.");
     object(artifacts["scientific-result"], `${ARTIFACT_PATH}.scientific-result`);
-    validateReplayInput(replayInput);
+    validateReplayInput(replayInput, snapshots.split.roles.training.independentUnitIds.length);
     verifyReplayAssociations(pkg, replayInput, snapshots);
   }
   const reasons = [];
   const reason = (code, message) => reasons.push({ code, message });
   if (!isNew) reason("MISSING_REPLAY_INPUT", "Legacy package has no complete versioned replay input; inspection only.");
-  if (Object.entries(VERSIONS).some(([key, value]) => m.versions[key] !== value) || m.versions.analysisEngineId !== ANALYSIS_ENGINE_ID) reason("UNSUPPORTED_SOFTWARE_VERSION", "Replay requires application 6.0.0, core 2.0.0 and the built-in analysis 2.0.0 implementation exactly.");
+  if (Object.entries(VERSIONS).some(([key, value]) => m.versions[key] !== value) || m.versions.analysisEngineId !== ANALYSIS_ENGINE_ID) reason("UNSUPPORTED_SOFTWARE_VERSION", "Replay requires application 6.1.0, core 2.0.0 and the built-in analysis 2.1.0 implementation exactly.");
+  if (isNew && replayInput.options.computationSettings.growthComparison?.implementationId !== GROWTH_COMPARISON_IMPLEMENTATION_ID) {
+    reason("UNSUPPORTED_GROWTH_COMPARISON_IMPLEMENTATION", "The saved OD comparison predates the current independent trajectory calibration method; inspect only, without replay.");
+  }
   if (isNew && replayInput.implementationId !== RESEARCH_WORKFLOW_IMPLEMENTATION_ID) reason("UNSUPPORTED_WORKFLOW_IMPLEMENTATION", "Only the built-in development v2 research workflow can execute.");
   if (Object.entries(MODEL).some(([key, value]) => m.model[key] !== value)) reason("UNSUPPORTED_MODEL_IMPLEMENTATION", "Model ID, version and implementation must exactly match the built-in model.");
   if (isNew && m.dataset.id !== "figshare-bw25113-growth-v1") reason("UNSUPPORTED_DATASET", "This built-in workflow supports only its declared BW25113 dataset.");

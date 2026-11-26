@@ -252,6 +252,41 @@ test("real bundled import, training fit, lock, and held-out validation are deter
   assert.deepEqual(first.researchPackage.artifactInventory, second.researchPackage.artifactInventory);
 });
 
+test("OD least-squares workflow returns status and withholds estimates when local rank is deficient", async () => {
+  const { datasetText, resolvedModel } = await fixture();
+  const dataset = JSON.parse(datasetText);
+  for (const observation of dataset.observations) observation.value = 0.1;
+  const result = await runEcolabStage4ResearchWorkflow(reducedOptions(dataset, resolvedModel));
+
+  assert.equal(result.status, "NOT_IDENTIFIABLE");
+  assert.equal(result.training.status, "NOT_IDENTIFIABLE");
+  assert.equal(result.training.fittedBiologicalParameters, null);
+  assert.equal(result.training.fitDiagnostics.identifiability.method, "local_prediction_jacobian");
+  assert.equal(result.validation.status, "NOT_RUN");
+  assert.equal(result.runMetadata.seed, 123456789);
+});
+
+test("OD least-squares workflow reports an assessed or explicitly unassessed profile likelihood", async () => {
+  const { datasetText, resolvedModel } = await fixture();
+  const result = await runEcolabStage4ResearchWorkflow(reducedOptions(datasetText, resolvedModel, {
+    profileLikelihoodPoints: 5,
+  }));
+  const profile = result.training.fitDiagnostics.profileLikelihood;
+  assert.ok(["ASSESSED", "NOT_ASSESSED"].includes(profile.status));
+  assert.equal(profile.method, "profile_likelihood_gaussian_ssr_sigma_profiled");
+  assert.deepEqual(Object.keys(profile.parameters).sort(), [
+    "initialStates.pooled.log10PopulationDensity",
+    "psiMaxLog10PerHour",
+  ].sort());
+  for (const row of Object.values(profile.parameters)) {
+    assert.ok(["ASSESSED", "NOT_ASSESSED"].includes(row.status));
+    assert.ok(Array.isArray(row.points));
+    assert.equal(row.points.length, 5);
+    assert.ok(row.points.every((point) => typeof point.converged === "boolean"));
+    if (row.status === "NOT_ASSESSED") assert.equal(typeof row.reason, "string");
+  }
+});
+
 test("real workflow retains OD semantics in names and warnings", async () => {
   const { datasetText, resolvedModel } = await fixture();
   const result = await runEcolabStage4ResearchWorkflow(reducedOptions(datasetText, resolvedModel));

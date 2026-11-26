@@ -2,7 +2,12 @@ import { ENGINE_VERSION } from "../model.js";
 import { buildResearchPackage, createAnalysisManifest, generateMethodsSummaryMarkdown } from "./analysis-manifest.js";
 import { importObservationDataset } from "./dataset-import.js";
 import { canonicalJson, sha256HexFallback } from "./fingerprint.js";
-import { GROWTH_COMPARISON_LIMITS, runGrowthModelComparison } from "./growth-comparison.js";
+import {
+  GROWTH_COMPARISON_IMPLEMENTATION_ID,
+  GROWTH_COMPARISON_LIMITS,
+  GROWTH_TRAJECTORY_CALIBRATION,
+  runGrowthModelComparison,
+} from "./growth-comparison.js";
 import { deriveSeed, RNG_ALGORITHM } from "./random.js";
 import {
   EcolabResearchWorkflowError,
@@ -14,7 +19,7 @@ import {
 import { ANALYSIS_ENGINE_VERSION, ANALYSIS_IMPLEMENTATION_ID } from "./version.js";
 
 export const RESEARCH_WORKFLOW_IMPLEMENTATION_ID = "ecolab-research-development-v2";
-const APPLICATION_VERSION = "6.0.0";
+const APPLICATION_VERSION = "6.1.0";
 const SCIENTIFIC_FIELDS = Object.freeze([
   "dataset", "model", "split", "parameterSpace", "seeds", "training", "identifiability",
   "lockedPlan", "validation", "analyses", "growthComparison", "capability", "warnings", "researchAssessment",
@@ -27,7 +32,7 @@ const SCALAR_KEYS = [
 ];
 const OPTION_KEYS = [
   "datasetInput", "datasetFormat", "resolvedModel", "runId", "createdAt", "datasetVersion", "contentHash",
-  "applicationVersion", "planId", "packageId", "seed", "optimizer", "optimizerRestarts", "populationSize",
+  "applicationVersion", "planId", "packageId", "seed", "preset", "optimizer", "optimizerRestarts", "populationSize",
   "differentialEvolutionMaxEvaluations", "nelderMeadMaxEvaluations", ...SCALAR_KEYS,
   "growthComparison", "developmentComparison", "scalarOutputTimeHours", "seeds", "computationSettings", "runtime", "onProgress",
 ];
@@ -138,8 +143,11 @@ function growthConfiguration(input, trainingIds) {
   const bootstrap = { ...GROWTH_DEFAULTS.bootstrap, ...record(source.bootstrap ?? {}, "growthComparison.bootstrap", ["samples", "intervalLevel"]) };
   integer(bootstrap.samples, "growthComparison.bootstrap.samples", 0, limits.maximumBootstrapSamples);
   number(bootstrap.intervalLevel, "growthComparison.bootstrap.intervalLevel", Number.MIN_VALUE, 1 - Number.EPSILON);
+  const calibrationCount = Math.max(1, Math.ceil(trainingIds.length * GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction));
+  const calibrationFitCount = trainingIds.length - calibrationCount;
+  const calibrationFits = calibrationFitCount >= 2 ? 3 * calibrationFitCount + 1 : 0;
   const evaluations = optimizer.restarts * (optimizer.differentialEvolutionMaxEvaluations + optimizer.nelderMeadMaxEvaluations)
-    * (2 * (folds.length + 1) + bootstrap.samples);
+    * (3 * (folds.length + 1) + bootstrap.samples + calibrationFits);
   if (evaluations > limits.maximumTotalEvaluations) fail("EVALUATION_LIMIT", "Combined growth CV/refit/bootstrap budget exceeds its limit.", "growthComparison");
   return { bounds, optimizer, crossValidation: { folds, tieTolerance: number(cv.tieTolerance ?? 1e-10, "growthComparison.crossValidation.tieTolerance", 0) }, bootstrap };
 }
@@ -186,12 +194,13 @@ function normalizeOptions(input) {
   const computationSettings = {
     ...researchWorkflowComputationSettings({ ...explicit, resolvedModel }),
     growthComparison: {
-      implementationId: "direct-od-growth-comparison-v1", developmentRole: "validation",
+      implementationId: GROWTH_COMPARISON_IMPLEMENTATION_ID, developmentRole: "validation",
       objective: "mean_trajectory_mse_od600", crossValidationMetric: "macroRmse",
       tieOrder: ["training_mean", "logistic", "gompertz"],
       optimizerConstants: { mutationFactor: 0.8, crossoverRate: 0.9, initialStep: 0.05 },
       quantileMethod: "R7", minimumExpectedTailSamples: 5, intervalRefits: "finite_converged_only",
-      seedDerivation: "deriveSeed(root, direct-od-growth-comparison-v1, phase, model, index); restart and stage substreams",
+      seedDerivation: "Existing CV/training/bootstrap retain the direct-od-growth-comparison-v1 seed namespace; trajectory calibration uses the v2 named substreams recorded in trajectoryCalibration.",
+      trajectoryCalibration: GROWTH_TRAJECTORY_CALIBRATION,
       resamplingUnit: "whole_training_trajectory", independentParameterMarginalsForSensitivity: false,
     },
   };
@@ -232,6 +241,7 @@ function normalizeOptions(input) {
     packageId: text(input.packageId ?? `${input.runId}-research-package`, "packageId"),
     planId: text(input.planId ?? `${imported.dataset.metadata.datasetId}-development-plan-v2`, "planId"),
     developmentComparison: true, scalarOutputTimeHours: 10, seed, seeds, computationSettings,
+    ...(input.preset === undefined || input.preset === null ? {} : { preset: text(input.preset, "preset") }),
     optimizer: {
       restarts: config.optimizerRestarts, populationSize: config.populationSize,
       differentialEvolutionMaxEvaluations: config.differentialEvolutionMaxEvaluations,
@@ -353,6 +363,7 @@ function buildArtifacts(result, legacy, options) {
     + "The legacy source role named validation is previously viewed development data: untouched=false, no L4 evidence. The legacy locked-plan flag records frozen training parameters/settings, not untouched evidence.\n\n"
     + "Direct-OD Logistic and Gompertz candidates are empirical observation-scale curves, not CFU or log-population Zwietering physiology. Complete-trajectory training-only CV selects against the exact-time training-mean baseline with a deterministic tolerance/tie order. Selection is frozen before development evaluation.\n\n"
     + "Whole training trajectories are resampled with replacement; selected-model refits retain joint parameter draws and failures. Percentile intervals condition on successful refits and exclude selection/noise uncertainty. Independence, identification, precision and coverage are not established by completion.\n\n"
+    + "For a new complete trajectory, a seeded 60/40 split holds calibration units out of model selection and fitting. Calibration uses one maximum absolute OD residual per curve and reports only finite-sample-resolvable simultaneous bands; the bundled eight-trajectory training set resolves 80% but not 90% or 95%. Exchangeability and matching time support remain assumptions, not verified facts.\n\n"
     + "Objective slices fix other biological parameters but reoptimize OD nuisance parameters on training data; they are not profile likelihood. Legacy Monte Carlo/Sobol uses separate engineering ranges, never independently mixed growth-bootstrap marginals. All exact inputs, seeds and budgets are embedded in research-replay-input.json.\n";
   const replayInput = {
     schemaVersion: "1.0.0", kind: "ecolab-research-replay-input", implementationId: RESEARCH_WORKFLOW_IMPLEMENTATION_ID,
@@ -386,7 +397,7 @@ function buildArtifacts(result, legacy, options) {
 /**
  * Development-only, pure v2 research workflow; no I/O or registry resolution.
  * Required: datasetInput (source text or JSON object), resolvedModel, runId,
- * createdAt (ISO timestamp), datasetVersion. applicationVersion defaults to 6.0.0
+ * createdAt (ISO timestamp), datasetVersion. applicationVersion defaults to 6.1.0
  * and other versions are rejected. contentHash defaults to SHA-256 of the exact
  * text; object input is canonicalized to NEW source text and any supplied hash
  * must match that text. The bundled legacy dataset/model restrictions still apply.
@@ -428,6 +439,30 @@ export async function runEcolabResearchWorkflow(input = {}) {
     onProgress: (event) => { if (event.phase !== "complete") runtime.progress(event); },
   });
   await runtime.checkpoint();
+  if (!legacy.researchPackage) {
+    // The shared exact-observation/local-rank gate stopped the legacy fit before any
+    // estimates existed. There is no normalized package or split to compare, so the
+    // status-only result is propagated instead of fabricating a comparison.
+    runtime.progress({ phase: "complete", completed: 1, total: 1 });
+    return freeze({
+      ...legacy,
+      kind: "ecolab-development-research-workflow",
+      implementationId: RESEARCH_WORKFLOW_IMPLEMENTATION_ID,
+      seeds: { algorithm: RNG_ALGORITHM, ...options.seeds },
+      growthComparison: null,
+      researchAssessment: {
+        completed: true,
+        converged: false,
+        identified: false,
+        precisionAssessed: false,
+        status: legacy.status,
+        validationEvidence: "not_computed",
+        untouched: false,
+        eligibleForL4: false,
+        interpretation: "The shared exact-observation and local-rank gate returned a status-only fit: no parameter estimates, predictions, validation metrics, sensitivity analyses or model comparison were computed.",
+      },
+    });
+  }
   const growthComparison = await runGrowthModelComparison({
     dataset: legacy.researchPackage.contents.artifacts["normalized-observation-dataset"],
     split: legacy.split, developmentRole: "validation", seed: options.seeds.growthComparison,

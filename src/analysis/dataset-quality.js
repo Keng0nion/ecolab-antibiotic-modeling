@@ -121,8 +121,10 @@ function checkBasicObservation(observation, index, errors, warnings, metadataCon
   }
   if (!finite(observation.value)) {
     errors.push(issue("error", "INVALID_MEASUREMENT_VALUE", "value must be finite.", `${path}.value`, { actual: observation.value }));
-  } else if (observation.measurementType !== "log10_cfu_per_ml" && observation.value < 0) {
-    errors.push(issue("error", "NEGATIVE_MEASUREMENT_VALUE", `${observation.measurementType} values cannot be negative.`, `${path}.value`, { actual: observation.value }));
+  } else if (observation.measurementType === "cfu_per_ml" && observation.value < 0) {
+    errors.push(issue("error", "NEGATIVE_MEASUREMENT_VALUE", "cfu_per_ml values cannot be negative.", `${path}.value`, { actual: observation.value }));
+  } else if (["od600", "od595"].includes(observation.measurementType) && observation.value < 0) {
+    warnings.push(issue("warning", "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED", "Negative OD can result from background correction; verify and document the source preprocessing, and preserve the recorded value rather than clipping it automatically.", `${path}.value`, { actual: observation.value, measurementType: observation.measurementType }));
   }
   if (!isRecord(observation.conditions)) {
     errors.push(issue("error", "INVALID_CONDITIONS", "conditions must be a plain object.", `${path}.conditions`, { actual: observation.conditions }));

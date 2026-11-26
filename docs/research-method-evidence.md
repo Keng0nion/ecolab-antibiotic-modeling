@@ -1,8 +1,16 @@
 # 数学模型、参数与论文证据 / Methods and evidence
 
-更新：2026-09-07；应用 `6.0.0`，分析引擎 `2.0.0`，教学科学核心 `2.0.0`，教学模型 `1.0.0`。
+方法证据最后复核：2026-11-26；当前应用 `6.1.0`，分析引擎 `2.1.0`，教学科学核心 `2.0.0`，教学模型 `1.0.0`。旧示例仍标作 6.0.0 历史计算。
 
-本文区分**论文中的方法、项目实际实现、当前数据能支持的结论**。论文提供方法依据不等于完成了本项目的实验验证。真实计算及可用介绍见 [作品集案例](./portfolio-case-study.md)，运行工件见 [6.0.0 示例](../data/examples/ecolab-stage6-research-6.0.0.md)。
+本文区分**论文中的方法、项目实际实现、当前数据能支持的结论**。论文提供方法依据不等于完成了本项目的实验验证。真实计算及可用介绍见 [作品集案例](./portfolio-case-study.md)，当前运行工件见 [6.1.0 示例](../data/examples/ecolab-stage6-research-6.1.0.md)，旧 [6.0.0 示例](../data/examples/ecolab-stage6-research-6.0.0.md) 保持为历史记录。
+
+## 0. 拟合资格、边界和轮廓状态
+
+分析入口只在精确、未删失训练观测不少于 `p + 1`（`p` 为自由拟合参数数）时继续拟合；之后还检查拟合点处预测 Jacobian 的局部秩。失败结果为 `NOT_IDENTIFIABLE`，不含参数估计、预测、残差或验证指标。观测数量足够不代表模型被全局识别。
+
+OD 最小二乘 profile 固定目标参数，并对其余生物参数与 baseline/scale OD nuisance 参数重拟合；残差标准差在同方差 Gaussian 假设下解析剖析。杀菌 profile 使用删失 Gaussian likelihood，保持相同的目标参数范围与显式收敛状态。边界值、σ 下界和收敛分别诊断，任何必要重拟合失败均为 `NOT_ASSESSED`。这些 profile 是基于指定模型、误差分布和参数化的条件似然诊断，不等同于完整实验设计下的无条件区间。
+
+Foerster et al. (2016) 补充材料 Table S1/S2 的来源、抄录值和行筛选规则记录在 [回归夹具](../data/fixtures/foerster-2016-identifiable-parameter-references.json) 中；[Node 测试](../src/analysis/tests/published-regression.test.js) 对已纳入表格参数检查单位、Regoes 等价式和数值零点/极限。该摘要表回归测试不是对作者原始 CFU 观测重新拟合，也不构成 Ecolab 在该研究条件下的独立验证。
 
 ## 1. 教学层：Regoes 药效函数与分段种群动力学
 

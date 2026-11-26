@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -37,10 +37,31 @@ function labelFromUnitId(unitId) {
 }
 
 test("verified Figshare BW25113 real-data admission pipeline", async (t) => {
+  const workbookNames = [
+    "BW25113_Growth_Round01.xlsx",
+    "BW25113_Medium composition.xlsx",
+    "BW25113_GrowthDataEvaluation.xlsx",
+  ];
+  const workbookAvailability = await Promise.all(workbookNames.map(async (name) => {
+    try {
+      await access(new URL(name, rawDirectory));
+      return true;
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+  }));
+  if (workbookAvailability.every((exists) => !exists)) {
+    t.skip("Optional Figshare source workbooks are not included in the public repository; download the three original XLSX files to data/raw/figshare-bw25113-growth-v1/ to run this admission test.");
+    return;
+  }
+  const missingWorkbooks = workbookNames.filter((_, index) => !workbookAvailability[index]);
+  assert.deepEqual(missingWorkbooks, [], `Incomplete Figshare source set; missing: ${missingWorkbooks.join(", ")}`);
+
   const [growthWorkbook, compositionWorkbook, evaluationWorkbook] = await Promise.all([
-    readXlsx(new URL("BW25113_Growth_Round01.xlsx", rawDirectory)),
-    readXlsx(new URL("BW25113_Medium composition.xlsx", rawDirectory)),
-    readXlsx(new URL("BW25113_GrowthDataEvaluation.xlsx", rawDirectory)),
+    readXlsx(new URL(workbookNames[0], rawDirectory)),
+    readXlsx(new URL(workbookNames[1], rawDirectory)),
+    readXlsx(new URL(workbookNames[2], rawDirectory)),
   ]);
 
   const growthSheet = growthWorkbook.getSheet("Sheet1");

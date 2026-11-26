@@ -1,6 +1,6 @@
 # Limitations and claim boundaries / 局限性与声明边界
 
-适用版本：应用 `6.0.0` / 分析 `2.0.0`；教学核心与原始数据保留。
+适用版本：应用 `6.1.0` / 分析 `2.1.0`；教学核心与原始数据保留。
 
 ## 当前可以支持的声明
 
@@ -37,9 +37,18 @@
 - Monte Carlo 独立三角工程范围产生探索性模拟区间，不是校准置信区间。
 - Morris 用完整边界，Sobol 用拟合点附近独立分布；输入空间不同，不要求排名相同。小样本指数可负、可 `S1>ST`，保留原值与精度警告，不裁剪。
 - Sobol 配对行 bootstrap 仅估计给定输入分布的采样误差，不涵盖模型或数据误差。
-- 整训练轨迹 bootstrap 保留联合样本，但独立性未验证；区间条件于冻结模型、边界和成功收敛重拟合，不包含选模 / 观测噪声不确定性，不是同时带或新观测预测区间。
+- 整训练轨迹 bootstrap 保留联合样本，但独立性未验证；其区间条件于冻结模型、边界和成功收敛重拟合，不包含选模不确定性，也不是新轨迹预测区间。
+- 新增的整轨迹预测带使用独立留出的训练曲线做 split-conformal 校准：先按种子分割，再只在拟合组内选模和拟合；每条校准曲线以跨全部观测时间的最大绝对残差计分。覆盖率依赖独立曲线可交换及未来时间支持相似，这些条件尚未验证。
+- 内置数据有 8 条训练曲线，40% 留作校准后只有 4 个校准单元；有限样本次序最多支持 80% 水平，90% 和 95% 明确不可用。该带对应校准组所拟合的模型，不使用全训练集重拟合结果。
 - `small` 的 20 次 bootstrap 尾部分辨率不足；选中无参数基线时参数区间为空是正确行为。
 - `objectiveSlices` 固定其他生物参数并重新优化 OD 干扰参数，不是真 profile likelihood。秩亏 covariance 为 `null`；伪逆不能冒充已识别参数的不确定性。
+- 杀菌工作流的组级 `unitGrowthRateIdentifiability` 是**条件**剖面：只让该浓度组的 ψ(C) 变化，N0 与残差尺度固定在菌株拟合值；它不是联合置信域。`identified` 只表示该组能定出自己那一档的净增长率，不证明 ψMax 可从该组识别。
+- 加药后全部观测贴检测限的浓度组只给单侧 95% 剖面界，不给点估计；记录为精确值但恰好等于检测限的观测按“可能删失”再判一次，两次读数取较保守者。`modelWithinUnitSupport95` 取两次读数的并集，`true` 不代表拟合良好。
+- 共享拟合入口要求精确训练观测数至少为自由参数数加一，并另作局部 Jacobian 秩检查。数量门槛只是必要条件，不保证全局可识别；失败时不产生参数、预测、残差或验证数字。
+- profile likelihood 以模型和似然假设为条件。OD 最小二乘使用同方差 Gaussian 残差并解析剖析误差尺度；杀菌模型用删失 Gaussian likelihood。任一主拟合或必要重拟合未收敛时，profile 状态为 `NOT_ASSESSED`，不能拿端点当作置信限。
+- 杀菌分析的 `psiMin` 允许范围为 `[-5, -0.0001]` log10/h；浓度组 ψ(C) 扫描范围为 `[-5, 2]` log10/h。命中下界会逐项报告；当 profile 支持在下界仍开放时，点估计为空，只提供有数据支持的单侧界。
+- Table S1/S2 回归夹具只保留四个参数的模型标准误均为正、有限且小于对应估计绝对值的表格行；其余极弱或舍入不确定的行和重复的 DG666 行均有理由记录。该夹具检查抄录、单位与方程数值，不重拟合原始 CFU 轨迹，也不证明原论文模型可在当前条件下复现。
+- 注册表中从 CAB1/LB 迁移的教学校准组机器标记为 `teaching_calibration_only`，不具备研究条件匹配资格；把该标记改掉需要真正的条件匹配验证。
 - 整体 `completed=true` 可以同时有 `converged=false`、`identified=false`、`precisionAssessed=false`。
 
 ## 存储、回放与工程限制
@@ -63,6 +72,6 @@
 
 This is a teaching and research-exploration tool, not clinical decision support or a condition-matched experimental predictor. Drug parameters are transferred from CAB1/LB; admitted data are untreated raw OD600 in Cond00003, not absolute CFU. Previously viewed holdout curves are development comparisons with unverified experimental independence.
 
-The quick example selects the training-mean baseline; parameterized fits remain nonconverged. Completion, convergence, identification and precision are distinct. Engineering Monte Carlo ranges, paired-row Sobol uncertainty and conditional joint-trajectory bootstrap have different meanings; none establishes general model stability or antibiotic-effect validation.
+The quick example selects the training-mean baseline; parameterized fits remain nonconverged. The new-trajectory OD band uses a separate training-only fit/calibration split; with four calibration trajectories, only an 80% finite-sample level is resolvable. Coverage still depends on unverified exchangeability and matching time support. Completion, convergence, identification and precision are distinct. Engineering Monte Carlo ranges, paired-row Sobol uncertainty and conditional joint-trajectory bootstrap have different meanings; none establishes general model stability or antibiotic-effect validation.
 
 Local persistence is not backup. Replay requires exact built-in software and compares scientific output plus the full manifest; hashes do not authenticate sources. Browser automation and static-size audits do not establish a manual cross-browser/accessibility matrix, P95 performance or experimental validity.

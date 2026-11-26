@@ -770,8 +770,8 @@ function normalizeObservation(observation, index, limits, state) {
     });
   }
   const value = assertFinite(observation.value, `${path}.value`);
-  if (measurementType !== "log10_cfu_per_ml" && value < 0) {
-    fail("NEGATIVE_MEASUREMENT", `${path}.value cannot be negative for ${measurementType}.`, {
+  if (measurementType === "cfu_per_ml" && value < 0) {
+    fail("NEGATIVE_MEASUREMENT", `${path}.value cannot be negative for cfu_per_ml.`, {
       path: `${path}.value`,
       expected: ">= 0",
       actual: value,

@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/kill-workflow-result.schema.json",
+  "title": "Ecolab kill-workflow result",
+  "description": "Output contract for kill-curve fit diagnostics. Profile identifiability is separate from optimizer convergence and boundary diagnostics.",
+  "type": "object",
+  "required": ["kind", "applicationVersion", "status", "runMetadata", "datasetId", "datasetFingerprint", "strains", "crossGroupFitComparison"],
+  "properties": {
+    "kind": { "const": "ecolab-kill-workflow" },
+    "applicationVersion": { "type": "string" },
+    "status": { "enum": ["FIT_COMPLETED", "PARTIALLY_IDENTIFIABLE", "NOT_IDENTIFIABLE"] },
+    "runMetadata": {
+      "type": "object",
+      "required": ["applicationVersion", "seed", "randomAlgorithm", "settings"],
+      "properties": {
+        "applicationVersion": { "type": "string" },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+        "randomAlgorithm": { "type": "string" },
+        "settings": { "type": "object" }
+      }
+    },
+    "datasetId": { "type": "string" },
+    "datasetFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "strains": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/strainResult" }
+    },
+    "crossGroupFitComparison": {
+      "type": "object",
+      "description": "Cross-group metrics contain RMSE and MAE only; objective values are fit-specific and must not be compared across groups.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["trainingRmseLog10", "trainingMaeLog10", "validationRmseLog10", "validationMaeLog10"],
+        "properties": {
+          "trainingRmseLog10": { "type": ["number", "null"] },
+          "trainingMaeLog10": { "type": ["number", "null"] },
+          "validationRmseLog10": { "type": ["number", "null"] },
+          "validationMaeLog10": { "type": ["number", "null"] },
+          "comparisonMetricPolicy": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifiability": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["identified", "lower-unidentified", "upper-unidentified", "NOT_ASSESSED"] },
+        "trend": { "type": "string" },
+        "criterion": { "type": "string" },
+        "reason": { "type": "string" },
+        "oneSided95Bound": { "type": ["number", "null"] },
+        "likelihoodRatioThreshold95": { "type": "number" }
+      }
+    },
+    "strainResult": {
+      "type": "object",
+      "required": ["strain", "status", "fittedParameters", "parameterEstimates", "identifiabilityStatus", "profileLikelihoodDiagnostics", "fitDiagnostics", "bootstrapConvergence", "trainingMetrics", "validationMetrics", "fitDataScope"],
+      "properties": {
+        "strain": { "type": "string" },
+        "status": { "enum": ["FIT_COMPLETED", "FIT_NOT_CONVERGED", "NOT_IDENTIFIABLE"] },
+        "fittedParameters": {
+          "type": ["object", "null"],
+          "properties": {
+            "psiMinLog10PerHour": { "type": ["number", "null"], "description": "Null when a profile classifies psiMin as unidentified; see parameterEstimates and predictionParameters." }
+          }
+        },
+        "parameterEstimates": { "type": "object" },
+        "identifiabilityStatus": {
+          "type": ["object", "null"],
+          "additionalProperties": { "enum": ["identified", "lower-unidentified", "upper-unidentified", "NOT_ASSESSED"] }
+        },
+        "profileLikelihoodDiagnostics": {
+          "type": ["object", "null"],
+          "additionalProperties": {
+            "type": "object",
+            "required": ["status", "identifiability"],
+            "properties": {
+              "status": { "enum": ["ASSESSED", "NOT_ASSESSED"] },
+              "reason": { "type": ["string", "null"] },
+              "identifiability": { "$ref": "#/$defs/identifiability" }
+            }
+          }
+        },
+        "fitDiagnostics": { "type": "object" },
+        "unitGrowthRateIdentifiability": { "$ref": "#/$defs/unitGrowthRateIdentifiability" },
+        "bootstrapConvergence": {
+          "type": ["object", "null"],
+          "properties": {
+            "optimizerConvergedReplicates": { "type": "integer", "minimum": 0 },
+            "convergedAndIdentifiableReplicates": { "type": "integer", "minimum": 0 },
+            "boundaryReplicates": { "type": "integer", "minimum": 0 },
+            "boundaryReplicateFraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+          }
+        },
+        "trainingMetrics": { "$ref": "#/$defs/metrics" },
+        "validationMetrics": { "anyOf": [{ "$ref": "#/$defs/metrics" }, { "type": "null" }] },
+        "predictiveDiagnostics": { "$ref": "#/$defs/predictiveDiagnostics" },
+        "fitDataScope": { "enum": ["training_only", "all_roles_oracle_in_sample"] }
+      }
+    },
+    "predictiveDiagnostics": {
+      "type": "object",
+      "required": ["status", "evidenceLevel", "validationIndependentUnitIds", "bootstrapSampleCount"],
+      "properties": {
+        "status": { "enum": ["available", "unavailable"] },
+        "reason": { "type": "string" },
+        "evidenceLevel": { "enum": ["declared_validation", "in_sample_oracle"] },
+        "method": { "type": "string" },
+        "intervalLevel": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+        "sampleCount": { "type": "integer", "minimum": 0 },
+        "bootstrapSampleCount": { "type": "integer", "minimum": 0 },
+        "validationIndependentUnitIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "uncertaintySource": { "type": "string" },
+        "predictionInterpretation": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } },
+        "predictions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["observationId", "censoring", "mean", "lower", "median", "upper", "exactLogPredictiveDensity", "intervalCovered", "censorProbability", "censoredLogScore"],
+            "properties": {
+              "observationId": { "type": ["string", "null"] },
+              "censoring": { "enum": ["none", "left"] },
+              "mean": { "type": "number" },
+              "lower": { "type": "number" },
+              "median": { "type": "number" },
+              "upper": { "type": "number" },
+              "exactLogPredictiveDensity": { "type": ["number", "null"] },
+              "intervalCovered": { "type": ["boolean", "null"] },
+              "censorProbability": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+              "censoredLogScore": { "type": ["number", "null"] }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["exactObservationCount", "leftCensoredObservationCount", "exactIntervalCoveredCount", "exactIntervalCoverage", "meanExactLogPredictiveDensity", "meanLeftCensoredLogScore"],
+          "properties": {
+            "exactObservationCount": { "type": "integer", "minimum": 0 },
+            "leftCensoredObservationCount": { "type": "integer", "minimum": 0 },
+            "exactIntervalCoveredCount": { "type": "integer", "minimum": 0 },
+            "exactIntervalCoverage": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+            "meanExactLogPredictiveDensity": { "type": ["number", "null"] },
+            "meanLeftCensoredLogScore": { "type": ["number", "null"] }
+          }
+        }
+      }
+    },
+    "unitGrowthRateIdentifiability": {
+      "type": "object",
+      "description": "Per-concentration-group identifiability of net growth rate psi(C). Groups with fewer than two informative exact post-baseline observations, or whose strain fit is not identifiable, have no reported rate or profile bound.",
+      "required": ["unitCount", "identifiedUnitCount", "unidentifiedUnitCount", "unidentifiedUnitIds", "units", "criterion"],
+      "properties": {
+        "unitCount": { "type": "integer", "minimum": 0 },
+        "identifiedUnitCount": { "type": "integer", "minimum": 0 },
+        "unidentifiedUnitCount": { "type": "integer", "minimum": 0 },
+        "unidentifiedUnitIds": { "type": "array", "items": { "type": "string" } },
+        "criterion": { "type": "string" },
+        "note": { "type": "string" },
+        "units": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unitGrowthRate" }
+        }
+      }
+    },
+    "unitGrowthRate": {
+      "type": "object",
+      "required": ["independentUnitId", "concentrationMgPerL", "modelNetGrowthRateLog10PerHour", "status", "basis", "relation", "oneSided95Bound"],
+      "properties": {
+        "independentUnitId": { "type": "string" },
+        "concentrationMgPerL": { "type": "number", "minimum": 0 },
+        "role": { "enum": ["training", "validation"] },
+        "observationCount": { "type": "integer", "minimum": 0 },
+        "postBaselineObservationCount": { "type": "integer", "minimum": 0 },
+        "uncensoredPostBaselineObservationCount": { "type": "integer", "minimum": 0 },
+        "minimumUncensoredPostBaselineObservationCount": { "type": "integer", "minimum": 1 },
+        "censoredObservationCount": { "type": "integer", "minimum": 0, "description": "Post-baseline observations declared as left-censored." },
+        "exactAtDetectionLimitCount": { "type": "integer", "minimum": 0, "description": "Post-baseline observations declared exact whose value equals the group's detection limit." },
+        "detectionLimitLog10": { "type": ["number", "null"] },
+        "modelNetGrowthRateLog10PerHour": { "type": ["number", "null"] },
+        "status": { "enum": ["identified", "lower-unidentified", "upper-unidentified", "NOT_IDENTIFIABLE"] },
+        "basis": {
+          "enum": [
+            "profile_interior_minimum",
+            "profile_without_interior_minimum",
+            "all_post_baseline_observations_at_detection_limit",
+            "exact_observation_at_detection_limit",
+            "insufficient_uncensored_observations",
+            "strain_fit_not_identifiable"
+          ]
+        },
+        "unitProfileEstimateLog10PerHour": { "type": ["number", "null"] },
+        "relation": { "enum": ["≤", "≥", null] },
+        "oneSided95Bound": { "type": ["number", "null"] },
+        "compatibleRange95": {
+          "type": "object",
+          "properties": {
+            "lower": { "type": ["number", "null"] },
+            "upper": { "type": ["number", "null"] }
+          }
+        },
+        "modelWithinUnitSupport95": { "type": ["boolean", "null"] },
+        "declaredCensoringStatus": { "enum": ["identified", "lower-unidentified", "upper-unidentified", "NOT_IDENTIFIABLE", "NOT_ASSESSED"] },
+        "exactAtLimitCensoredStatus": { "enum": ["identified", "lower-unidentified", "upper-unidentified", "NOT_IDENTIFIABLE", "NOT_ASSESSED", null] },
+        "criterion": { "type": "string" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "rmseLog10": { "type": ["number", "null"] },
+        "maeLog10": { "type": ["number", "null"] },
+        "temporalResidualDiagnostics": { "$ref": "#/$defs/temporalResidualDiagnostics" }
+      }
+    },
+    "temporalResidualDiagnostics": {
+      "type": "object",
+      "required": [
+        "method", "residualDefinition", "minimumExactPointCount", "strongCorrelationThreshold",
+        "trajectoryCount", "evaluatedTrajectoryCount", "insufficientExactPointTrajectoryCount",
+        "undefinedCorrelationTrajectoryCount", "highMagnitudeTrendTrajectoryCount", "interpretation", "trajectories"
+      ],
+      "properties": {
+        "method": { "const": "descriptive_spearman_time_residual_by_independent_unit" },
+        "residualDefinition": { "const": "observed_minus_predicted_log10_cfu_per_ml" },
+        "minimumExactPointCount": { "type": "integer", "minimum": 3 },
+        "strongCorrelationThreshold": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "trajectoryCount": { "type": "integer", "minimum": 0 },
+        "evaluatedTrajectoryCount": { "type": "integer", "minimum": 0 },
+        "insufficientExactPointTrajectoryCount": { "type": "integer", "minimum": 0 },
+        "undefinedCorrelationTrajectoryCount": { "type": "integer", "minimum": 0 },
+        "highMagnitudeTrendTrajectoryCount": { "type": "integer", "minimum": 0 },
+        "interpretation": { "type": "string" },
+        "trajectories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["independentUnitId", "exactObservationCount", "leftCensoredObservationCount", "status", "spearmanRho", "highMagnitudeTrend"],
+            "properties": {
+              "independentUnitId": { "type": "string" },
+              "exactObservationCount": { "type": "integer", "minimum": 0 },
+              "leftCensoredObservationCount": { "type": "integer", "minimum": 0 },
+              "status": { "enum": ["evaluated", "insufficient_exact_points", "undefined_correlation"] },
+              "spearmanRho": { "type": ["number", "null"], "minimum": -1, "maximum": 1 },
+              "highMagnitudeTrend": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

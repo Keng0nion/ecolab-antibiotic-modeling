@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecolab.local/schemas/simulation-plan.schema.json",
+  "title": "Ecolab terminal simulation plan",
+  "description": "Declarative input of `ecolab simulate --plan`. Steps are executed through the same sandbox project semantics as the browser app: dose/dilute/washout set the pending boundary action and advance commits it. Runtime validation is stricter than this structural contract (strictly positive durations, fold > 1, known drug IDs, sandbox sampling limits) and never repairs values silently.",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "drugId", "steps"],
+  "additionalProperties": false,
+  "$defs": {
+    "concentration": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number", "minimum": 0 },
+        "unit": { "enum": ["mg/L", "x_zMIC"] }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "kind": { "const": "ecolab.simulation-plan" },
+    "id": { "type": "string", "minLength": 1 },
+    "drugId": { "type": "string", "minLength": 1 },
+    "initialPopulationCfuPerMl": { "type": "number", "minimum": 0 },
+    "detectionLimitCfuPerMl": { "type": "number", "minimum": 0 },
+    "sampleIntervalMinutes": { "type": "number", "minimum": 0 },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["action", "concentration"],
+            "additionalProperties": false,
+            "properties": {
+              "action": { "const": "dose" },
+              "concentration": { "$ref": "#/$defs/concentration" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["action", "fold"],
+            "additionalProperties": false,
+            "properties": {
+              "action": { "const": "dilute" },
+              "fold": { "type": "number", "minimum": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["action"],
+            "additionalProperties": false,
+            "properties": {
+              "action": { "const": "washout" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["action", "durationMinutes"],
+            "additionalProperties": false,
+            "properties": {
+              "action": { "const": "advance" },
+              "durationMinutes": { "type": "number", "minimum": 0 }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

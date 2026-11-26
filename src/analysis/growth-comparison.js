@@ -3,12 +3,23 @@ import { calculateMetrics } from "./metrics.js";
 import { quantileR7 } from "./monte-carlo.js";
 import { differentialEvolution, nelderMead } from "./optimizers.js";
 import { createRandom, deriveSeed, RNG_ALGORITHM } from "./random.js";
+import { summarizeConformalTrajectoryScores } from "./predictive-diagnostics.js";
 import { assertNoSplitOverlap } from "./split.js";
 
 const PARAMETER_NAMES = Object.freeze(["baselineOd", "amplitudeOd", "ratePerHour", "timingHours"]);
 const MODEL_IDS = Object.freeze(["training_mean", "logistic", "gompertz"]);
 const ROLES = ["training", "development", "validation"];
-const IMPLEMENTATION = "direct-od-growth-comparison-v1";
+export const GROWTH_COMPARISON_IMPLEMENTATION_ID = "direct-od-growth-comparison-v2";
+const SEED_IMPLEMENTATION = "direct-od-growth-comparison-v1";
+export const GROWTH_TRAJECTORY_CALIBRATION = Object.freeze({
+  calibrationFraction: 0.4,
+  intervalLevels: Object.freeze([0.8, 0.9, 0.95]),
+  splitUnit: "independent_training_trajectory",
+  splitMethod: "seeded_random_split_before_model_selection",
+  score: "maximum_absolute_residual_across_complete_trajectory",
+  predictionBand: "simultaneous_additive_od600_band",
+  seedDerivation: "deriveSeed(root, direct-od-growth-comparison-v2, trajectory_calibration_split|trajectory_calibration_fit, ...)",
+});
 const OPTIMIZER_DEFAULTS = Object.freeze({
   restarts: 1,
   populationSize: 24,
@@ -251,16 +262,20 @@ function configuration(options, trainingIds) {
   integer(bootstrap.samples, "bootstrap.samples", 0, GROWTH_COMPARISON_LIMITS.maximumBootstrapSamples);
   number(bootstrap.intervalLevel, "bootstrap.intervalLevel", Number.MIN_VALUE, 1 - Number.EPSILON);
   const maximumEvaluationsPerFit = optimizer.restarts * (optimizer.differentialEvolutionMaxEvaluations + optimizer.nelderMeadMaxEvaluations);
-  const maximumTotalEvaluations = maximumEvaluationsPerFit * (2 * (folds.length + 1) + bootstrap.samples);
+  const calibrationCount = Math.max(1, Math.ceil(trainingIds.length * GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction));
+  const calibrationFitCount = trainingIds.length - calibrationCount;
+  const calibrationEvaluations = calibrationFitCount >= 2 ? 3 * calibrationFitCount + 1 : 0;
+  const maximumTotalEvaluations = maximumEvaluationsPerFit
+    * (3 * (folds.length + 1) + bootstrap.samples + calibrationEvaluations);
   if (maximumTotalEvaluations > GROWTH_COMPARISON_LIMITS.maximumTotalEvaluations) fail("EVALUATION_LIMIT", "Requested combined CV/fitting/bootstrap budget exceeds the total evaluation limit.");
   return freeze({
     seed: integer(options.seed, "seed", 0, 0xffff_ffff),
     developmentRole: options.developmentRole ?? "development",
     randomAlgorithm: RNG_ALGORITHM,
-    seedDerivation: "deriveSeed(root, direct-od-growth-comparison-v1, phase, model, index); restart and stage substreams",
+    seedDerivation: "Existing CV/training/bootstrap retain the direct-od-growth-comparison-v1 seed namespace; trajectory calibration uses the v2 named substreams recorded in trajectoryCalibration.",
     bounds, optimizer,
     crossValidation: { folds, tieTolerance: number(cv.tieTolerance ?? 1e-10, "crossValidation.tieTolerance", 0) },
-    bootstrap,
+    bootstrap, trajectoryCalibration: GROWTH_TRAJECTORY_CALIBRATION,
     objective: "mean_trajectory_mse_od600",
     maximumEvaluationsPerFit, maximumTotalEvaluations,
     optimizerConstants: { mutationFactor: 0.8, crossoverRate: 0.9, initialStep: 0.05 },
@@ -268,7 +283,10 @@ function configuration(options, trainingIds) {
 }
 
 function phaseSeed(config, phase, model, index = 0) {
-  return deriveSeed(config.seed, IMPLEMENTATION, phase, model, index);
+  const namespace = phase.startsWith("trajectory_calibration")
+    ? GROWTH_COMPARISON_IMPLEMENTATION_ID
+    : SEED_IMPLEMENTATION;
+  return deriveSeed(config.seed, namespace, phase, model, index);
 }
 
 function meanCurve(trajectories) {
@@ -362,11 +380,11 @@ async function fitModel(model, trajectories, config, seed, runtime, warnings, co
   return { ...fit, metrics: evaluateFit(fit, observations).metrics };
 }
 
-async function crossValidate(data, config, runtime, warnings) {
+async function crossValidate(data, config, runtime, warnings, phase = "cross_validation") {
   const candidates = {};
   let completed = 0;
   const total = MODEL_IDS.length * config.crossValidation.folds.length;
-  runtime.progress("cross_validation", 0, total);
+  runtime.progress(phase, 0, total);
   for (const model of MODEL_IDS) {
     const folds = [];
     for (let index = 0; index < config.crossValidation.folds.length; index += 1) {
@@ -377,7 +395,7 @@ async function crossValidate(data, config, runtime, warnings) {
         phaseSeed(config, "cv", model, index), runtime, warnings, `cv:${index}`);
       const evaluation = evaluateFit(fit, heldOutIndependentUnitIds.flatMap((id) => data.units.get(id)));
       folds.push({ index, trainingIndependentUnitIds, heldOutIndependentUnitIds, fit, ...evaluation });
-      runtime.progress("cross_validation", ++completed, total);
+      runtime.progress(phase, ++completed, total);
     }
     const eligible = folds.every((fold) => fold.status === "available");
     const predictions = folds.flatMap((fold) => fold.predictions);
@@ -405,6 +423,173 @@ function selectModel(crossValidation, config) {
     tiePolicy: "Within absolute tolerance of the global minimum, prefer training_mean, then logistic, then gompertz.",
     frozenBeforeDevelopment: true,
   });
+}
+
+function unavailableTrajectoryPrediction(reason, fitTrainingIndependentUnitIds, calibrationIndependentUnitIds) {
+  return {
+    status: "unavailable", method: "split_conformal_max_absolute_trajectory_residual", reason,
+    split: {
+      method: GROWTH_TRAJECTORY_CALIBRATION.splitMethod,
+      calibrationFraction: GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction,
+      fitTrainingIndependentUnitIds, calibrationIndependentUnitIds,
+    },
+    fit: { status: "unavailable", model: null, trainingIndependentUnitIds: fitTrainingIndependentUnitIds },
+    calibration: { status: "unavailable", calibrationIndependentUnitIds, scores: [], levels: {} },
+    bands: Object.fromEntries(GROWTH_TRAJECTORY_CALIBRATION.intervalLevels.map((level) => [String(level), {
+      status: "unavailable", intervalLevel: level, radius: null, predictions: [],
+    }])),
+  };
+}
+
+async function calibrateTrajectoryPrediction(data, config, runtime, warnings) {
+  const orderedIds = [...data.trainingIds].sort();
+  const random = createRandom(phaseSeed(config, "trajectory_calibration_split", 0));
+  const shuffledIds = [...orderedIds];
+  for (let index = shuffledIds.length - 1; index > 0; index -= 1) {
+    const selected = Math.floor(random.next() * (index + 1));
+    [shuffledIds[index], shuffledIds[selected]] = [shuffledIds[selected], shuffledIds[index]];
+  }
+  const calibrationCount = Math.max(1, Math.ceil(orderedIds.length * GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction));
+  const calibrationIndependentUnitIds = shuffledIds.slice(0, calibrationCount).sort();
+  const fitTrainingIndependentUnitIds = shuffledIds.slice(calibrationCount).sort();
+  if (fitTrainingIndependentUnitIds.length < 2) {
+    warn(warnings, "OD_TRAJECTORY_CALIBRATION_INSUFFICIENT_FIT_UNITS", "Trajectory calibration is unavailable because fewer than two independent trajectories remain for model selection and fitting.", {
+      fitTrainingUnitCount: fitTrainingIndependentUnitIds.length,
+      calibrationUnitCount: calibrationIndependentUnitIds.length,
+    });
+    return unavailableTrajectoryPrediction("insufficient_independent_fit_trajectories", fitTrainingIndependentUnitIds, calibrationIndependentUnitIds);
+  }
+
+  const calibrationTrainingData = {
+    ...data,
+    trainingIds: fitTrainingIndependentUnitIds,
+    training: fitTrainingIndependentUnitIds.flatMap((id) => data.units.get(id)),
+  };
+  const calibrationConfig = {
+    ...config,
+    crossValidation: {
+      ...config.crossValidation,
+      folds: fitTrainingIndependentUnitIds.map((id) => [id]),
+    },
+  };
+  const selectionValidation = await crossValidate(
+    calibrationTrainingData, calibrationConfig, runtime, warnings, "trajectory_calibration_selection",
+  );
+  if (!MODEL_IDS.some((model) => selectionValidation.candidates[model].eligible)) {
+    warn(warnings, "OD_TRAJECTORY_CALIBRATION_MODEL_UNAVAILABLE", "No candidate can be selected using only the calibration fit trajectories; the calibration units remain held out.");
+    return unavailableTrajectoryPrediction("no_eligible_model_on_fit_trajectories", fitTrainingIndependentUnitIds, calibrationIndependentUnitIds);
+  }
+  const selection = selectModel(selectionValidation, calibrationConfig);
+  const calibrationSelection = {
+    ...selection,
+    trainingIndependentUnitIds: fitTrainingIndependentUnitIds,
+    candidateScores: Object.fromEntries(MODEL_IDS.map((model) => [model, {
+      eligible: selectionValidation.candidates[model].eligible,
+      macroRmse: selectionValidation.candidates[model].score,
+    }])),
+    folds: selectionValidation.candidates[MODEL_IDS[0]].folds.map(({ index, trainingIndependentUnitIds, heldOutIndependentUnitIds }) => ({
+      index, trainingIndependentUnitIds, heldOutIndependentUnitIds,
+    })),
+  };
+  const seed = phaseSeed(config, "trajectory_calibration_fit", selection.selectedModel);
+  runtime.progress("trajectory_calibration_fit", 0, 1);
+  const fit = await fitModel(selection.selectedModel, fitTrainingIndependentUnitIds.map((id) => data.units.get(id)), calibrationConfig,
+    seed, runtime, warnings, "trajectory_calibration_fit");
+  runtime.progress("trajectory_calibration_fit", 1, 1);
+  if (!fit.finite || !fit.converged) {
+    warn(warnings, "OD_TRAJECTORY_CALIBRATION_FIT_NOT_CONVERGED", "Trajectory prediction bands are withheld because the calibration fit is not both finite and converged.", {
+      model: selection.selectedModel,
+    });
+    return {
+      ...unavailableTrajectoryPrediction("calibration_fit_not_converged", fitTrainingIndependentUnitIds, calibrationIndependentUnitIds),
+      fit: {
+        status: "unavailable", model: selection.selectedModel, finite: fit.finite, converged: fit.converged,
+        trainingIndependentUnitIds: fitTrainingIndependentUnitIds, seed,
+      },
+      calibrationSelection,
+    };
+  }
+
+  const calibrationObservations = calibrationIndependentUnitIds.flatMap((id) => data.units.get(id));
+  const calibrationEvaluation = evaluateFit(fit, calibrationObservations);
+  if (calibrationEvaluation.status !== "available") {
+    warn(warnings, "OD_TRAJECTORY_CALIBRATION_PREDICTION_INCOMPLETE", "At least one complete calibration trajectory has no exact-time prediction; no whole-trajectory score or band is reported.", {
+      missingObservationIds: calibrationEvaluation.missingObservationIds,
+    });
+    return {
+      ...unavailableTrajectoryPrediction("calibration_trajectory_prediction_incomplete", fitTrainingIndependentUnitIds, calibrationIndependentUnitIds),
+      fit: {
+        status: "available", model: fit.model, finite: fit.finite, converged: fit.converged,
+        parameters: fit.parameters, trainingIndependentUnitIds: fitTrainingIndependentUnitIds, seed,
+      },
+      calibrationSelection,
+      calibration: {
+        status: "unavailable", calibrationIndependentUnitIds,
+        missingObservationIds: calibrationEvaluation.missingObservationIds, scores: [], levels: {},
+      },
+    };
+  }
+
+  const scores = calibrationIndependentUnitIds.map((independentUnitId) => {
+    const predictions = calibrationEvaluation.predictions.filter((row) => row.independentUnitId === independentUnitId);
+    return {
+      independentUnitId,
+      maximumAbsoluteResidual: Math.max(...predictions.map(({ residual }) => Math.abs(residual))),
+      observationCount: predictions.length,
+    };
+  });
+  const calibration = summarizeConformalTrajectoryScores({ scores, intervalLevels: GROWTH_TRAJECTORY_CALIBRATION.intervalLevels });
+  const predictionTimes = [...new Set(data.training.map(({ timeHours }) => timeHours))].sort((a, b) => a - b);
+  const meanLookup = new Map(fit.meanOdByTime?.map(({ timeHours, meanOd }) => [timeHours, meanOd]));
+  const centers = predictionTimes.map((timeHours) => ({
+    timeHours,
+    predicted: fit.model === "training_mean" ? meanLookup.get(timeHours) : curve(fit.model, timeHours, fit.parameters),
+  }));
+  const missingPredictionTimes = centers.filter(({ predicted }) => !Number.isFinite(predicted)).map(({ timeHours }) => timeHours);
+  const bands = Object.fromEntries(GROWTH_TRAJECTORY_CALIBRATION.intervalLevels.map((intervalLevel) => {
+    const level = calibration.levels[String(intervalLevel)];
+    const available = level.status === "available" && missingPredictionTimes.length === 0;
+    return [String(intervalLevel), {
+      status: available ? "available" : level.status === "available" ? "prediction_grid_incomplete" : level.status,
+      intervalLevel, radius: level.radius,
+      coverageInterpretation: "simultaneous_over_the_calibration_trajectory_time_support_under_exchangeability",
+      predictions: available ? centers.map(({ timeHours, predicted }) => ({
+        timeHours, predicted, lower: predicted - level.radius, upper: predicted + level.radius,
+      })) : [],
+    }];
+  }));
+  const anyBandAvailable = Object.values(bands).some(({ status }) => status === "available");
+  if (!anyBandAvailable) {
+    warn(warnings, "OD_TRAJECTORY_CALIBRATION_LEVEL_UNRESOLVED", "The calibration data do not resolve any requested interval level; scores are retained, but no prediction band is fabricated.", {
+      calibrationUnitCount: scores.length, requestedLevels: GROWTH_TRAJECTORY_CALIBRATION.intervalLevels,
+    });
+  }
+  return {
+    status: anyBandAvailable ? "available" : missingPredictionTimes.length ? "prediction_grid_incomplete" : "insufficient_finite_sample_resolution",
+    method: calibration.method,
+    interpretation: "Split-conformal simultaneous additive OD600 bands use a model selected and fitted without any calibration trajectory. Coverage relies on exchangeable independent trajectories and applies to the observed time-support process.",
+    split: {
+      method: GROWTH_TRAJECTORY_CALIBRATION.splitMethod,
+      seed: phaseSeed(config, "trajectory_calibration_split", 0),
+      calibrationFraction: GROWTH_TRAJECTORY_CALIBRATION.calibrationFraction,
+      fitTrainingIndependentUnitIds, calibrationIndependentUnitIds,
+    },
+    calibrationSelection,
+    fit: {
+      status: "available", model: fit.model, finite: fit.finite, converged: fit.converged,
+      parameters: fit.parameters, meanOdByTime: fit.meanOdByTime,
+      trainingIndependentUnitIds: fitTrainingIndependentUnitIds, seed,
+      trainingMetrics: fit.metrics,
+    },
+    calibration: {
+      ...calibration, status: "available",
+      evaluationMetrics: calibrationEvaluation.metrics,
+      scores,
+    },
+    predictionTimeHours: predictionTimes,
+    missingPredictionTimeHours: missingPredictionTimes,
+    bands,
+  };
 }
 
 function modelDefinitions() {
@@ -533,7 +718,8 @@ async function bootstrapSelected(data, selectedModel, config, runtime, warnings)
  *
  * Result: {schemaVersion, kind, implementationId, completed, dataset, configuration,
  * models, trainingFits:{training_mean,logistic,gompertz}, crossValidation:{candidates},
- * selection:{selectedModel,...}, development:{selected,baseline,...}, bootstrap, warnings}.
+ * selection:{selectedModel,...}, development:{selected,baseline,...}, bootstrap,
+ * trajectoryPrediction, warnings}.
  * Fits retain {parameters,meanOdByTime,optimizer:{restarts:[{differentialEvolution,
  * nelderMead,...}],...},converged,finite,metrics}. Evaluations retain identity-keyed
  * predictions {observed,predicted,residual,...}, macro/pooled/per-unit metrics, missing
@@ -551,6 +737,14 @@ export async function runGrowthModelComparison(options = {}) {
   const data = prepareDataset(options);
   const config = configuration(options, data.trainingIds);
   const warnings = [];
+  const negativeOdValues = [...data.training, ...data.development]
+    .filter((row) => row.value < 0)
+    .map((row) => row.value);
+  if (negativeOdValues.length) warn(warnings, "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED",
+    "Negative OD values are retained as supplied. Verify and document source background correction or preprocessing; values are not clipped automatically.", {
+      negativeOdObservationCount: negativeOdValues.length,
+      minimumObservedOd: Math.min(...negativeOdValues),
+    });
   warn(warnings, "OD600_NOT_CFU", "Both curves are empirical direct OD600 models; no CFU conversion or physiological lag/population-rate interpretation.");
   warn(warnings, "DEVELOPMENT_ALREADY_VIEWED", "Development curves were previously viewed and are not untouched or external validation evidence.");
   warn(warnings, "TRAJECTORY_INDEPENDENCE_UNVERIFIED", "Complete-trajectory resampling preserves within-trajectory pairing; between-trajectory independence and exchangeability remain unverified.");
@@ -569,6 +763,7 @@ export async function runGrowthModelComparison(options = {}) {
     runtime.progress("training_fit", index + 1, MODEL_IDS.length);
   }
   const bootstrap = await bootstrapSelected(data, selection.selectedModel, config, runtime, warnings);
+  const trajectoryPrediction = await calibrateTrajectoryPrediction(data, config, runtime, warnings);
   await runtime.checkpoint();
   runtime.progress("development", 0, 1);
   const selected = evaluateFit(trainingFits[selection.selectedModel], data.development);
@@ -585,8 +780,9 @@ export async function runGrowthModelComparison(options = {}) {
   runtime.progress("development", 1, 1);
   runtime.progress("complete", 1, 1);
   return freeze(jsonSafe({
-    schemaVersion: "1.0.0", kind: "od600-growth-model-comparison", implementationId: IMPLEMENTATION, completed: true,
+    schemaVersion: "1.0.0", kind: "od600-growth-model-comparison", implementationId: GROWTH_COMPARISON_IMPLEMENTATION_ID, completed: true,
     dataset: { id: data.datasetId, trainingIndependentUnitIds: data.trainingIds, trainingObservationIds: data.roles.training.observationIds },
-    configuration: config, models: modelDefinitions(), trainingFits, crossValidation, selection, development, bootstrap, warnings,
+    configuration: config, models: modelDefinitions(), trainingFits, crossValidation, selection, development, bootstrap,
+    trajectoryPrediction, warnings,
   }));
 }

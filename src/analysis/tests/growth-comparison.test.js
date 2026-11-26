@@ -76,6 +76,15 @@ test("public OD curve evaluator and comparison runner exist", () => {
   assert.equal(typeof growth.runGrowthModelComparison, "function");
 });
 
+test("negative source OD values remain in predictions and require preprocessing context", async () => {
+  const data = await fixture({ value: (timeHours) => oracle("logistic", timeHours) + (timeHours === 0 ? -0.1 : 0) });
+  const result = await growth.runGrowthModelComparison(options(data, { bootstrap: { samples: 0, intervalLevel: 0.95 } }));
+  const warning = result.warnings.find(({ code }) => code === "NEGATIVE_OD_SOURCE_CONTEXT_REQUIRED");
+  assert.ok(warning);
+  assert.equal(warning.negativeOdObservationCount, 6);
+  assert.equal(result.development.selected.predictions.filter(({ observed }) => observed < 0).length, 2);
+});
+
 for (const model of ["logistic", "gompertz"]) {
   test(`${model} uses a direct baseline-plus-amplitude OD equation, with empirical inflection timing/rate`, () => {
     for (const time of TIMES) close(growth.evaluateOdGrowthCurve(model, time, PARAMETERS), oracle(model, time));
@@ -156,6 +165,43 @@ test("complete-trajectory folds use their own exact-time training means and dete
   for (const row of result.development.selected.predictions) close(row.residual, row.observed - row.predicted);
 });
 
+test("split-conformal OD bands calibrate complete trajectories outside model selection", async () => {
+  const data = await fixture({ trainingIds: ["a", "b", "c", "d", "e", "f", "g", "h"], value: (time, unit, index) => oracle("logistic", time)
+    + [0.003, -0.004, 0.006, -0.002, 0.01, -0.008, 0.005, -0.006][unit % 8] * (1 + index / TIMES.length) });
+  const configured = options(data, { crossValidation: { tieTolerance: 100 } });
+  const first = await growth.runGrowthModelComparison(configured);
+  const prediction = first.trajectoryPrediction;
+  assert.equal(prediction.method, "split_conformal_max_absolute_trajectory_residual");
+  assert.equal(prediction.fit.status, "available");
+  assert.equal(prediction.fit.model, "training_mean");
+  assert.deepEqual(prediction.calibrationSelection.trainingIndependentUnitIds, prediction.fit.trainingIndependentUnitIds);
+  assert.ok(prediction.calibrationSelection.folds.every((fold) =>
+    fold.trainingIndependentUnitIds.every((id) => prediction.fit.trainingIndependentUnitIds.includes(id))
+      && fold.heldOutIndependentUnitIds.every((id) => prediction.fit.trainingIndependentUnitIds.includes(id))));
+  assert.equal(prediction.calibration.status, "available");
+  assert.equal(prediction.calibration.calibrationUnitCount, 4);
+  assert.equal(prediction.calibration.levels["0.8"].status, "available");
+  assert.equal(prediction.calibration.levels["0.95"].radius, null);
+  const fitIds = new Set(prediction.fit.trainingIndependentUnitIds);
+  const calibrationIds = new Set(prediction.calibration.calibrationIndependentUnitIds);
+  assert.equal(fitIds.size + calibrationIds.size, data.split.roles.training.independentUnitIds.length);
+  assert.ok([...fitIds].every((id) => !calibrationIds.has(id)));
+  assert.ok([...calibrationIds].every((id) => data.split.roles.training.independentUnitIds.includes(id)));
+  assert.ok(prediction.calibration.scores.every(({ maximumAbsoluteResidual }) => maximumAbsoluteResidual >= 0));
+  assert.equal(prediction.bands["0.8"].status, "available");
+  assert.equal(prediction.bands["0.8"].predictions.length, TIMES.length);
+  assert.ok(prediction.bands["0.8"].predictions.every((row) => row.lower <= row.predicted && row.predicted <= row.upper));
+
+  const changed = structuredClone(data);
+  for (const row of changed.dataset.observations) if (row.role === "development") row.value = 50 + row.value;
+  changed.split = await createDatasetSplit(changed.dataset);
+  const second = await growth.runGrowthModelComparison(options(changed, { crossValidation: { tieTolerance: 100 } }));
+  assert.deepEqual(second.trajectoryPrediction, first.trajectoryPrediction);
+  const reordered = structuredClone(data);
+  reordered.dataset.observations.reverse();
+  assert.deepEqual(await growth.runGrowthModelComparison(options(reordered, { crossValidation: { tieTolerance: 100 } })), first);
+});
+
 test("selection chooses a smooth sigmoid on synthetic high-frequency noise, not a hardcoded baseline", async () => {
   const data = await fixture({ value: (time, unit, index) => oracle("logistic", time)
     + (unit < 4 ? [1, 1, -1, -1][unit] * (index % 2 ? -1 : 1) * 0.025 : 0) });
@@ -180,7 +226,7 @@ test("development changes cannot affect training fits, CV, selection, seeds, or 
   }
   changed.split = await createDatasetSplit(changed.dataset);
   const second = await growth.runGrowthModelComparison(options(changed, { bootstrap: original.bootstrap }));
-  for (const key of ["configuration", "trainingFits", "crossValidation", "selection", "bootstrap"]) {
+  for (const key of ["configuration", "trainingFits", "crossValidation", "selection", "bootstrap", "trajectoryPrediction"]) {
     assert.deepEqual(second[key], first[key], key);
   }
   assert.notDeepEqual(first.development, second.development);
@@ -457,6 +503,14 @@ test("bundled normalized OD600 dataset and workflow split run with exact source 
   assert.equal(result.development.selected.status, "available");
   assert.equal(result.development.baseline.status, "available");
   assert.equal(result.development.eligibleAsValidationEvidence, false);
+  assert.equal(result.trajectoryPrediction.method, "split_conformal_max_absolute_trajectory_residual");
+  assert.equal(result.trajectoryPrediction.split.fitTrainingIndependentUnitIds.length, 4);
+  assert.equal(result.trajectoryPrediction.split.calibrationIndependentUnitIds.length, 4);
+  assert.ok(result.trajectoryPrediction.split.fitTrainingIndependentUnitIds.every((id) => split.roles.training.independentUnitIds.includes(id)));
+  assert.ok(result.trajectoryPrediction.split.calibrationIndependentUnitIds.every((id) => split.roles.training.independentUnitIds.includes(id)));
+  assert.ok(result.trajectoryPrediction.split.fitTrainingIndependentUnitIds.every((id) =>
+    !result.trajectoryPrediction.split.calibrationIndependentUnitIds.includes(id)));
+  assert.equal(result.trajectoryPrediction.bands["0.95"].radius, null);
   assert.ok(result.warnings.some(({ code }) => code === "LOW_OPTIMIZER_BUDGET"));
   assert.deepEqual(JSON.parse(JSON.stringify(result)), result);
 });

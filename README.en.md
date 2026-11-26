@@ -6,7 +6,7 @@
 - [English](README.en.md)
 - [Japanese](README.ja.md)
 
-# Ecolab 6.0.0
+# Ecolab 6.1.0
 
 ![Screenshot of the Ecolab learning interface](./docs/screenshot.png)
 
@@ -37,12 +37,12 @@ Ecolab is a local-first, auditable, and reproducible *E. coli*–antibiotic popu
 
 ## Version contract
 
-- App: `6.0.0`
+- App: `6.1.0`
 - Scientific core: `2.0.0` (teaching dynamics unchanged)
-- Analysis engine: `2.0.0` (numeric fixes, OD model comparison, and same-version replay)
+- Analysis engine: `2.1.0` (fit-identifiability gates, profile diagnostics, and result-status audit)
 - Model: `ecolab.single-population.regoes-logistic@1.0.0`
 
-The root `package.json` is the authoritative source for the app release version. The new release keeps the teaching Regoes/Logistic model and adds direct OD-scale Logistic/Gompertz, whole-curve cross-validation on training data, joint whole-curve bootstrap, and checksum-verified same-version replay of research packages. The previously held-out data has been viewed; new results are explicitly labeled as development-set comparisons, not an untouched test set or external validation.
+The root `package.json` is the authoritative source for the app release version. The new release keeps the teaching Regoes/Logistic model and adds direct OD-scale Logistic/Gompertz, whole-curve cross-validation on training data, joint whole-curve bootstrap, an independent whole-trajectory split-conformal prediction band, and checksum-verified same-version replay of research packages. The previously held-out data has been viewed; new results are explicitly labeled as development-set comparisons, not an untouched test set or external validation.
 
 In the actual `small` example, training cross-validation selected the mean-per-time baseline, with a development macro RMSE of `0.00304756`; the original latent population model scored `0.00833386`, still worse than the baseline. Warnings that the parameter model did not converge, and that identifiability and statistical precision are insufficient, are all preserved. Unprocessed OD600 data cannot validate the efficacy of the five antibiotics, nor identify absolute CFU.
 
@@ -71,7 +71,7 @@ Press `Ctrl+C` in the terminal to stop the server. Default outputs are `dist/cor
 
 ## How the code works
 
-The following explains the actual data flow, mathematical computation, and engineering constraints of the current `6.0.0` source. Links point to concrete implementations; the papers explain the methodological basis and cannot replace this project's condition-matched experimental validation. The app does not depend on React, third-party optimizers, or remote compute services — it uses native JavaScript ES Modules, DOM/SVG, Web Workers, and IndexedDB.
+The following explains the actual data flow, mathematical computation, and engineering constraints of the current `6.1.0` source. Links point to concrete implementations; the papers explain the methodological basis and cannot replace this project's condition-matched experimental validation. The app does not depend on React, third-party optimizers, or remote compute services — it uses native JavaScript ES Modules, DOM/SVG, Web Workers, and IndexedDB.
 
 ### 1. Layered structure and call chain
 
@@ -313,7 +313,7 @@ After the frozen selection, candidates are refit on all training trajectories; t
 
 Actual record for fixed `small`, seed `123456789`: CV selected the mean baseline; development macro RMSE **0.00304756 OD**, MAE **0.00239205 OD**; the original latent model's macro RMSE was **0.00833386 OD**, non-converged. Direct Logistic/Gompertz also did not converge in each CV fold, so this is not evidence of the new models improving prediction accuracy.
 
-Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric aggregation](./src/analysis/metrics.js), [versioned actual results](./data/examples/ecolab-stage6-research-6.0.0.md).
+Source: [CV and frozen comparison](./src/analysis/growth-comparison.js), [metric aggregation](./src/analysis/metrics.js), [versioned actual results](./data/examples/ecolab-stage6-research-6.1.0.md).
 
 ### 5. Parameter sweeps and sensitivity analysis
 
@@ -448,7 +448,7 @@ The cross-runtime patch only handles duplicate numeric text for closed warning t
 
 Therefore the distinctions are mandatory: **integrity passing ≠ provenance real; replayable ≠ replay matched; replay matched ≠ scientifically valid or parameters identified.** `replayable` only means it can be attempted; `matched` means the results agree under the specified comparison rules.
 
-When importing a versioned example in the browser, use the `researchPackage` inside the [6.0.0 example JSON](./data/examples/ecolab-stage6-research-6.0.0.json), not the outer example wrapper; research packages exported by the browser itself can be imported directly.
+When importing a versioned example in the browser, use the `researchPackage` inside the [6.1.0 example JSON](./data/examples/ecolab-stage6-research-6.1.0.json), not the outer example wrapper; research packages exported by the browser itself can be imported directly.
 
 Source: [strict checks, compatibility decisions, and replay comparison](./src/analysis/research-replay.js), [closed numeric warning templates](./src/analysis/replay-warning-equivalence.js).
 
@@ -488,7 +488,8 @@ Suggested reading order for first-time readers:
 
 ## Documentation
 
-- [Detailed update notes for this release](./docs/release-notes-6.0.0.md)
+- [Detailed update notes for this release](./docs/release-notes-6.1.0.md)
+- [6.0.0 historical release notes](./docs/release-notes-6.0.0.md)
 - [Project overview](./docs/project-overview.md)
 - [System architecture](./docs/architecture.md)
 - [Scientific core](./docs/scientific-core.md)
@@ -509,8 +510,10 @@ Ecolab's own code is released under the [MIT License](./LICENSE), copyright © 2
 
 Versioned generated examples:
 
-- [Current 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
-- [Current 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
+- [Current 6.1.0 Markdown](./data/examples/ecolab-stage6-research-6.1.0.md)
+- [Current 6.1.0 JSON](./data/examples/ecolab-stage6-research-6.1.0.json)
+- [Historical 6.0.0 Markdown](./data/examples/ecolab-stage6-research-6.0.0.md)
+- [Historical 6.0.0 JSON](./data/examples/ecolab-stage6-research-6.0.0.json)
 - [Frozen historical 5.0.0 Markdown](./data/examples/ecolab-stage5-small-research-5.0.0.md)
 - [Frozen historical 5.0.0 JSON](./data/examples/ecolab-stage5-small-research-5.0.0.json)
 

@@ -1,6 +1,6 @@
 # Ecolab project overview / 项目概览
 
-Ecolab 6.0.0 是本地优先的大肠杆菌种群建模项目，包含教学与研究两个用途，使用原生 JavaScript ES Modules、SVG、Web Worker 和 IndexedDB，无第三方运行时依赖。除浏览器界面外，还提供终端前端 `ecolab`（`node bin/ecolab.js`），可在终端运行全部功能并输出 JSON，方便 agent 调用，见 [终端 CLI](./cli.md)。
+Ecolab 6.1.0 是本地优先的大肠杆菌种群建模项目，包含教学与研究两个用途，使用原生 JavaScript ES Modules、SVG、Web Worker 和 IndexedDB，无第三方运行时依赖。除浏览器界面外，还提供终端前端 `ecolab`（`node bin/ecolab.js`），可在终端运行全部功能并输出 JSON，方便 agent 调用，见 [终端 CLI](./cli.md)。
 
 ## 两个工作区
 
@@ -9,7 +9,7 @@ Ecolab 6.0.0 是本地优先的大肠杆菌种群建模项目，包含教学与�
 
 ## 版本与证据边界
 
-应用 `6.0.0`；分析引擎 `2.0.0` / `ecolab-research-analysis-v2`；教学核心 `2.0.0`；模型 `1.0.0`。分析算法变更不再冒用旧分析版本。历史 5.0.0 工件保持原样。
+应用 `6.1.0`；分析引擎 `2.1.0` / `ecolab-research-analysis-v2`；教学核心 `2.0.0`；模型 `1.0.0`。拟合识别性门槛和 profile 诊断进入当前分析契约；6.0.0 及更早的版本化工件保留原样。
 
 内置数据来自 Aida 与 Ying 的公开 Figshare 数据，含 12 条无药 BW25113 `Cond00003` 原始 OD600 曲线、528 个点。8 条用于训练；原先留出的 4 条已被查看，本次升级中仅作为开发比较。完整曲线隔离并不证明独立实验重复，当前不具备 L4 独立验证证据。不能由 OD600 推导绝对 CFU 或验证抗生素参数。
 

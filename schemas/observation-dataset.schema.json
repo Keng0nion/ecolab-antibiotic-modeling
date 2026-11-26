@@ -104,7 +104,7 @@
       "allOf": [
         {
           "if": {
-            "properties": { "measurementType": { "enum": ["cfu_per_ml", "od600", "od595"] } },
+            "properties": { "measurementType": { "const": "cfu_per_ml" } },
             "required": ["measurementType"]
           },
           "then": { "properties": { "value": { "minimum": 0 } } }

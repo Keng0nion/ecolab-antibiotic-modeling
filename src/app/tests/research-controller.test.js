@@ -68,7 +68,7 @@ function createHarness(options = {}) {
     app,
     catalog,
     repository,
-    applicationVersion: "6.0.0",
+    applicationVersion: "6.1.0",
     downloadText(text, name, type) { downloads.push({ text, name, type }); },
     t(key, params = {}) {
       return Object.entries(params).reduce(
@@ -306,7 +306,7 @@ test("dedicated workflow submission captures one run, updates progress DOM direc
   const options = harness.taskCalls[0].payload.options;
   assert.equal(options.datasetVersion, "1.0.0");
   assert.equal(options.contentHash, TEST_HASH);
-  assert.equal(options.applicationVersion, "6.0.0");
+  assert.equal(options.applicationVersion, "6.1.0");
     assert.match(options.runId, /^research-v2-/);
     assert.equal(options.growthComparison?.bootstrap.samples, 20);
   assert.equal(options.seed, harness.controller.state.seed);

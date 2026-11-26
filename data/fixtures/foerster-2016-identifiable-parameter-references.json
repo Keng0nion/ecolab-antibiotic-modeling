@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "published-parameter-reference-fixture",
+  "id": "foerster-2016-tables-s1-s2-informative-rows",
+  "source": {
+    "citation": "Foerster et al. (2016), BMC Microbiology, supplementary Additional file 1, Tables S1 and S2.",
+    "doi": "10.1186/s12866-016-0838-9",
+    "supplementUrl": "https://static-content.springer.com/esm/art%3A10.1186/s12866-016-0838-9/MediaObjects/12866_2016_838_MOESM1_ESM.pdf",
+    "retrievedOn": "2026-11-26",
+    "reportedStandardErrorType": "model-based standard errors"
+  },
+  "units": {
+    "kappa": "dimensionless",
+    "psiMax": "h^-1",
+    "psiMin": "h^-1",
+    "zMic": "microgram/mL (numerically equal to mg/L)"
+  },
+  "inclusionRule": "Include a row only when each of the four published model-based standard errors is finite, positive, and smaller than the absolute corresponding estimate. This is a conservative fixture-selection rule for numerically informative table entries, not a reanalysis of the paper's likelihood or a proof of formal identifiability.",
+  "includedRows": [
+    { "table": "S1", "row": 1, "antibiotic": "azithromycin", "strain": "DG666", "kappa": 2.43, "kappaSe": 0.81, "psiMaxPerHour": 0.67, "psiMaxSePerHour": 0.08, "psiMinPerHour": -2.25, "psiMinSePerHour": 0.17, "zMicMicrogramPerMl": 0.0267, "zMicSeMicrogramPerMl": 0.0050 },
+    { "table": "S1", "row": 2, "antibiotic": "azithromycin", "strain": "DG666", "kappa": 2.64, "kappaSe": 0.60, "psiMaxPerHour": 0.60, "psiMaxSePerHour": 0.06, "psiMinPerHour": -2.07, "psiMinSePerHour": 0.11, "zMicMicrogramPerMl": 0.0238, "zMicSeMicrogramPerMl": 0.0033 },
+    { "table": "S1", "row": 4, "antibiotic": "cefixime", "strain": "DG666", "kappa": 1.42, "kappaSe": 0.66, "psiMaxPerHour": 0.75, "psiMaxSePerHour": 0.17, "psiMinPerHour": -0.87, "psiMinSePerHour": 0.10, "zMicMicrogramPerMl": 0.0004, "zMicSeMicrogramPerMl": 0.0001 },
+    { "table": "S1", "row": 6, "antibiotic": "ceftriaxone", "strain": "DG666", "kappa": 1.58, "kappaSe": 0.69, "psiMaxPerHour": 0.80, "psiMaxSePerHour": 0.08, "psiMinPerHour": -0.46, "psiMinSePerHour": 0.09, "zMicMicrogramPerMl": 0.0004, "zMicSeMicrogramPerMl": 0.0001 },
+    { "table": "S1", "row": 7, "antibiotic": "chloramphenicol", "strain": "DG666", "kappa": 1.54, "kappaSe": 0.28, "psiMaxPerHour": 0.85, "psiMaxSePerHour": 0.03, "psiMinPerHour": -0.12, "psiMinSePerHour": 0.04, "zMicMicrogramPerMl": 0.3767, "zMicSeMicrogramPerMl": 0.1099 },
+    { "table": "S1", "row": 8, "antibiotic": "chloramphenicol", "strain": "DG666", "kappa": 2.04, "kappaSe": 0.43, "psiMaxPerHour": 0.61, "psiMaxSePerHour": 0.02, "psiMinPerHour": -0.10, "psiMinSePerHour": 0.03, "zMicMicrogramPerMl": 0.5762, "zMicSeMicrogramPerMl": 0.1461 },
+    { "table": "S1", "row": 10, "antibiotic": "gentamicin", "strain": "DG666", "kappa": 1.17, "kappaSe": 0.28, "psiMaxPerHour": 0.96, "psiMaxSePerHour": 0.19, "psiMinPerHour": -7.96, "psiMinSePerHour": 1.60, "zMicMicrogramPerMl": 0.2117, "zMicSeMicrogramPerMl": 0.0474 },
+    { "table": "S1", "row": 11, "antibiotic": "penicillin", "strain": "DG666", "kappa": 1.19, "kappaSe": 0.29, "psiMaxPerHour": 0.77, "psiMaxSePerHour": 0.15, "psiMinPerHour": -2.06, "psiMinSePerHour": 0.18, "zMicMicrogramPerMl": 0.0053, "zMicSeMicrogramPerMl": 0.0013 },
+    { "table": "S1", "row": 12, "antibiotic": "penicillin", "strain": "DG666", "kappa": 1.01, "kappaSe": 0.19, "psiMaxPerHour": 1.05, "psiMaxSePerHour": 0.11, "psiMinPerHour": -1.15, "psiMinSePerHour": 0.09, "zMicMicrogramPerMl": 0.0029, "zMicSeMicrogramPerMl": 0.0005 },
+    { "table": "S1", "row": 13, "antibiotic": "spectinomycin", "strain": "DG666", "kappa": 2.41, "kappaSe": 0.11, "psiMaxPerHour": 0.76, "psiMaxSePerHour": 0.04, "psiMinPerHour": -10.30, "psiMinSePerHour": 0.22, "zMicMicrogramPerMl": 5.6452, "zMicSeMicrogramPerMl": 0.2181 },
+    { "table": "S1", "row": 14, "antibiotic": "spectinomycin", "strain": "DG666", "kappa": 1.61, "kappaSe": 0.33, "psiMaxPerHour": 0.71, "psiMaxSePerHour": 0.22, "psiMinPerHour": -8.94, "psiMinSePerHour": 0.96, "zMicMicrogramPerMl": 4.6836, "zMicSeMicrogramPerMl": 1.2304 },
+    { "table": "S1", "row": 15, "antibiotic": "tetracycline", "strain": "DG666", "kappa": 1.14, "kappaSe": 0.19, "psiMaxPerHour": 0.72, "psiMaxSePerHour": 0.03, "psiMinPerHour": -0.25, "psiMinSePerHour": 0.05, "zMicMicrogramPerMl": 0.3259, "zMicSeMicrogramPerMl": 0.0860 },
+    { "table": "S1", "row": 16, "antibiotic": "tetracycline", "strain": "DG666", "kappa": 0.90, "kappaSe": 0.17, "psiMaxPerHour": 0.83, "psiMaxSePerHour": 0.04, "psiMinPerHour": -0.13, "psiMinSePerHour": 0.07, "zMicMicrogramPerMl": 0.7067, "zMicSeMicrogramPerMl": 0.3721 },
+    { "table": "S1", "row": 17, "antibiotic": "ciprofloxacin", "strain": "DG666", "kappa": 1.04, "kappaSe": 0.21, "psiMaxPerHour": 0.98, "psiMaxSePerHour": 0.25, "psiMinPerHour": -7.34, "psiMinSePerHour": 0.70, "zMicMicrogramPerMl": 0.0017, "zMicSeMicrogramPerMl": 0.0005 },
+    { "table": "S1", "row": 18, "antibiotic": "ciprofloxacin", "strain": "DG666", "kappa": 1.19, "kappaSe": 0.29, "psiMaxPerHour": 0.43, "psiMaxSePerHour": 0.29, "psiMinPerHour": -10.40, "psiMinSePerHour": 1.27, "zMicMicrogramPerMl": 0.0018, "zMicSeMicrogramPerMl": 0.0009 },
+    { "table": "S2", "row": 19, "antibiotic": "ciprofloxacin", "strain": "WHOG", "kappa": 0.69, "kappaSe": 0.14, "psiMaxPerHour": 0.86, "psiMaxSePerHour": 0.12, "psiMinPerHour": -2.22, "psiMinSePerHour": 0.35, "zMicMicrogramPerMl": 0.0327, "zMicSeMicrogramPerMl": 0.0094 },
+    { "table": "S2", "row": 20, "antibiotic": "ciprofloxacin", "strain": "WHOK", "kappa": 1.47, "kappaSe": 0.29, "psiMaxPerHour": 0.75, "psiMaxSePerHour": 0.03, "psiMinPerHour": -0.74, "psiMinSePerHour": 0.18, "zMicMicrogramPerMl": 18.3111, "zMicSeMicrogramPerMl": 3.9561 },
+    { "table": "S2", "row": 21, "antibiotic": "ciprofloxacin", "strain": "WHOL", "kappa": 1.56, "kappaSe": 0.27, "psiMaxPerHour": 0.89, "psiMaxSePerHour": 0.06, "psiMinPerHour": -1.02, "psiMinSePerHour": 0.10, "zMicMicrogramPerMl": 6.3510, "zMicSeMicrogramPerMl": 0.7475 },
+    { "table": "S2", "row": 22, "antibiotic": "ciprofloxacin", "strain": "WHOM", "kappa": 3.49, "kappaSe": 0.77, "psiMaxPerHour": 0.62, "psiMaxSePerHour": 0.05, "psiMinPerHour": -1.18, "psiMinSePerHour": 0.04, "zMicMicrogramPerMl": 0.2122, "zMicSeMicrogramPerMl": 0.0142 },
+    { "table": "S2", "row": 23, "antibiotic": "ciprofloxacin", "strain": "WHON", "kappa": 1.58, "kappaSe": 0.24, "psiMaxPerHour": 0.81, "psiMaxSePerHour": 0.04, "psiMinPerHour": -0.60, "psiMinSePerHour": 0.04, "zMicMicrogramPerMl": 1.7405, "zMicSeMicrogramPerMl": 0.1912 }
+  ],
+  "excludedRows": [
+    { "table": "S1", "row": 3, "reason": "The published zMIC standard error is 0.0000 after rounding, so it is not retained as informative precision." },
+    { "table": "S1", "row": 5, "reason": "The published zMIC standard error is 0.0000 after rounding, so it is not retained as informative precision." },
+    { "table": "S1", "row": 9, "reason": "The standard errors for psiMin and zMIC exceed the absolute estimates; the row is weakly resolved by the stated inclusion rule." },
+    { "table": "S2", "row": 24, "reason": "DG666 repeats the ciprofloxacin parameter set already reported as S1 row 18; it is omitted to avoid duplicate weighting." }
+  ],
+  "interpretationLimit": "These published estimates are used only as provenance-backed regression references for units, equation behavior, and numeric table inclusion. The project does not refit the original observations, recover the paper's likelihood, or claim independent biological validation from these summary tables."
+}

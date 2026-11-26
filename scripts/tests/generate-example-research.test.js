@@ -15,10 +15,12 @@ const rootPath = fileURLToPath(new URL("../../", import.meta.url));
 const historicalPaths = [
   "data/examples/ecolab-stage5-small-research-5.0.0.json",
   "data/examples/ecolab-stage5-small-research-5.0.0.md",
-];
-const defaultPaths = [
   "data/examples/ecolab-stage6-research-6.0.0.json",
   "data/examples/ecolab-stage6-research-6.0.0.md",
+];
+const defaultPaths = [
+  "data/examples/ecolab-stage6-research-6.1.0.json",
+  "data/examples/ecolab-stage6-research-6.1.0.md",
 ];
 const datasetPath = "data/datasets/figshare-bw25113-growth-v1/figshare-bw25113-growth-v1.json";
 const checksumsPath = "data/datasets/figshare-bw25113-growth-v1/checksums.json";
@@ -75,11 +77,11 @@ test("default generation creates only the new Stage 6 paths and preserves both h
 test("both explicit output flags support absolute paths and produce a versioned exact-input package", async () => {
   const { artifact, markdown } = await example();
   assert.equal(artifact.kind, "ecolab-stage6-research-example");
-  assert.equal(artifact.artifactVersion, "6.0.0");
+  assert.equal(artifact.artifactVersion, "6.1.0");
   const origin = artifact.generatedFrom;
-  assert.equal(origin.applicationVersion, "6.0.0");
+  assert.equal(origin.applicationVersion, "6.1.0");
   assert.equal(origin.scientificCoreVersion, "2.0.0");
-  assert.equal(origin.analysisEngineVersion, "2.0.0");
+  assert.equal(origin.analysisEngineVersion, "2.1.0");
   assert.equal(origin.analysisEngineId, "ecolab.stage4.analysis");
   assert.equal(origin.analysisImplementationId, "ecolab-research-analysis-v2");
   assert.equal(origin.workflowImplementationId, "ecolab-research-development-v2");
@@ -89,7 +91,7 @@ test("both explicit output flags support absolute paths and produce a versioned 
   const pkg = artifact.researchPackage;
   const replay = pkg.contents.artifacts["research-replay-input"];
   assert.equal(replay.implementationId, origin.workflowImplementationId);
-  assert.equal(replay.options.runId, "ecolab-stage6-research-6.0.0");
+  assert.equal(replay.options.runId, "ecolab-stage6-research-6.1.0");
   assert.equal(replay.options.createdAt, "2026-09-07T12:00:00.000Z");
   assert.equal(replay.options.applicationVersion, origin.applicationVersion);
   assert.deepEqual(replay.options.optimizer, researchPreset("small").optimizer);
@@ -103,7 +105,7 @@ test("both explicit output flags support absolute paths and produce a versioned 
   assert.equal(pkg.replay.selfContained, false);
   assert.ok(pkg.replay.dependencies.length >= 2);
   assert.ok(pkg.replay.dependencies.every(({ requirement }) => requirement === "exact"));
-  assert.ok(pkg.replay.dependencies.some(({ id, version }) => id === origin.analysisImplementationId && version === "2.0.0"));
+  assert.ok(pkg.replay.dependencies.some(({ id, version }) => id === origin.analysisImplementationId && version === "2.1.0"));
   assert.match(markdown, /data-self-contained/i);
   assert.match(markdown, /exact built-in software/i);
   assert.match(markdown, /not a standalone executable/i);
@@ -134,7 +136,7 @@ test("generated provenance contains actual byte hashes, canonical hashes, seeds,
   assert.ok(markdown.includes(checksums.source.attribution));
   for (const [index, path] of historicalPaths.entries()) {
     const history = artifact.historicalArtifacts.find((entry) => entry.path === path);
-    assert.equal(history.artifactVersion, "5.0.0");
+    assert.equal(history.artifactVersion, /-(\d+\.\d+\.\d+)\.(?:json|md)$/u.exec(path)[1]);
     assert.equal(history.sha256, sha256(historicalBytes[index]));
     assert.ok(markdown.includes(path));
   }

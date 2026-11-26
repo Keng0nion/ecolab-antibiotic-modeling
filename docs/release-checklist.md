@@ -1,4 +1,47 @@
-# Ecolab 6.0.0 release checklist / 发布检查表
+# Ecolab release checklist / 发布检查表
+
+## 6.1.0 fit-status and audit release / 拟合状态与审计版本
+
+更新：2026-11-26；应用 `6.1.0`，分析 `2.1.0`，教学核心 `2.0.0`，教学模型 `1.0.0`。6.0.0 release record follows unchanged below.
+
+- [x] Shared exact-observation gates cover censored-likelihood and OD least-squares fit entry points; local rank-deficient OD fits return status only.
+- [x] Results record convergence, all boundary hits, σ lower-bound status and profile state; unassessed profiles are explicit.
+- [x] Import readiness, status-only fit presentation, parameter boundary lists and result-linked exports are covered by Node view/export tests.
+- [x] Current transferred parameter set records teaching-only purpose and research-fit ineligibility.
+- [x] Foerster 2016 S1/S2 informative-row fixture records source, units and exclusions; Regoes algebraic regression tests run through the scientific model evaluator.
+- [x] App / analysis versions advanced to `6.1.0` / `2.1.0`; 6.0.0 example bytes remain preserved and are referenced as historical.
+- [x] Version compatibility contract: `schemas/analysis-run.schema.json` accepts analysis `2.1.0` while `1.0.0` / `2.0.0` manifests remain valid; replay input treats `preset` as optional so 6.0.0 packages stay inspect-only rather than invalid.
+- [x] Current example regenerated as `data/examples/ecolab-stage6-research-6.1.0.{json,md}`; the four frozen 5.0.0 / 6.0.0 files kept their recorded SHA-256 before and after generation.
+- [x] Focused checks, full Node suite, public build and real-browser import → fit → export → reload flow executed; observed results are recorded below.
+
+### 6.1.0 已执行验证
+
+本机 macOS（Darwin，Node `v22.22.2`）。验证期间主机存在与本任务无关的外部高负载（load average 6–20），因此测试墙钟时间明显长于空闲机器；所有断言未删减，超时预算只做环境性调整（见下）。
+
+| 命令 | 实际结果 |
+| --- | --- |
+| `npm run check:syntax` | 通过（含新增 `src/cli/*`、`scripts/benchmarks/*`、`predictive-diagnostics.js`）。 |
+| `npm run check:version` | 通过：应用 `6.1.0`、分析 `2.1.0` / `ecolab-research-analysis-v2`、教学核心 `2.0.0`、模型 `1.0.0`。 |
+| `npm run audit:data` | 通过：1 model、1 parameter set、14 sources、7 dataset records、6 drug records。 |
+| `npm run test:release` | **77/77 通过**，0 失败/取消/跳过，约 199 秒。 |
+| `npm test` | **590/590 通过**，0 失败/取消/跳过，约 270 秒。 |
+| `npm run build:public` | 通过：干净 Core/Web 构建与发布审计；示例严格包检查通过、科学回放匹配（abs=1e-10, rel=1e-8）；39 个 Markdown 文件链接检查通过；Core 7.29 MiB、Web 7.81 MiB，最大单文件 4.10 MiB。 |
+
+- 示例生成确定性：连续两次 `npm run example:research` 产物字节一致；科学结果 canonical SHA-256 为 `1f261285e1d4d597451b33110c277f726f73eae36cfa56659ec1e34c5904d9c8`，preset `small`，根种子 `123456789`。
+- 历史文件哈希（生成前后一致）：5.0.0 JSON `f3365e5c616597c042aa87eb76040b620955f4ea9e8865c77b83e5245acc41b8`；5.0.0 Markdown `05ca4c25a2327f81119ee7af609d2536c1ec7072f35a4532f32319406f416bbd`；6.0.0 JSON `f5929dae8d22c9b6bc6839abb19d5e92dfa458566e9dd31cb2f82175e5c1d41f`；6.0.0 Markdown `2b451d5bd26add57098e0a6a7eabcc2a531bd945b710dd104b735a12efec1527`。
+- 本轮发现并修复的回归：工作区曾用 6.1.0 代码覆盖 6.0.0 示例，并把新字节写入发布审计的历史哈希；现已恢复 6.0.0 原始字节，审计与示例引用改为 HEAD 记录。CSV 导出的 `random_algorithm` 曾因读取不存在的 `runMetadata.randomAlgorithm` 而为空，现读取 `runMetadata.seeds.algorithm` 并由测试断言具体值。状态型结果（单时间点、秩亏）曾使 v2 工作流在缺少 `researchPackage` 时抛 `TypeError`，现按状态输出返回，不伪造比较。
+- 超时预算调整（仅环境预算，未放宽断言）：发布审计测试 `120s → 600s`（隔离约 60 秒，主机高负载下约 126 秒）；浏览器 API 集成测试 `30s → 120s`（隔离约 12 秒，高负载并发下约 50 秒）。
+
+### 6.1.0 浏览器记录
+
+2026-11-26，agent-browser `0.33.0`（Chromium），服务 `dist/web` 于 `http://127.0.0.1:43118`；先执行 `agent-browser skills get core`。全流程在同一真实浏览器会话内完成：
+
+- 导入：内置 BW25113 数据加载并校验 SHA-256 `67b5fc27…f03817`，528 观测 / 12 独立单元 / 0 错误，显示“精确合约 · 可运行”，一键锁定工作流启用。
+- 拟合：`small` 预设、默认种子 `1582041777`；真实 Worker 完成运行，结果页显示“拟合未收敛 · 需复核”、轮廓似然“未评估”、贴边参数 0、σ 下界“—”；completed=true / converged=false / identified=false / precisionAssessed=false；训练 352 观测 / 8 单元，开发比较 176 / 4；终止原因 `maximum_evaluations`。
+- 导出：完整结果 JSON 记录应用 `6.1.0`、种子 `1582041777`、`settings.preset="small"`、RNG `xoshiro128ss-splitmix32-v1`、`training.status=FIT_NOT_CONVERGED`、边界列表为空、`sigmaAtLowerBound=null`、profile `NOT_ASSESSED`；数据集 CSV 头部记录 `application_version: 6.1.0`、`random_seed: 1582041777`、`random_algorithm: xoshiro128ss-splitmix32-v1`、`fit_status: FIT_NOT_CONVERGED` 与完整 `run_settings_json`。
+- 重开：刷新后恢复保存的数据集与分析记录（同一 runId，状态“已完成”，数据集引用 `figshare-bw25113-growth-v1@1.0.0 · r1`），结果状态标签与“打开结果”均可用；设计区默认值恢复为种子 `1582041777`、预设 `small`。
+- 研究包导入：当前 6.1.0 包检查为“版本兼容 · 等待显式重放”，显式重放返回“重放匹配”并显示比较报告与预览指标；历史 6.0.0 包检查为“仅检查 · 不可重放”，原因 `UNSUPPORTED_SOFTWARE_VERSION` 与 `UNSUPPORTED_GROWTH_COMPARISON_IMPLEMENTATION`，重放按钮禁用。
+- 控制台无错误；观察到的应用请求均为 `127.0.0.1`，仅有构建未包含的 `favicon.ico` 404。未执行跨浏览器、窄屏、读屏或性能 P95 矩阵。
 
 更新：2026-09-07；本地 macOS，Node `v26.4.0`。这是本轮记录，不沿用历史 5.0.0 的 238 项测试数。
 

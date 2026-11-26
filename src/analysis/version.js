@@ -1,4 +1,4 @@
-export const ANALYSIS_ENGINE_VERSION = "2.0.0";
+export const ANALYSIS_ENGINE_VERSION = "2.1.0";
 export const ANALYSIS_ENGINE_ID = "ecolab.stage4.analysis";
 export const ANALYSIS_ENGINE_STABLE_ID = ANALYSIS_ENGINE_ID;
 export const ANALYSIS_STABLE_ID = ANALYSIS_ENGINE_ID;

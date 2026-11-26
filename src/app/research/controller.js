@@ -16,6 +16,7 @@ import {
   researchExportAvailability,
   researchMethodsText,
   researchPackageJson,
+  researchResultJson,
 } from "./export.js";
 import { renderResearchCharts, serializeResearchDashboard } from "./charts.js";
 import {
@@ -564,6 +565,8 @@ export function createResearchController(options) {
           restarts: 6,
           // 保持足够的重抽样数；数据量不应静默改变置信区间精度
           bootstrapReplicates: 500,
+          profileLikelihood: true,
+          profilePoints: 5,
         },
       }, { taskId: run.runId, onProgress: updateProgress });
       runtime.runTask.handle = handle;
@@ -681,11 +684,13 @@ export function createResearchController(options) {
 
   function exportResearch(kind) {
     const datasetRecord = state.selectedDataset;
-    const result = state.result;
+    const result = state.killResult ?? state.result;
     const available = researchExportAvailability(datasetRecord, result);
     const base = slugify(result?.reproducibility?.runId ?? datasetRecord?.title ?? "ecolab-stage4-research");
-    if (!available[kind]) throw new Error(t(kind === "dataset" ? "research.export.noDataset" : "research.export.noResult"));
-    if (kind === "dataset") downloadText(normalizedDatasetToCsv(datasetRecord.normalizedDataset, getLocale()), `${base}.normalized-dataset.csv`, "text/csv;charset=utf-8");
+    const availabilityKey = kind === "result" ? "resultJson" : kind;
+    if (!available[availabilityKey]) throw new Error(t(kind === "dataset" ? "research.export.noDataset" : "research.export.noResult"));
+    if (kind === "dataset") downloadText(normalizedDatasetToCsv(datasetRecord.normalizedDataset, getLocale(), result), `${base}.normalized-dataset.csv`, "text/csv;charset=utf-8");
+    else if (kind === "result") downloadText(researchResultJson(result), `${base}.fit-result.json`, "application/json;charset=utf-8");
     else if (kind === "manifest") downloadText(analysisManifestJson(result, getLocale()), `${base}.analysis-manifest.json`, "application/json;charset=utf-8");
     else if (kind === "package") downloadText(researchPackageJson(result, getLocale()), `${base}.research-package.json`, "application/json;charset=utf-8");
     else if (kind === "predictions") downloadText(predictionsMetricsToCsv(datasetRecord.normalizedDataset, result, getLocale()), `${base}.predictions-residuals-metrics.csv`, "text/csv;charset=utf-8");
@@ -697,10 +702,10 @@ export function createResearchController(options) {
   }
 
   function renderExportMenu() {
-    const available = researchExportAvailability(state.selectedDataset, state.result);
+    const available = researchExportAvailability(state.selectedDataset, state.killResult ?? state.result);
     const disabled = (kind) => available[kind] ? "" : "disabled";
-    const anyResult = available.manifest || available.package || available.predictions || available.methods || available.svg;
-    return `<details class="export-menu" data-focus-key="research-export-menu"><summary>${t("nav.export")}</summary><div class="export-popover research-export-popover"><button type="button" data-action="research-export-manifest" ${disabled("manifest")}>${t("research.export.manifest")}</button><button type="button" data-action="research-export-package" ${disabled("package")}>${t("research.export.package")}</button><button type="button" data-action="research-export-dataset" ${disabled("dataset")}>${t("research.export.dataset")}</button><button type="button" data-action="research-export-predictions" ${disabled("predictions")}>${t("research.export.predictions")}</button><button type="button" data-action="research-export-methods" ${disabled("methods")}>${t("research.export.methods")}</button><button type="button" data-action="research-export-svg" ${disabled("svg")}>${t("research.export.svg")}</button><p>${t(anyResult ? "research.export.ready" : "research.export.disabled")}</p></div></details>`;
+    const anyResult = available.resultJson || available.manifest || available.package || available.predictions || available.methods || available.svg;
+    return `<details class="export-menu" data-focus-key="research-export-menu"><summary>${t("nav.export")}</summary><div class="export-popover research-export-popover"><button type="button" data-action="research-export-result" ${disabled("resultJson")}>${t("research.export.result")}</button><button type="button" data-action="research-export-manifest" ${disabled("manifest")}>${t("research.export.manifest")}</button><button type="button" data-action="research-export-package" ${disabled("package")}>${t("research.export.package")}</button><button type="button" data-action="research-export-dataset" ${disabled("dataset")}>${t("research.export.dataset")}</button><button type="button" data-action="research-export-predictions" ${disabled("predictions")}>${t("research.export.predictions")}</button><button type="button" data-action="research-export-methods" ${disabled("methods")}>${t("research.export.methods")}</button><button type="button" data-action="research-export-svg" ${disabled("svg")}>${t("research.export.svg")}</button><p>${t(anyResult ? "research.export.ready" : "research.export.disabled")}</p></div></details>`;
   }
 
   async function handleClick(action, target) {
@@ -723,6 +728,7 @@ export function createResearchController(options) {
     if (action === "research-select-dataset") { await selectDataset(target.dataset.id); return true; }
     if (action === "research-select-analysis") { await selectAnalysis(target.dataset.id); return true; }
     const exports = {
+      "research-export-result": "result",
       "research-export-manifest": "manifest",
       "research-export-package": "package",
       "research-export-dataset": "dataset",
